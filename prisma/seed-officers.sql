@@ -18,7 +18,9 @@ VALUES
   ('c0b7111e-3a0b-400c-a30c-0a9948300dbf', 'jnatalio@isufst.edu.ph', 'John David A. Natalio', 'Senator', 'client', true, true, NOW()),
   ('f08a8ac4-dbe6-42ad-bec6-a3fa57c15c4f', 'jbalinas@isufst.edu.ph', 'John Emiel P. Balinas', 'Senator', 'client', true, true, NOW()),
   ('853f0eaf-f25e-41f5-8c36-5bd2f8f6d233', 'jmartinez@isufst.edu.ph', 'Jeff Edrick C. Martinez', 'Senator', 'client', true, true, NOW()),
-  ('20b48535-10c9-411b-89a1-e2ec06a8a850', 'aperisme@isufst.edu.ph', 'Andro Renz D. Perisme', 'Senator', 'client', true, true, NOW())
+  ('20b48535-10c9-411b-89a1-e2ec06a8a850', 'aperisme@isufst.edu.ph', 'Andro Renz D. Perisme', 'Senator', 'client', true, true, NOW()),
+  ('b5f99437-b150-48b5-b98e-f96811971fd9', 'ralmirante@isufst.edu.ph', 'Reynald S. Almirante', 'Senator', 'client', true, true, NOW()),
+  ('ef90bc32-6612-4cd3-886f-318dc19a55c3', 'jfrial@isufst.edu.ph', 'Jona Ross P. Frial', 'Senator', 'client', true, true, NOW())
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   position = EXCLUDED.position,
