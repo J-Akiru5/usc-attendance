@@ -9,7 +9,7 @@ dist/
 .env.local
 
 # Prisma
-prisma/migrations/
+# (keep migrations tracked for Vercel deploys)
 
 # IDE
 .vscode/
