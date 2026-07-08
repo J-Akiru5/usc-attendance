@@ -11,6 +11,7 @@ import CardTitle from '@/components/ui/CardTitle.vue'
 import Badge from '@/components/ui/Badge.vue'
 import Input from '@/components/ui/Input.vue'
 import Label from '@/components/ui/Label.vue'
+import LocationPicker from '@/components/ui/LocationPicker.vue'
 
 const events = useEventStore()
 const auth = useAuthStore()
@@ -78,31 +79,36 @@ function formatTime(dateStr: string) {
         <CardTitle>New Event</CardTitle>
       </CardHeader>
       <CardContent>
-        <form @submit.prevent="handleCreate" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-2 md:col-span-2">
-            <Label>Event Title</Label>
-            <Input v-model="form.title" placeholder="General Assembly — July Session" required />
+        <form @submit.prevent="handleCreate" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2 md:col-span-2">
+              <Label>Event Title</Label>
+              <Input v-model="form.title" placeholder="General Assembly — July Session" required />
+            </div>
+            <div class="space-y-2">
+              <Label>Date</Label>
+              <Input v-model="form.date" type="date" required />
+            </div>
+            <div class="space-y-2">
+              <Label>Time</Label>
+              <Input v-model="form.time" type="time" required />
+            </div>
+            <div class="space-y-2">
+              <Label>Radius (meters)</Label>
+              <Input v-model="form.radiusMeters" type="number" placeholder="50" />
+            </div>
           </div>
+
           <div class="space-y-2">
-            <Label>Date</Label>
-            <Input v-model="form.date" type="date" required />
+            <Label>Venue Location</Label>
+            <LocationPicker
+              v-model:lat="form.lat"
+              v-model:lng="form.lng"
+              :radius-meters="parseInt(form.radiusMeters) || 50"
+              height="280px"
+            />
           </div>
-          <div class="space-y-2">
-            <Label>Time</Label>
-            <Input v-model="form.time" type="time" required />
-          </div>
-          <div class="space-y-2">
-            <Label>Latitude</Label>
-            <Input v-model="form.lat" type="number" step="any" placeholder="10.6895" required />
-          </div>
-          <div class="space-y-2">
-            <Label>Longitude</Label>
-            <Input v-model="form.lng" type="number" step="any" placeholder="122.9550" required />
-          </div>
-          <div class="space-y-2">
-            <Label>Radius (meters)</Label>
-            <Input v-model="form.radiusMeters" type="number" placeholder="50" />
-          </div>
+
           <div class="flex items-end">
             <Button type="submit" variant="default" class="w-full">Create Event</Button>
           </div>

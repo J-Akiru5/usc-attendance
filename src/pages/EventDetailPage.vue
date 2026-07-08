@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
+import LocationPicker from '@/components/ui/LocationPicker.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -88,9 +89,23 @@ function methodBadgeVariant(method: string) {
           {{ formatDate(events.currentEvent.date) }} · {{ formatTime(events.currentEvent.date) }}
         </p>
         <p class="text-white/40 text-xs mt-1">
-          Location: {{ events.currentEvent.lat.toFixed(4) }}, {{ events.currentEvent.lng.toFixed(4) }} · Radius: {{ events.currentEvent.radiusMeters }}m
+          Radius: {{ events.currentEvent.radiusMeters }}m
         </p>
       </div>
+
+      <!-- Venue Map -->
+      <Card>
+        <CardContent class="p-4">
+          <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Venue Location</div>
+          <LocationPicker
+            :model-lat="events.currentEvent.lat"
+            :model-lng="events.currentEvent.lng"
+            :radius-meters="events.currentEvent.radiusMeters"
+            :readonly="true"
+            height="220px"
+          />
+        </CardContent>
+      </Card>
 
       <!-- Actions -->
       <div class="flex gap-3 flex-wrap">

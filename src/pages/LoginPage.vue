@@ -33,7 +33,18 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="flex-1 flex min-h-screen">
+  <div class="flex-1 flex min-h-screen relative">
+    <!-- Floating Back to Home Button -->
+    <button
+      @click="router.push('/')"
+      class="absolute top-6 left-6 z-30 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all backdrop-blur-md bg-navy/10 hover:bg-navy/20 text-navy border border-navy/10 hover:border-navy/20 lg:bg-white/10 lg:hover:bg-white/20 lg:text-white lg:border-white/10 lg:hover:border-white/20"
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      Back to Home
+    </button>
+
     <!-- Left panel: Branding -->
     <div class="hidden lg:flex lg:w-1/2 bg-navy flex-col justify-between p-12 relative overflow-hidden">
       <!-- Grid texture -->
