@@ -34,9 +34,7 @@ const values = [
             <div class="w-72 h-48 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-sm flex items-center justify-center relative overflow-hidden">
               <div class="absolute inset-0 bg-gradient-to-br from-gold/10 to-transparent" />
               <div class="text-center relative z-10">
-                <div class="w-16 h-16 rounded-2xl bg-gold/20 border border-gold/40 flex items-center justify-center mx-auto mb-3">
-                  <span class="text-gold font-bold text-xl font-serif">USC</span>
-                </div>
+                <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-16 h-16 rounded-2xl object-cover border border-gold/40 mx-auto mb-3 shadow-md shrink-0" />
                 <div class="text-sm font-semibold text-white">ISUFST Dingle Campus</div>
                 <div class="text-xs text-white/50 font-mono mt-1">University Student Council</div>
               </div>
@@ -76,9 +74,7 @@ const values = [
             </p>
 
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-navy flex items-center justify-center shrink-0">
-                <span class="text-gold font-bold text-sm font-serif">I</span>
-              </div>
+              <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-10 h-10 rounded-full object-contain bg-white/10 p-0.5 border border-gold/20 shrink-0" />
               <div>
                 <div class="text-sm font-semibold text-navy">ISUFST Dingle Campus</div>
                 <div class="text-xs text-slate">Serving Students Since Establishment</div>

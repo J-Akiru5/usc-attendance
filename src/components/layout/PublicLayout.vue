@@ -34,17 +34,13 @@ function closeMobileMenu() {
         <div class="flex items-center gap-3 cursor-pointer shrink-0" @click="router.push('/')">
           <!-- ISUFST Logo -->
           <div class="flex items-center gap-1.5">
-            <div class="w-9 h-9 rounded-full bg-white/10 border-2 border-gold/70 flex items-center justify-center shrink-0">
-              <span class="text-gold font-bold text-[10px] font-serif leading-none">ISUFST</span>
-            </div>
+            <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-9 h-9 rounded-full object-contain shrink-0 bg-white/10 p-0.5 border border-gold/30" />
           </div>
           <!-- Divider -->
           <div class="h-6 w-px bg-white/20" />
           <!-- USC Logo -->
           <div class="flex items-center gap-2">
-            <div class="w-9 h-9 rounded-full bg-gold border-2 border-gold flex items-center justify-center shrink-0">
-              <span class="text-navy font-bold text-sm font-serif leading-none">USC</span>
-            </div>
+            <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-9 h-9 rounded-full object-cover shrink-0 border border-gold/30" />
             <div class="hidden sm:block">
               <div class="text-[11px] font-bold text-white leading-tight">University Student Council</div>
               <div class="text-[9px] text-white/50 font-mono uppercase tracking-wider">ISUFST Dingle Campus</div>
@@ -147,13 +143,9 @@ function closeMobileMenu() {
           <!-- Brand -->
           <div class="sm:col-span-2 lg:col-span-1">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-white/10 border border-gold/60 flex items-center justify-center shrink-0">
-                <span class="text-gold font-bold text-[10px] font-serif">ISUFST</span>
-              </div>
+              <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-10 h-10 rounded-full object-contain shrink-0 bg-white/10 p-0.5 border border-gold/40" />
               <div class="w-px h-8 bg-white/20" />
-              <div class="w-10 h-10 rounded-full bg-gold border border-gold flex items-center justify-center shrink-0">
-                <span class="text-navy font-bold text-sm font-serif">USC</span>
-              </div>
+              <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-10 h-10 rounded-full object-cover shrink-0 border border-gold/40" />
               <div>
                 <div class="text-sm font-bold text-white leading-tight">University Student Council</div>
                 <div class="text-[10px] text-white/40 font-mono">ISUFST Dingle Campus</div>

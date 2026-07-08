@@ -135,9 +135,7 @@ function getInitials(name: string) {
             </div>
             <div class="p-6">
               <div class="flex items-center gap-3 mb-5 pb-4 border-b border-line">
-                <div class="w-10 h-10 rounded-full bg-navy border border-gold/40 flex items-center justify-center">
-                  <span class="text-gold font-bold text-xs">USC</span>
-                </div>
+                <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold/40 shrink-0" />
                 <div>
                   <div class="text-sm font-bold text-navy">University Student Council</div>
                   <div class="text-[10px] text-slate font-mono">ISUFST Dingle Campus</div>

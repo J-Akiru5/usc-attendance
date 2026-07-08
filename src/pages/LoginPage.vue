@@ -50,13 +50,9 @@ async function handleLogin() {
 
       <!-- Top logos -->
       <div class="relative z-10 flex items-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-white/10 border-2 border-gold/70 flex items-center justify-center">
-          <span class="text-gold font-bold text-[10px] font-serif">ISUFST</span>
-        </div>
+        <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-12 h-12 rounded-full object-contain bg-white/10 p-0.5 border-2 border-gold/70 shrink-0" />
         <div class="w-px h-8 bg-white/20" />
-        <div class="w-12 h-12 rounded-full bg-gold border-2 border-gold flex items-center justify-center">
-          <span class="text-navy font-bold text-sm font-serif">USC</span>
-        </div>
+        <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-12 h-12 rounded-full object-cover border-2 border-gold shrink-0" />
         <div>
           <div class="text-sm font-bold text-white leading-tight">University Student Council</div>
           <div class="text-[10px] text-white/50 font-mono uppercase tracking-wider">ISUFST Dingle Campus</div>
@@ -101,13 +97,9 @@ async function handleLogin() {
       <div class="w-full max-w-sm">
         <!-- Mobile logos (only shown on mobile) -->
         <div class="flex lg:hidden items-center justify-center gap-3 mb-8">
-          <div class="w-12 h-12 rounded-full bg-navy border-2 border-gold/70 flex items-center justify-center">
-            <span class="text-gold font-bold text-[10px] font-serif">ISUFST</span>
-          </div>
+          <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-12 h-12 rounded-full object-contain bg-white/10 p-0.5 border-2 border-gold/70 shrink-0" />
           <div class="w-px h-8 bg-line" />
-          <div class="w-12 h-12 rounded-full bg-gold border-2 border-gold flex items-center justify-center">
-            <span class="text-navy font-bold text-sm font-serif">USC</span>
-          </div>
+          <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-12 h-12 rounded-full object-cover border-2 border-gold shrink-0" />
         </div>
 
         <!-- Form header -->

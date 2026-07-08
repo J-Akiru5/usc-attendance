@@ -25,7 +25,7 @@ function isActive(to: string) {
   <aside class="hidden md:flex w-60 flex-col bg-navy-deep text-white min-h-screen">
     <div class="p-6 border-b border-white/10">
       <div class="flex items-center gap-3">
-        <img src="/logo-192.png" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold" />
+        <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold" />
         <div>
           <div class="text-xs tracking-widest uppercase text-gold-soft font-mono">Officer Portal</div>
         </div>
