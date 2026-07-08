@@ -19,6 +19,24 @@ function getInitials(name: string) {
     .slice(0, 2)
     .toUpperCase()
 }
+
+const cardHoverVariants = {
+  initial: { scale: 1, y: 0, boxShadow: '0 0 0 0 transparent' },
+  hover: { scale: 1.03, y: -4, boxShadow: '0 12px 24px -8px rgba(12,27,54,0.12)' }
+}
+
+const logos = [
+  '/webp/isufst_logo.webp',
+  '/webp/1.webp',
+  '/webp/2.webp',
+  '/webp/3.webp',
+  '/webp/4.webp',
+  '/webp/5.webp',
+  '/webp/6.webp',
+  '/webp/7.webp',
+  '/webp/8.webp',
+  '/webp/9.webp'
+]
 </script>
 
 <template>
@@ -45,24 +63,49 @@ function getInitials(name: string) {
 
       <div class="relative max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-7">
-          <div class="text-xs font-mono uppercase tracking-widest text-gold mb-5">
+          <div
+            v-motion
+            :initial="{ opacity: 0, x: -40 }"
+            :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
+            class="text-xs font-mono uppercase tracking-widest text-gold mb-5"
+          >
             ISUFST Dingle Campus
           </div>
 
-          <h1 class="text-4xl md:text-5xl lg:text-[3.75rem] font-bold font-serif leading-tight mb-3 drop-shadow-lg">
+          <h1
+            v-motion
+            :initial="{ opacity: 0, y: 40 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.6, delay: 200 } }"
+            class="text-4xl md:text-5xl lg:text-[3.75rem] font-bold font-serif leading-tight mb-3 drop-shadow-lg"
+          >
             University Student<br>Council
           </h1>
 
-          <p class="text-white/50 text-sm font-mono uppercase tracking-wider mb-5">
+          <p
+            v-motion
+            :initial="{ opacity: 0 }"
+            :enter="{ opacity: 1, transition: { duration: 0.5, delay: 300 } }"
+            class="text-white/50 text-sm font-mono uppercase tracking-wider mb-5"
+          >
             Official Website
           </p>
 
-          <p class="text-white/80 text-base md:text-lg leading-relaxed mb-10 max-w-xl">
+          <p
+            v-motion
+            :initial="{ opacity: 0, y: 20 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 400 } }"
+            class="text-white/80 text-base md:text-lg leading-relaxed mb-10 max-w-xl"
+          >
             Serving students. Leading change. Building community.<br>
             The official digital presence of the University Student Council.
           </p>
 
-          <div class="flex flex-wrap gap-3">
+          <div
+            v-motion
+            :initial="{ opacity: 0, y: 20 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 500 } }"
+            class="flex flex-wrap gap-3"
+          >
             <button
               @click="router.push('/portal')"
               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg bg-gold text-navy font-bold text-sm shadow-xl shadow-black/30 hover:brightness-110 transition-all"
@@ -83,14 +126,35 @@ function getInitials(name: string) {
 
         <div class="lg:col-span-5 flex justify-center lg:justify-end">
           <div class="relative group">
-            <!-- Decorative soft backdrop glow -->
             <div class="absolute inset-4 rounded-full bg-gold/15 blur-3xl group-hover:bg-gold/25 transition duration-1000"></div>
-            <!-- Logo Animation -->
             <img
+              v-motion
+              :initial="{ opacity: 0, scale: 0.8 }"
+              :enter="{ opacity: 1, scale: 1, transition: { duration: 0.7, delay: 300 } }"
+              :variants="{ animate: { y: [0, -12, 0], transition: { duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 800 } } }"
+              v="animate"
               src="/gif/usc%20logo%20animation.gif"
               alt="USC Logo Animation"
-              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] transition-transform duration-500 hover:scale-105"
+              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] hover:scale-105 transition-transform duration-500"
             />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== LOGO CAROUSEL ========== -->
+    <section class="py-8 bg-navy-deep border-y border-white/5 overflow-hidden relative">
+      <div class="max-w-7xl mx-auto px-4 md:px-6">
+        <div class="relative w-full overflow-hidden whitespace-nowrap [mask-image:_linear-gradient(to_right,_transparent_0,_black_15%,_black_85%,_transparent_100%)]">
+          <div class="inline-flex gap-16 md:gap-24 animate-marquee py-2">
+            <!-- First set -->
+            <div v-for="logo in logos" :key="logo" class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 shrink-0 bg-white/5 backdrop-blur-sm rounded-xl p-2 border border-white/10 hover:border-gold/30 hover:bg-white/10 transition-all duration-300 shadow-lg">
+              <img :src="logo" alt="Logo" class="max-h-full max-w-full object-contain filter brightness-90 hover:brightness-110 hover:scale-105 transition-all duration-300 select-none pointer-events-none" />
+            </div>
+            <!-- Duplicated set for seamless loop -->
+            <div v-for="logo in logos" :key="logo + '-dup'" class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 shrink-0 bg-white/5 backdrop-blur-sm rounded-xl p-2 border border-white/10 hover:border-gold/30 hover:bg-white/10 transition-all duration-300 shadow-lg">
+              <img :src="logo" alt="Logo" class="max-h-full max-w-full object-contain filter brightness-90 hover:brightness-110 hover:scale-105 transition-all duration-300 select-none pointer-events-none" />
+            </div>
           </div>
         </div>
       </div>
@@ -100,7 +164,11 @@ function getInitials(name: string) {
     <section class="py-16 md:py-20 bg-[#F0EDE6]">
       <div class="max-w-7xl mx-auto px-4 md:px-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div>
+          <div
+            v-motion
+            :initial="{ opacity: 0, x: -40 }"
+            :enter="{ opacity: 1, x: 0, transition: { duration: 0.5 } }"
+          >
             <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Who We Are</div>
             <h2 class="text-3xl md:text-4xl font-bold font-serif text-navy mb-6">
               Serving Students.<br>Leading Change.
@@ -122,7 +190,12 @@ function getInitials(name: string) {
             </router-link>
           </div>
 
-          <div class="rounded-2xl border border-line bg-paper-panel shadow-lg overflow-hidden">
+          <div
+            v-motion
+            :initial="{ opacity: 0, x: 40 }"
+            :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
+            class="rounded-2xl border border-line bg-paper-panel shadow-lg overflow-hidden"
+          >
             <div class="bg-navy px-4 py-3 flex items-center gap-2">
               <div class="flex gap-1.5">
                 <div class="w-2.5 h-2.5 rounded-full bg-red-400/60" />
@@ -169,16 +242,25 @@ function getInitials(name: string) {
     <!-- ========== OFFICERS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-paper">
       <div class="max-w-7xl mx-auto px-4 md:px-6">
-        <div class="text-center mb-12">
+        <div
+          v-motion
+          :initial="{ opacity: 0, y: 30 }"
+          :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
+          class="text-center mb-12"
+        >
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Leadership</div>
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Executive Officers</h2>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <div
-            v-for="officer in executiveOfficers"
+            v-for="(officer, index) in executiveOfficers"
             :key="officer.email"
-            class="flex flex-col items-center text-center p-5 rounded-xl border border-line bg-paper-panel shadow-sm"
+            v-motion
+            :initial="{ opacity: 0, y: 30 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
+            :hover="cardHoverVariants.hover"
+            class="flex flex-col items-center text-center p-5 rounded-xl border border-line bg-paper-panel shadow-sm cursor-default"
           >
             <div class="w-16 h-16 rounded-full bg-navy border-2 border-gold/40 flex items-center justify-center mb-3">
               <span class="text-gold font-bold text-base font-serif">{{ getInitials(officer.name) }}</span>
@@ -205,16 +287,25 @@ function getInitials(name: string) {
     <!-- ========== PROJECTS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-[#F0EDE6]">
       <div class="max-w-7xl mx-auto px-4 md:px-6">
-        <div class="text-center mb-12">
+        <div
+          v-motion
+          :initial="{ opacity: 0, y: 30 }"
+          :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
+          class="text-center mb-12"
+        >
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">What We Do</div>
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Projects & Programs</h2>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div
-            v-for="project in previewProjects"
+            v-for="(project, index) in previewProjects"
             :key="project.title"
-            class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm hover:shadow-md transition-all"
+            v-motion
+            :initial="{ opacity: 0, y: 40 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
+            :hover="cardHoverVariants.hover"
+            class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm transition-all cursor-default"
           >
             <div class="text-2xl mb-3">{{ project.icon }}</div>
             <div class="text-[10px] font-mono uppercase tracking-wider text-gold-dark mb-1.5">{{ project.category }}</div>
@@ -240,16 +331,25 @@ function getInitials(name: string) {
     <!-- ========== EVENTS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-paper">
       <div class="max-w-7xl mx-auto px-4 md:px-6">
-        <div class="text-center mb-12">
+        <div
+          v-motion
+          :initial="{ opacity: 0, y: 30 }"
+          :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
+          class="text-center mb-12"
+        >
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Get Involved</div>
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Upcoming Events</h2>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div
-            v-for="event in previewEvents"
+            v-for="(event, index) in previewEvents"
             :key="event.title"
-            class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm hover:shadow-md transition-all"
+            v-motion
+            :initial="{ opacity: 0, y: 40 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
+            :hover="cardHoverVariants.hover"
+            class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm transition-all cursor-default"
           >
             <div class="flex items-center gap-3 mb-3">
               <span class="text-xl">{{ event.icon }}</span>
@@ -276,7 +376,12 @@ function getInitials(name: string) {
 
     <!-- ========== CTA ========== -->
     <section class="py-16 md:py-20 bg-navy text-white">
-      <div class="max-w-3xl mx-auto px-4 md:px-6 text-center">
+      <div
+        v-motion
+        :initial="{ opacity: 0, y: 30 }"
+        :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
+        class="max-w-3xl mx-auto px-4 md:px-6 text-center"
+      >
         <h2 class="text-2xl md:text-3xl font-bold font-serif text-white mb-4">
           USC Officer?
         </h2>
@@ -296,3 +401,22 @@ function getInitials(name: string) {
     </section>
   </div>
 </template>
+
+<style scoped>
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+</style>
