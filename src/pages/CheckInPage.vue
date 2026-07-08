@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useEventStore } from '@/stores/events'
+import { useDutyStore } from '@/stores/duties'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useOfflineQueue } from '@/composables/useOfflineQueue'
 import { haversine } from '@/lib/haversine'
@@ -14,12 +15,14 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const events = useEventStore()
+const dutyStore = useDutyStore()
 const geo = useGeolocation()
 const { enqueue } = useOfflineQueue()
 
 const selectedEventId = ref<string | null>((route.params.eventId as string) || null)
 const checkingIn = ref(false)
 const result = ref<{ success: boolean; message: string } | null>(null)
+const mode = ref<'select' | 'geo' | 'qr'>('select')
 
 const selectedEvent = computed(() =>
   events.events.find((e) => e.id === selectedEventId.value) || null
@@ -45,10 +48,22 @@ const alreadyCheckedIn = computed(() => {
   return events.attendance.some((a) => a.userId === auth.user!.id)
 })
 
+const hasDutyToday = computed(() => {
+  if (!auth.user) return false
+  return dutyStore.hasDutyToday(auth.user.id)
+})
+
+const dutyAlreadyCheckedIn = computed(() => {
+  if (!auth.user) return false
+  return dutyStore.isCheckedInForDuty(auth.user.id)
+})
+
 onMounted(async () => {
   await events.fetchEvents()
+  await dutyStore.fetchTodayDutyAttendance()
   if (selectedEventId.value) {
     await events.fetchAttendance(selectedEventId.value)
+    mode.value = 'geo'
   }
   geo.startWatching()
 })
@@ -60,7 +75,6 @@ async function handleCheckIn() {
   result.value = null
 
   try {
-    // Try online first
     if (navigator.onLine) {
       await events.checkIn(
         selectedEvent.value.id,
@@ -69,10 +83,10 @@ async function handleCheckIn() {
         geo.longitude.value
       )
       result.value = { success: true, message: 'Check-in successful!' }
-      await events.fetchAttendance(selectedEvent.value.id)
+      await events.fetchAttendance(selectedEventId.value!)
     } else {
-      // Queue offline
       await enqueue({
+        type: 'event',
         eventId: selectedEvent.value.id,
         userId: auth.user.id,
         method: 'self',
@@ -91,6 +105,7 @@ async function handleCheckIn() {
 
 function selectEvent(id: string) {
   selectedEventId.value = id
+  mode.value = 'geo'
   result.value = null
   events.fetchAttendance(id)
 }
@@ -132,8 +147,39 @@ function getGreeting() {
       <p class="text-white/50 text-sm mt-1">{{ auth.user?.position }}</p>
     </div>
 
-    <!-- Event Selector (if no event pre-selected) -->
-    <div v-if="!selectedEventId">
+    <!-- Duty Card (if has duty today) -->
+    <div
+      v-if="hasDutyToday && !dutyAlreadyCheckedIn"
+      class="bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
+      @click="router.push('/duty')"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_0_4px_rgba(201,162,75,0.15)]" />
+        <div class="flex-1">
+          <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">Office Duty</div>
+          <div class="font-bold text-navy">You have duty today</div>
+        </div>
+        <Badge variant="warning">Tap to check in</Badge>
+      </div>
+    </div>
+
+    <!-- Mode selector (no event pre-selected) -->
+    <div v-if="mode === 'select' && !selectedEventId">
+      <!-- Check-in method tabs -->
+      <div class="flex gap-2 mb-4">
+        <button
+          class="flex-1 py-2.5 text-sm font-bold rounded-lg bg-navy text-white"
+        >
+          📍 Location
+        </button>
+        <button
+          class="flex-1 py-2.5 text-sm font-bold rounded-lg bg-paper-panel text-navy border border-line"
+          @click="router.push('/qr?eventId=' + (selectedEventId || ''))"
+        >
+          📱 QR Code
+        </button>
+      </div>
+
       <h2 class="text-sm font-bold text-navy uppercase tracking-wider mb-3">Select an event</h2>
       <div v-if="events.events.length === 0" class="text-sm text-slate text-center py-8 bg-paper-panel rounded-xl border border-line">
         No events available
@@ -152,7 +198,7 @@ function getGreeting() {
       </div>
     </div>
 
-    <template v-else>
+    <template v-else-if="selectedEventId && mode === 'geo'">
       <!-- Status Card (matches mockup) -->
       <Card>
         <CardContent class="p-5">
@@ -219,20 +265,20 @@ function getGreeting() {
         <span class="text-xs text-yellow-900">Location confirmed automatically</span>
       </button>
 
-      <!-- Fallback (matches mockup) -->
+      <!-- QR alternative -->
       <div class="text-center text-xs text-slate">
-        Scanner unavailable?
+        Prefer QR?
         <button
           class="text-navy font-bold hover:underline"
-          @click="router.push('/events')"
+          @click="router.push('/qr?eventId=' + selectedEventId)"
         >
-          Notify the officer on duty
+          Show QR code
         </button>
       </div>
 
       <!-- Change event -->
       <div class="text-center">
-        <button class="text-xs text-slate hover:text-navy" @click="selectedEventId = null">
+        <button class="text-xs text-slate hover:text-navy" @click="selectedEventId = null; mode = 'select'">
           &larr; Choose a different event
         </button>
       </div>

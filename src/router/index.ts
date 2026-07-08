@@ -41,6 +41,24 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/qr',
+      name: 'qr-code',
+      component: () => import('@/pages/QRCodePage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/scan',
+      name: 'scanner',
+      component: () => import('@/pages/ScannerPage.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
+    },
+    {
+      path: '/duty',
+      name: 'duty',
+      component: () => import('@/pages/DutyCheckInPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/attendance/:eventId',
       name: 'attendance',
       component: () => import('@/pages/AttendancePage.vue'),

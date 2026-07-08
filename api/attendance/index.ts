@@ -36,26 +36,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { eventId, userId, method, lat, lng, recordedBy } = req.body
+      const { type, eventId, dutyDate, userId, method, lat, lng, recordedBy } = req.body
 
-      if (!eventId || !userId || !method || !recordedBy) {
+      if (!userId || !method || !recordedBy) {
         return res.status(400).json({ error: 'Missing required fields' })
       }
 
-      // Check for duplicate (the @@unique constraint is the final guard,
-      // but we check here for a better error message)
-      const existing = await prisma.attendance.findUnique({
-        where: { eventId_userId: { eventId, userId } },
-      })
+      const attendanceType = type || 'event'
 
-      if (existing) {
-        return res.status(409).json({
-          error: 'This officer has already checked in to this event',
+      if (attendanceType === 'event' && !eventId) {
+        return res.status(400).json({ error: 'eventId is required for event check-ins' })
+      }
+
+      if (attendanceType === 'duty' && !dutyDate) {
+        return res.status(400).json({ error: 'dutyDate is required for duty check-ins' })
+      }
+
+      // Check for duplicate
+      if (attendanceType === 'event') {
+        const existing = await prisma.attendance.findUnique({
+          where: { eventId_userId: { eventId, userId } },
         })
+
+        if (existing) {
+          return res.status(409).json({
+            error: 'This officer has already checked in to this event',
+          })
+        }
+      }
+
+      if (attendanceType === 'duty') {
+        const date = new Date(dutyDate)
+        const todayStart = new Date(date)
+        todayStart.setHours(0, 0, 0, 0)
+        const todayEnd = new Date(date)
+        todayEnd.setHours(23, 59, 59, 999)
+
+        const existing = await prisma.attendance.findFirst({
+          where: {
+            userId,
+            type: 'duty',
+            dutyDate: { gte: todayStart, lte: todayEnd },
+          },
+        })
+
+        if (existing) {
+          return res.status(409).json({
+            error: 'Already checked in for duty today',
+          })
+        }
       }
 
       // Server-side distance validation for self check-ins
-      if (method === 'self' && lat !== undefined && lng !== undefined) {
+      if (method === 'self' && lat !== undefined && lng !== undefined && attendanceType === 'event') {
         const event = await prisma.event.findUnique({ where: { id: eventId } })
         if (!event) {
           return res.status(404).json({ error: 'Event not found' })
@@ -69,14 +102,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // Staff can only do manual check-ins for others
-      if (method === 'manual') {
+      // Staff can only do manual/qr check-ins
+      if (method === 'manual' || method === 'qr') {
         requireStaff(user)
       }
 
       const record = await prisma.attendance.create({
         data: {
-          eventId,
+          type: attendanceType,
+          eventId: attendanceType === 'event' ? eventId : null,
+          dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
           userId,
           method,
           lat: lat ? parseFloat(lat) : null,

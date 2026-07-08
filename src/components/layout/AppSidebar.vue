@@ -8,9 +8,11 @@ const router = useRouter()
 const route = useRoute()
 
 const navItems = [
-  { label: 'Dashboard', to: '/', icon: 'grid', roles: ['super_admin', 'staff', 'client'] },
-  { label: 'Events', to: '/events', icon: 'calendar', roles: ['super_admin', 'staff'] },
-  { label: 'Check In', to: '/check-in', icon: 'map-pin', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Dashboard', to: '/', icon: '⊞', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Events', to: '/events', icon: '📅', roles: ['super_admin', 'staff'] },
+  { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Scan QR', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
 ]
 
 function isActive(to: string) {
@@ -43,7 +45,7 @@ function isActive(to: string) {
           )"
         >
           <span class="w-5 h-5 flex items-center justify-center text-xs opacity-70">
-            {{ item.icon === 'grid' ? '⊞' : item.icon === 'calendar' ? '📅' : '📍' }}
+            {{ item.icon }}
           </span>
           {{ item.label }}
         </button>

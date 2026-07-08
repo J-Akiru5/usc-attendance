@@ -1,5 +1,8 @@
 export type Role = 'super_admin' | 'staff' | 'client'
 
+export type AttendanceType = 'event' | 'duty'
+export type CheckInMethod = 'self' | 'manual' | 'qr'
+
 export interface User {
   id: string
   email: string
@@ -24,9 +27,11 @@ export interface USCEvent {
 
 export interface Attendance {
   id: string
-  eventId: string
+  type: AttendanceType
+  eventId: string | null
+  dutyDate: string | null
   userId: string
-  method: 'self' | 'manual'
+  method: CheckInMethod
   lat: number | null
   lng: number | null
   recordedBy: string
@@ -37,9 +42,11 @@ export interface Attendance {
 }
 
 export interface CheckInPayload {
-  eventId: string
+  type: AttendanceType
+  eventId?: string
+  dutyDate?: string
   userId: string
-  method: 'self' | 'manual'
+  method: CheckInMethod
   lat?: number
   lng?: number
   recordedBy: string
@@ -49,4 +56,22 @@ export interface OfflineCheckIn extends CheckInPayload {
   id: string
   synced: boolean
   createdAt: string
+}
+
+export interface OfficeDuty {
+  id: string
+  userId: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  active: boolean
+  user?: User
+}
+
+export interface QRToken {
+  userId: string
+  eventId: string
+  issuedAt: number
+  exp: number
+  sig: string
 }

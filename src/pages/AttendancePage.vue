@@ -72,6 +72,18 @@ async function handleManualOverride() {
     // Error handled by API
   }
 }
+
+function methodBadgeVariant(method: string) {
+  if (method === 'self') return 'success'
+  if (method === 'qr') return 'default'
+  return 'warning'
+}
+
+function methodLabel(method: string) {
+  if (method === 'self') return 'Self'
+  if (method === 'qr') return 'QR'
+  return 'Manual'
+}
 </script>
 
 <template>
@@ -117,7 +129,7 @@ async function handleManualOverride() {
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-4 gap-3">
         <Card>
           <CardContent class="p-4 text-center">
             <div class="text-2xl font-bold text-navy">{{ events.attendance.length }}</div>
@@ -128,6 +140,12 @@ async function handleManualOverride() {
           <CardContent class="p-4 text-center">
             <div class="text-2xl font-bold text-success">{{ events.attendance.filter(a => a.method === 'self').length }}</div>
             <div class="text-xs text-slate">Self</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl font-bold text-navy">{{ events.attendance.filter(a => a.method === 'qr').length }}</div>
+            <div class="text-xs text-slate">QR</div>
           </CardContent>
         </Card>
         <Card>
@@ -155,8 +173,8 @@ async function handleManualOverride() {
                 <div class="text-xs text-slate">{{ record.user?.position }}</div>
               </div>
               <div class="flex items-center gap-3">
-                <Badge :variant="record.method === 'self' ? 'success' : 'warning'">
-                  {{ record.method === 'self' ? 'Self' : 'Manual' }}
+                <Badge :variant="methodBadgeVariant(record.method)">
+                  {{ methodLabel(record.method) }}
                 </Badge>
                 <div class="text-xs text-slate text-right min-w-[80px]">
                   {{ formatTime(record.createdAt) }}

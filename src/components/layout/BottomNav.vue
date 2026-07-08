@@ -23,7 +23,8 @@ const navItems: NavItem[] = [
   { label: 'Home', to: '/', icon: '⊞', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Events', to: '/events', icon: '📅', roles: ['super_admin', 'staff'] },
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
-  { label: 'Attendance', to: '/attendance', icon: '📋', roles: ['super_admin', 'staff'] },
+  { label: 'Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Scan', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
 ]
 </script>
 
@@ -35,7 +36,7 @@ const navItems: NavItem[] = [
         :key="item.to"
         @click="router.push(item.to)"
         :class="cn(
-          'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px]',
+          'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-[50px]',
           isActive(item.to)
             ? 'text-gold'
             : 'text-white/50 active:text-white'

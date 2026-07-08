@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useEventStore } from '@/stores/events'
+import { useDutyStore } from '@/stores/duties'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
@@ -10,11 +11,15 @@ import type { USCEvent } from '@/types'
 
 const auth = useAuthStore()
 const events = useEventStore()
+const dutyStore = useDutyStore()
 const router = useRouter()
 const todayEvents = ref<USCEvent[]>([])
 
 onMounted(async () => {
-  await events.fetchEvents()
+  await Promise.all([
+    events.fetchEvents(),
+    dutyStore.fetchTodayDutyAttendance(),
+  ])
   const today = new Date().toISOString().split('T')[0]
   todayEvents.value = events.events.filter((e) => e.date.startsWith(today))
 })
@@ -48,16 +53,16 @@ function formatTime(dateStr: string) {
     </div>
 
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <Card
         v-if="auth.isClient || auth.isStaff"
         class="cursor-pointer hover:shadow-md transition-shadow"
         @click="router.push('/check-in')"
       >
-        <CardContent class="p-6 text-center">
-          <div class="text-3xl mb-2">📍</div>
-          <div class="font-semibold text-navy">Check In</div>
-          <div class="text-xs text-slate mt-1">Self check-in via location</div>
+        <CardContent class="p-4 text-center">
+          <div class="text-2xl mb-1">📍</div>
+          <div class="font-semibold text-navy text-sm">Check In</div>
+          <div class="text-[10px] text-slate mt-0.5">Location or QR</div>
         </CardContent>
       </Card>
 
@@ -66,20 +71,55 @@ function formatTime(dateStr: string) {
         class="cursor-pointer hover:shadow-md transition-shadow"
         @click="router.push('/events')"
       >
-        <CardContent class="p-6 text-center">
-          <div class="text-3xl mb-2">📅</div>
-          <div class="font-semibold text-navy">Events</div>
-          <div class="text-xs text-slate mt-1">Manage events & attendance</div>
+        <CardContent class="p-4 text-center">
+          <div class="text-2xl mb-1">📅</div>
+          <div class="font-semibold text-navy text-sm">Events</div>
+          <div class="text-[10px] text-slate mt-0.5">Manage events</div>
         </CardContent>
       </Card>
 
-      <Card v-if="auth.isStaff">
-        <CardContent class="p-6 text-center">
-          <div class="text-3xl mb-2">📊</div>
-          <div class="font-semibold text-navy">{{ events.events.length }}</div>
-          <div class="text-xs text-slate mt-1">Total events</div>
+      <Card
+        class="cursor-pointer hover:shadow-md transition-shadow"
+        @click="router.push('/duty')"
+      >
+        <CardContent class="p-4 text-center">
+          <div class="text-2xl mb-1">🏠</div>
+          <div class="font-semibold text-navy text-sm">Office Duty</div>
+          <div class="text-[10px] text-slate mt-0.5">Daily check-in</div>
         </CardContent>
       </Card>
+
+      <Card
+        v-if="auth.isStaff"
+        class="cursor-pointer hover:shadow-md transition-shadow"
+        @click="router.push('/scan')"
+      >
+        <CardContent class="p-4 text-center">
+          <div class="text-2xl mb-1">📷</div>
+          <div class="font-semibold text-navy text-sm">Scan QR</div>
+          <div class="text-[10px] text-slate mt-0.5">Scan officer QR</div>
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- Duty Status (if has duty today) -->
+    <div
+      v-if="dutyStore.hasDutyToday(auth.user?.id || '')"
+      class="bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
+      @click="router.push('/duty')"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_0_4px_rgba(201,162,75,0.15)]" />
+        <div class="flex-1">
+          <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">Office Duty Today</div>
+          <div class="font-bold text-navy">
+            {{ dutyStore.getDutyForUser(auth.user?.id || '')?.startTime }} — {{ dutyStore.getDutyForUser(auth.user?.id || '')?.endTime }}
+          </div>
+        </div>
+        <Badge :variant="dutyStore.isCheckedInForDuty(auth.user?.id || '') ? 'success' : 'warning'">
+          {{ dutyStore.isCheckedInForDuty(auth.user?.id || '') ? 'Checked in' : 'Tap to check in' }}
+        </Badge>
+      </div>
     </div>
 
     <!-- Today's Events -->

@@ -58,6 +58,18 @@ async function exportCSV() {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+function methodLabel(method: string) {
+  if (method === 'self') return 'Self'
+  if (method === 'qr') return 'QR'
+  return 'Manual'
+}
+
+function methodBadgeVariant(method: string) {
+  if (method === 'self') return 'success'
+  if (method === 'qr') return 'default'
+  return 'warning'
+}
 </script>
 
 <template>
@@ -81,7 +93,7 @@ async function exportCSV() {
       </div>
 
       <!-- Actions -->
-      <div class="flex gap-3">
+      <div class="flex gap-3 flex-wrap">
         <Button variant="gold" @click="router.push(`/check-in/${eventId}`)">
           Check In
         </Button>
@@ -115,8 +127,8 @@ async function exportCSV() {
                 <div class="text-xs text-slate">{{ record.user?.position }}</div>
               </div>
               <div class="text-right">
-                <Badge :variant="record.method === 'self' ? 'success' : 'warning'">
-                  {{ record.method === 'self' ? 'Self' : 'Manual' }}
+                <Badge :variant="methodBadgeVariant(record.method)">
+                  {{ methodLabel(record.method) }}
                 </Badge>
                 <div class="text-xs text-slate mt-1">{{ formatCheckInTime(record.createdAt) }}</div>
               </div>

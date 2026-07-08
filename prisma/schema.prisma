@@ -22,9 +22,10 @@ model User {
   role      String   // "super_admin" | "staff" | "client"
   createdAt DateTime @default(now())
 
-  createdEvents Event[]   @relation("EventCreator")
+  createdEvents Event[]       @relation("EventCreator")
   attendance    Attendance[]
-  recorded      Attendance[] @relation("RecordedBy")
+  recorded      Attendance[]  @relation("RecordedBy")
+  officeDuties  OfficeDuty[]
 
   @@map("users")
 }
@@ -45,19 +46,34 @@ model Event {
 }
 
 model Attendance {
-  id         String   @id @default(uuid())
-  eventId    String
+  id         String    @id @default(uuid())
+  type       String    @default("event") // "event" | "duty"
+  eventId    String?
+  dutyDate   DateTime? // required if type = "duty"
   userId     String
-  method     String   // "self" | "manual"
+  method     String    // "self" | "manual" | "qr"
   lat        Float?
   lng        Float?
   recordedBy String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
-  event  Event @relation(fields: [eventId], references: [id])
-  user   User  @relation(fields: [userId], references: [id])
-  recorder User @relation("RecordedBy", fields: [recordedBy], references: [id])
+  event    Event?  @relation(fields: [eventId], references: [id])
+  user     User    @relation(fields: [userId], references: [id])
+  recorder User    @relation("RecordedBy", fields: [recordedBy], references: [id])
 
-  @@unique([eventId, userId])
+  @@unique([eventId, userId])        // one check-in per officer per event
+  @@unique([userId, dutyDate])       // one duty check-in per officer per day
   @@map("attendance")
+}
+
+model OfficeDuty {
+  id        String  @id @default(uuid())
+  userId    String
+  dayOfWeek Int     // 0 = Sunday .. 6 = Saturday
+  startTime String  // "08:00"
+  endTime   String  // "17:00"
+  active    Boolean @default(true)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@map("office_duties")
 }
