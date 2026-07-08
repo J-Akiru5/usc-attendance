@@ -83,16 +83,14 @@ function getInitials(name: string) {
 
         <div class="lg:col-span-5 flex justify-center lg:justify-end">
           <div class="relative group">
-            <!-- Decorative backdrop glow -->
-            <div class="absolute -inset-2 rounded-full bg-gradient-to-r from-gold via-gold-soft to-gold opacity-20 blur-2xl group-hover:opacity-45 transition duration-1000 group-hover:duration-200"></div>
-            <!-- Image Container -->
-            <div class="relative bg-navy-deep/80 backdrop-blur-md border border-gold/30 rounded-full p-6 shadow-2xl flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80 lg:w-[22rem] lg:h-[22rem] overflow-hidden">
-              <img
-                src="/gif/usc%20logo%20animation.gif"
-                alt="USC Logo Animation"
-                class="w-full h-full object-contain scale-105 select-none pointer-events-none drop-shadow-[0_0_15px_rgba(201,162,75,0.25)]"
-              />
-            </div>
+            <!-- Decorative soft backdrop glow -->
+            <div class="absolute inset-4 rounded-full bg-gold/15 blur-3xl group-hover:bg-gold/25 transition duration-1000"></div>
+            <!-- Logo Animation -->
+            <img
+              src="/gif/usc%20logo%20animation.gif"
+              alt="USC Logo Animation"
+              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] transition-transform duration-500 hover:scale-105"
+            />
           </div>
         </div>
       </div>

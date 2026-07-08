@@ -228,7 +228,7 @@ function closeMobileMenu() {
           </div>
           <div class="text-xs text-white/30 text-center md:text-right">
             Developed by
-            <a href="https://www.syntaxure.dev/" target="_blank" rel="noopener noreferrer" class="text-gold-soft font-medium hover:text-gold transition-colors">
+            <a href="https://portfolio.jeffdev.studio/" target="_blank" rel="noopener noreferrer" class="text-gold-soft font-medium hover:text-gold transition-colors">
               Jeff Edrick Martinez
             </a>
             <span class="text-white/20 mx-1">·</span>
