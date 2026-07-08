@@ -23,9 +23,7 @@ function isActive(to: string) {
   <aside class="hidden md:flex w-60 flex-col bg-navy-deep text-white min-h-screen">
     <div class="p-6 border-b border-white/10">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-navy border-2 border-gold flex items-center justify-center text-gold font-bold text-xs">
-          USC
-        </div>
+        <img src="/logo-192.png" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold" />
         <div>
           <div class="text-xs tracking-widest uppercase text-gold-soft font-mono">USC Attendance</div>
         </div>
