@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USC Attendance System — Scope & Build Record</title>
+<style>
+  :root{
+    --navy:#142850;
+    --navy-deep:#0C1B36;
+    --gold:#C9A24B;
+    --gold-soft:#E4CD8E;
+    --paper:#F7F5F0;
+    --paper-panel:#FFFFFF;
+    --ink:#1B1B1D;
+    --slate:#5C6773;
+    --line:#DCD6C8;
+    --green:#3F7D5C;
+    --red:#A23E3E;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --serif: 'Source Serif 4', 'Georgia', serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media print{ .toc{display:none;} .layout{display:block;} }
+
+  /* HEADER / STAMP */
+  .cover{
+    background:linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 60%);
+    color:#fff;
+    padding:64px 48px 56px;
+    position:relative;
+    overflow:hidden;
+  }
+  .cover::after{
+    content:"";
+    position:absolute; right:-60px; top:-60px;
+    width:280px; height:280px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
+  .cover::before{
+    content:"";
+    position:absolute; right:20px; top:40px;
+    width:180px; height:180px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin-bottom:18px;
+  }
+  .cover h1{
+    font-family:var(--serif);
+    font-size:42px;
+    font-weight:600;
+    margin:0 0 12px;
+    max-width:640px;
+    letter-spacing:-0.01em;
+  }
+  .cover p.lede{
+    max-width:560px;
+    color:rgba(255,255,255,0.72);
+    font-size:16px;
+    margin:0 0 28px;
+  }
+  .stamp{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--gold);
+    color:var(--gold-soft);
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    padding:8px 16px;
+    border-radius:2px;
+    transform:rotate(-1deg);
+  }
+  .stamp .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);}
+
+  /* LAYOUT */
+  .layout{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:0;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  .toc{
+    padding:48px 20px 48px 48px;
+    position:sticky;
+    top:0;
+    align-self:start;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .toc-title{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-bottom:14px;
+  }
+  .toc a{
+    display:block;
+    font-size:13px;
+    color:var(--ink);
+    text-decoration:none;
+    padding:6px 0;
+    border-left:2px solid transparent;
+    padding-left:12px;
+    margin-left:-13px;
+    opacity:0.72;
+  }
+  .toc a:hover{opacity:1; border-left-color:var(--gold); color:var(--navy);}
+
+  main{padding:48px 48px 100px 40px; max-width:820px;}
+  section{margin-bottom:56px; scroll-margin-top:24px;}
+  .num{
+    font-family:var(--mono);
+    color:var(--gold);
+    font-size:13px;
+    margin-right:8px;
+  }
+  h2{
+    font-family:var(--serif);
+    font-size:26px;
+    color:var(--navy);
+    border-bottom:1px solid var(--line);
+    padding-bottom:14px;
+    margin:0 0 22px;
+  }
+  h3{
+    font-family:var(--sans);
+    font-size:16px;
+    font-weight:700;
+    color:var(--navy);
+    margin:28px 0 10px;
+  }
+  p{color:#333; font-size:15px;}
+  .panel{
+    background:var(--paper-panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:22px 24px;
+  }
+
+  /* SCOPE TABLE */
+  .scope-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-top:16px;
+  }
+  .scope-col{
+    border-radius:6px;
+    padding:20px;
+  }
+  .scope-col.in{background:#EEF4EF; border:1px solid #CFE1D3;}
+  .scope-col.out{background:#F7ECEC; border:1px solid #E5CBCB;}
+  .scope-col h4{
+    margin:0 0 12px;
+    font-size:13px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    font-family:var(--mono);
+  }
+  .scope-col.in h4{color:var(--green);}
+  .scope-col.out h4{color:var(--red);}
+  .scope-col ul{margin:0; padding-left:18px;}
+  .scope-col li{font-size:14px; margin-bottom:8px; color:#333;}
+
+  /* CHECKLIST */
+  .phase{margin-bottom:28px;}
+  .phase-label{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    background:var(--navy);
+    color:#fff;
+    padding:4px 10px;
+    border-radius:3px;
+    margin-bottom:12px;
+  }
+  ul.checklist{list-style:none; margin:0; padding:0;}
+  ul.checklist li{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:14.5px;
+  }
+  ul.checklist li:last-child{border-bottom:none;}
+  ul.checklist input[type=checkbox]{
+    margin-top:3px;
+    accent-color:var(--navy);
+    width:15px;height:15px;
+    flex-shrink:0;
+  }
+  ul.checklist code{
+    background:#F0EEE6;
+    padding:1px 6px;
+    border-radius:3px;
+    font-size:13px;
+    font-family:var(--mono);
+  }
+
+  /* CALLOUT */
+  .callout{
+    border-left:3px solid var(--gold);
+    background:#FBF6E9;
+    padding:18px 22px;
+    border-radius:0 6px 6px 0;
+    margin:20px 0;
+  }
+  .callout .tag{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:#8A6D2F;
+    display:block;
+    margin-bottom:6px;
+  }
+  .callout p{margin:0; font-size:14.5px;}
+  .callout.danger{border-left-color:var(--red); background:#FBEFEF;}
+  .callout.danger .tag{color:var(--red);}
+
+  /* MANUAL STEPS */
+  .step{
+    display:grid;
+    grid-template-columns:36px 1fr;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  .step-num{
+    width:36px; height:36px;
+    border-radius:50%;
+    background:var(--navy);
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono);
+    font-size:14px;
+    flex-shrink:0;
+  }
+  .step h4{margin:0 0 6px; font-size:15px; color:var(--navy);}
+  .step p{margin:0 0 6px; font-size:14px;}
+  .step .detail{
+    font-size:13px;
+    color:var(--slate);
+    background:#F0EFE9;
+    padding:8px 12px;
+    border-radius:4px;
+    margin-top:8px;
+  }
+
+  table.schema{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    margin-top:14px;
+  }
+  table.schema th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--slate);
+    border-bottom:1px solid var(--line);
+    padding:8px 10px;
+  }
+  table.schema td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  table.schema tr:last-child td{border-bottom:none;}
+  .badge{
+    font-family:var(--mono);
+    font-size:11px;
+    background:var(--navy);
+    color:#fff;
+    padding:2px 7px;
+    border-radius:3px;
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:28px 48px;
+    font-size:12px;
+    color:var(--slate);
+    font-family:var(--mono);
+    max-width:820px;
+    margin-left:40px;
+  }
+
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+    .toc{display:none;}
+    main{padding:32px 24px 80px;}
+    .cover{padding:48px 24px 40px;}
+    .scope-grid{grid-template-columns:1fr;}
+    footer{margin-left:0; padding:24px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Syntaxure Labs · Internal Build Record</div>
+  <h1>USC Attendance System</h1>
+  <p class="lede">Geolocation-gated attendance tracking for University Student Council officers. Vue 3 SPA, PWA-enabled, offline-first, built to ship fast — not to impress anyone with architecture.</p>
+  <div class="stamp"><span class="dot"></span>Scope Locked · v1</div>
+</div>
+
+<div class="layout">
+  <nav class="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#scope">01 — Scope</a>
+    <a href="#stack">02 — Tech Stack</a>
+    <a href="#schema">03 — Data Model</a>
+    <a href="#checklist">04 — Dev Checklist</a>
+    <a href="#reminders">05 — Anti Over-Eng.</a>
+    <a href="#manual">06 — Manual Setup</a>
+  </nav>
+
+  <main>
+
+    <section id="scope">
+      <h2><span class="num">01</span>Scope of v1</h2>
+      <p>One job: let an officer prove they physically showed up to an event, and let staff override that when the scanner can't be trusted or used. Everything else is a future version.</p>
+      <div class="scope-grid">
+        <div class="scope-col in">
+          <h4>In scope</h4>
+          <ul>
+            <li>3 roles: super_admin, staff (officer-on-duty), client (officer)</li>
+            <li>Event creation with location + radius</li>
+            <li>Self check-in via geolocation match</li>
+            <li>Manual override check-in by staff, with recorded_by audit field</li>
+            <li>Offline queueing of check-ins, synced on reconnect</li>
+            <li>Attendance list/export per event (CSV)</li>
+            <li>PWA install + offline app shell</li>
+            <li>Basic auth (email/password or magic link via Supabase Auth)</li>
+          </ul>
+        </div>
+        <div class="scope-col out">
+          <h4>Explicitly not in v1</h4>
+          <ul>
+            <li>Push notifications / reminders</li>
+            <li>Analytics dashboards, charts, streak tracking</li>
+            <li>Multi-org / multi-council support</li>
+            <li>Editing or deleting attendance records (append-only)</li>
+            <li>Background location tracking</li>
+            <li>Native app wrapper (Capacitor) — PWA only</li>
+            <li>CI/CD pipelines, automated test suites</li>
+            <li>Face recognition, QR codes, NFC — geolocation only</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="tag">Rule of thumb</span>
+        <p>If a feature isn't required to answer "was this officer present at this event, yes or no, and who recorded it" — it doesn't belong in v1.</p>
+      </div>
+    </section>
+
+    <section id="stack">
+      <h2><span class="num">02</span>Tech Stack</h2>
+      <table class="schema">
+        <tr><th>Layer</th><th>Choice</th><th>Why</th></tr>
+        <tr><td>Frontend</td><td>Vue 3 + Vite + TypeScript</td><td>No SSR needed; predictable for agents to execute</td></tr>
+        <tr><td>UI</td><td>Tailwind + shadcn-vue</td><td>Consistent with your other projects' conventions</td></tr>
+        <tr><td>State</td><td>Pinia</td><td>Official, minimal boilerplate</td></tr>
+        <tr><td>PWA</td><td>vite-plugin-pwa (Workbox)</td><td>Manifest + service worker, config not code</td></tr>
+        <tr><td>Offline queue</td><td>idb (IndexedDB wrapper)</td><td>Queue check-ins, flush on reconnect</td></tr>
+        <tr><td>ORM</td><td>Prisma</td><td>Schema + migrations only, no hand-written SQL</td></tr>
+        <tr><td>DB / Auth</td><td>Supabase (Postgres + Auth)</td><td>Matches existing stack; Auth handles sessions</td></tr>
+        <tr><td>API layer</td><td>Vercel serverless functions</td><td>Role checks happen here, not in RLS — one source of truth</td></tr>
+        <tr><td>Hosting</td><td>Vercel</td><td>Zero-config static/SPA deploy</td></tr>
+      </table>
+      <div class="callout">
+        <span class="tag">Architecture note</span>
+        <p>Prisma bypasses Supabase RLS. Don't run both RLS policies and Prisma role checks — pick Prisma + code-level checks in API routes as the single enforcement point, and leave RLS off (or default-deny) for tables Prisma touches.</p>
+      </div>
+    </section>
+
+    <section id="schema">
+      <h2><span class="num">03</span>Data Model — essentials only</h2>
+      <table class="schema">
+        <tr><th>Table</th><th>Key fields</th></tr>
+        <tr><td>users</td><td>id, name, position, role <span class="badge">enum</span></td></tr>
+        <tr><td>events</td><td>id, title, date, lat, lng, radius_meters, created_by</td></tr>
+        <tr><td>attendance</td><td>id, event_id, user_id, method <span class="badge">self|manual</span>, lat, lng, recorded_by, created_at</td></tr>
+      </table>
+      <p style="margin-top:14px;">Attendance is append-only. No update/delete paths in v1 — if a mistake happens, it gets corrected by a new row, not an edit, so the audit trail stays honest.</p>
+    </section>
+
+    <section id="checklist">
+      <h2><span class="num">04</span>Dev Checklist</h2>
+
+      <div class="phase">
+        <span class="phase-label">Phase 0 — Foundation</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Supabase project created, connection string saved (session pooler, port 5432)</li>
+          <li><input type="checkbox">Prisma initialized, schema.prisma written for the 3 tables above</li>
+          <li><input type="checkbox">First migration run via <code>prisma migrate dev</code> — never <code>db push</code></li>
+          <li><input type="checkbox">Vite + Vue 3 + TS scaffold, Tailwind + shadcn-vue installed</li>
+          <li><input type="checkbox">Vercel project linked, env vars set (DB URL, Supabase keys)</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 1 — Auth & roles</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Supabase Auth wired (email/password or magic link)</li>
+          <li><input type="checkbox">Role field enforced server-side in every API route (not just UI hiding)</li>
+          <li><input type="checkbox">Route guards for staff-only and super_admin-only pages</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 2 — Core attendance flow</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Event CRUD (staff/super_admin only)</li>
+          <li><input type="checkbox">Client check-in screen: geolocation request → Haversine distance calc → allow/deny</li>
+          <li><input type="checkbox">Server-side distance re-validation on insert (don't trust client-computed distance)</li>
+          <li><input type="checkbox">Staff manual override screen with recorded_by captured automatically</li>
+          <li><input type="checkbox">Attendance list per event + CSV export</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 3 — PWA & offline</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">vite-plugin-pwa configured, manifest.json with USC branding</li>
+          <li><input type="checkbox">App shell precached, installable on mobile home screen</li>
+          <li><input type="checkbox">IndexedDB queue: check-in writes locally first with <code>synced:false</code></li>
+          <li><input type="checkbox">Background sync / reconnect listener flushes queue to API</li>
+          <li><input type="checkbox">Manual test: airplane mode check-in → reconnect → confirm row appears in DB</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 4 — Ship</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Manual smoke test of all 3 roles end-to-end</li>
+          <li><input type="checkbox">Vercel production deploy</li>
+          <li><input type="checkbox">Real event created, real officer list seeded (no demo data left behind)</li>
+        </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="reminders">
+      <h2><span class="num">05</span>Anti Over-Engineering Reminders</h2>
+      <div class="callout danger">
+        <span class="tag">Before adding anything</span>
+        <p>Ask: does this help answer "was this officer present, yes or no, recorded by whom"? If not, it's v2.</p>
+      </div>
+      <ul class="checklist">
+        <li>No CI/CD pipeline. You're solo — deploy from your machine via Vercel CLI or git push, review it yourself.</li>
+        <li>No automated test suite for v1. Manual smoke test per phase is enough at this scale.</li>
+        <li>No edit/delete on attendance rows. Append-only, corrections are new rows.</li>
+        <li>No analytics, streaks, leaderboards, or gamification — these always sound small and never are.</li>
+        <li>No multi-council/multi-org abstraction. Build for one council. Generalize later if it's ever actually needed.</li>
+        <li>No native app. PWA covers "add to home screen" and offline — that's the whole ask.</li>
+        <li>Resist RLS + Prisma both. Pick one enforcement layer (Prisma + API route checks) and stop there.</li>
+        <li>If an execution agent proposes a "flexible" or "extensible" abstraction you didn't ask for — reject it. Flexibility you don't need yet is a bug waiting to happen.</li>
+      </ul>
+    </section>
+
+    <section id="manual">
+      <h2><span class="num">06</span>Manual Setup Steps (you, not an agent)</h2>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Gather USC branding assets</h4>
+          <p>Get the official USC logo (transparent PNG, at least 512×512) from your council's official Facebook page, past tarpaulins, or ask the outgoing secretary/PIO for the original file.</p>
+          <div class="detail">You'll need: 512×512 and 192×192 PNGs for the PWA manifest icons, plus a favicon.ico. If USC has official school colors, note the hex codes — use them for the app's theme_color instead of a generic palette.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Create the Supabase project</h4>
+          <p>Sign up/log in at supabase.com, create a new project, choose a region close to the Philippines (Singapore is usually closest).</p>
+          <div class="detail">Save: project URL, anon key, service role key, and the session-pooler connection string (port 5432) for Prisma's DATABASE_URL.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Set up the Vercel project</h4>
+          <p>Import the repo into Vercel, set framework preset to Vite, add environment variables (DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY).</p>
+          <div class="detail">Mark service role key as a server-only env var — never expose it to the client bundle.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Get real event coordinates</h4>
+          <p>For each recurring venue (session hall, gym, quadrangle), grab the lat/lng from Google Maps (right-click → coordinates) ahead of time so staff aren't guessing radius values on event-creation day.</p>
+          <div class="detail">Suggested starting radius: 50–75 meters for open areas like a quadrangle, 25–30 meters for smaller rooms.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h4>Seed real officer accounts</h4>
+          <p>Compile the actual officer roster (name, position, role: staff or client) before go-live — this is manual data entry only you or the secretary should own, not an agent.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <h4>Test geolocation permissions on real devices</h4>
+          <p>Browser geolocation prompts differ across Android Chrome, iOS Safari, and in-app browsers (e.g. Facebook's in-app browser often blocks geolocation). Test check-in on at least one Android and one iPhone before the first real event.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">7</div>
+        <div>
+          <h4>Domain (optional)</h4>
+          <p>If USC has or can get a subdomain (e.g. attendance.usc-yourschool.edu.ph or similar), point it at the Vercel deployment for credibility instead of a random .vercel.app URL.</p>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  usc-attendance-system · scope v1 · prepared as an internal build reference — not for external distribution
+</footer>
+
+</body>
+</html>

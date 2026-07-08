@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// RLS is explicitly DISABLED (default-deny) on all tables Prisma touches.
+/// Enforcement happens at the API layer via code-level role checks in serverless
+/// functions. Do NOT add Supabase RLS policies to these tables — Prisma's
+/// service-role connection bypasses RLS, so policies would silently do nothing
+/// or, worse, conflict with the API-layer checks.
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  position  String
+  role      String   // "super_admin" | "staff" | "client"
+  createdAt DateTime @default(now())
+
+  createdEvents Event[]   @relation("EventCreator")
+  attendance    Attendance[]
+  recorded      Attendance[] @relation("RecordedBy")
+}
+
+model Event {
+  id           String   @id @default(uuid())
+  title        String
+  date         DateTime
+  lat          Float
+  lng          Float
+  radiusMeters Int      @default(50)
+  createdBy    String
+  creator      User     @relation("EventCreator", fields: [createdBy], references: [id])
+  attendance   Attendance[]
+  createdAt    DateTime @default(now())
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  eventId    String
+  userId     String
+  method     String   // "self" | "manual"
+  lat        Float?
+  lng        Float?
+  recordedBy String
+  createdAt  DateTime @default(now())
+
+  event  Event @relation(fields: [eventId], references: [id])
+  user   User  @relation(fields: [userId], references: [id])
+  recorder User @relation("RecordedBy", fields: [recordedBy], references: [id])
+
+  @@unique([eventId, userId])
+}

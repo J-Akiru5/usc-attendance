@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check-in Mockup</title>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:#EDEAE1;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+    font-family:'Inter', -apple-system, sans-serif;
+  }
+  .device{
+    width:390px;
+    background:#000;
+    border-radius:44px;
+    padding:14px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.25);
+  }
+  .screen{
+    background:#F4F2EC;
+    border-radius:32px;
+    overflow:hidden;
+    height:780px;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .header{
+    background:linear-gradient(155deg, #0D1E42 0%, #16326B 55%, #1E4A9E 100%);
+    padding:22px 22px 30px;
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+  }
+  .header::before{
+    content:"";
+    position:absolute; right:-40px; top:-40px;
+    width:160px; height:160px;
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:50%;
+  }
+  .header::after{
+    content:"";
+    position:absolute; right:10px; top:10px;
+    width:90px; height:90px;
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:50%;
+  }
+  .top-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:20px;
+  }
+  .crest{
+    width:44px; height:44px;
+    border-radius:50%;
+    background:#0D1E42;
+    border:2px solid #E8C24D;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Georgia', serif;
+    font-weight:700;
+    font-size:13px;
+    color:#E8C24D;
+  }
+  .time{font-size:12px; color:rgba(255,255,255,0.6); font-family:'Courier New', monospace;}
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:#E8C24D;
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:Arial, sans-serif;
+    font-weight:900;
+    font-size:26px;
+    letter-spacing:-0.01em;
+    line-height:1.15;
+  }
+  .sub{
+    font-size:13px;
+    color:rgba(255,255,255,0.68);
+    margin-top:6px;
+  }
+
+  .body{
+    flex:1;
+    padding:26px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+
+  .status-card{
+    background:#fff;
+    border-radius:16px;
+    padding:20px;
+    border:1px solid #E4E0D3;
+  }
+  .status-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .status-dot{
+    width:10px;height:10px;
+    border-radius:50%;
+    background:#3F7D5C;
+    box-shadow:0 0 0 4px rgba(63,125,92,0.15);
+  }
+  .status-label{
+    font-size:13px;
+    font-weight:700;
+    color:#1B1B1D;
+  }
+  .status-detail{
+    font-size:12.5px;
+    color:#6B7280;
+    padding-left:22px;
+  }
+
+  .event-name{
+    font-size:12px;
+    color:#8A6D2F;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .event-title{
+    font-size:18px;
+    font-weight:800;
+    color:#0D1E42;
+    margin-bottom:2px;
+  }
+  .event-meta{
+    font-size:12.5px;
+    color:#6B7280;
+  }
+
+  .checkin-btn{
+    background:linear-gradient(155deg, #E8C24D 0%, #D4A72E 100%);
+    border:none;
+    border-radius:18px;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    box-shadow:0 8px 20px rgba(212,167,46,0.35);
+  }
+  .checkin-btn .label{
+    font-size:16px;
+    font-weight:900;
+    color:#1B1B1D;
+    letter-spacing:0.01em;
+  }
+  .checkin-btn .hint{
+    font-size:12px;
+    color:#5C4B1F;
+  }
+
+  .fallback{
+    text-align:center;
+    font-size:12.5px;
+    color:#8A8A85;
+  }
+  .fallback a{color:#16326B; font-weight:700; text-decoration:none;}
+
+  .stamp-bar{
+    background:#E8C24D;
+    padding:12px 22px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:11px;
+    font-weight:800;
+    color:#3D2E0C;
+  }
+  .stamp-bar .campus{color:#0D1E42;}
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="screen">
+
+    <div class="header">
+      <div class="top-row">
+        <div class="crest">USC</div>
+        <div class="time">9:41</div>
+      </div>
+      <div class="eyebrow">USC Attendance</div>
+      <h1>Good morning,<br>Officer Reyes</h1>
+      <p class="sub">Vice President — Executive Board</p>
+    </div>
+
+    <div class="body">
+
+      <div class="status-card">
+        <div class="status-row">
+          <div class="status-dot"></div>
+          <div class="status-label">Within check-in range</div>
+        </div>
+        <div class="status-detail">18m from venue — Session Hall, ISUFST Dingle Campus</div>
+      </div>
+
+      <div>
+        <div class="event-name">Today's session</div>
+        <div class="event-title">General Assembly — July Session</div>
+        <div class="event-meta">Starts 2:00 PM · Session Hall</div>
+      </div>
+
+      <button class="checkin-btn">
+        <span class="label">Check in now</span>
+        <span class="hint">Location confirmed automatically</span>
+      </button>
+
+      <div class="fallback">
+        Scanner unavailable? <a href="#">Notify the officer on duty</a>
+      </div>
+
+    </div>
+
+    <div class="stamp-bar">
+      <span class="campus">ISUFST · Dingle Campus</span>
+      <span>07.08.2026</span>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
