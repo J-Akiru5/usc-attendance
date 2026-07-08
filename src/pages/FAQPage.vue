@@ -70,7 +70,7 @@ const faqs = [
             <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">FAQ</div>
             <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Frequently Asked Questions</h1>
             <p class="text-white/70 max-w-lg leading-relaxed">
-              Find answers to common questions about the USC Attendance System.
+              Find answers to common questions about the USC Digital Portal and Attendance System.
             </p>
           </div>
           <!-- Illustration -->

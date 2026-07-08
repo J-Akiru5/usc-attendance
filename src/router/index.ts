@@ -12,27 +12,15 @@ const router = createRouter({
       meta: { layout: 'public' },
     },
     {
+      path: '/attendance',
+      name: 'attendance-system',
+      component: () => import('@/pages/AttendanceSystemPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('@/pages/AboutPage.vue'),
-      meta: { layout: 'public' },
-    },
-    {
-      path: '/features',
-      name: 'features',
-      component: () => import('@/pages/FeaturesPage.vue'),
-      meta: { layout: 'public' },
-    },
-    {
-      path: '/how-it-works',
-      name: 'how-it-works',
-      component: () => import('@/pages/HowItWorksPage.vue'),
-      meta: { layout: 'public' },
-    },
-    {
-      path: '/security',
-      name: 'security',
-      component: () => import('@/pages/SecurityPage.vue'),
       meta: { layout: 'public' },
     },
     {

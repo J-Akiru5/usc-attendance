@@ -65,12 +65,12 @@ async function handleLogin() {
 
       <!-- Center content -->
       <div class="relative z-10">
-        <div class="text-xs font-mono uppercase tracking-widest text-gold mb-4">Attendance Portal</div>
-        <h1 class="text-4xl font-bold font-serif text-white mb-4 leading-tight">
-          Secure Attendance<br>Management
+        <div class="text-xs font-mono uppercase tracking-widest text-gold mb-4">USC Digital Portal</div>
+        <h1 class="text-4xl font-bold font-serif text-white mb-2 leading-tight">
+          Officer Login
         </h1>
         <p class="text-white/60 text-base leading-relaxed mb-10">
-          Official attendance tracking for USC officers of ISUFST Dingle Campus. Built for accountability and transparency.
+          Attendance Management System — ISUFST Dingle Campus. Sign in to manage events, record attendance, and export reports.
         </p>
 
         <!-- Feature list -->
@@ -91,7 +91,7 @@ async function handleLogin() {
       <!-- Bottom note -->
       <div class="relative z-10">
         <p class="text-xs text-white/30 font-mono">
-          © 2026 USC Attendance System · Developed by Syntaxure Labs
+          © 2026 USC Digital Portal · Developed by Syntaxure Labs
         </p>
       </div>
     </div>
@@ -112,8 +112,8 @@ async function handleLogin() {
 
         <!-- Form header -->
         <div class="mb-8">
-          <h2 class="text-2xl font-bold font-serif text-navy mb-1">USC Attendance System</h2>
-          <p class="text-sm text-slate">Sign in to your account</p>
+          <h2 class="text-2xl font-bold font-serif text-navy mb-1">USC Digital Portal</h2>
+          <p class="text-sm text-slate">Attendance Management System</p>
         </div>
 
         <!-- Error -->

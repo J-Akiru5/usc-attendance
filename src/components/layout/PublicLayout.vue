@@ -9,10 +9,9 @@ const auth = useAuthStore()
 const mobileMenuOpen = ref(false)
 
 const navLinks = [
+  { label: 'Home', to: '/' },
+  { label: 'Attendance System', to: '/attendance' },
   { label: 'About', to: '/about' },
-  { label: 'Features', to: '/features' },
-  { label: 'How It Works', to: '/how-it-works' },
-  { label: 'Security', to: '/security' },
   { label: 'FAQ', to: '/faq' },
   { label: 'Contact', to: '/contact' },
 ]
@@ -155,11 +154,11 @@ function closeMobileMenu() {
               </div>
               <div>
                 <div class="text-sm font-bold text-white leading-tight">University Student Council</div>
-                <div class="text-[10px] text-white/40 font-mono">Attendance System</div>
+                <div class="text-[10px] text-white/40 font-mono">USC Digital Portal</div>
               </div>
             </div>
             <p class="text-sm text-white/40 leading-relaxed">
-              Official attendance management platform for ISUFST Dingle Campus. Built for accountability, transparency, and efficiency.
+              Official digital platform of the University Student Council, ISUFST Dingle Campus.
             </p>
           </div>
 
@@ -167,10 +166,8 @@ function closeMobileMenu() {
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">About</div>
             <div class="space-y-2">
-              <router-link to="/about" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">About the System</router-link>
-              <router-link to="/features" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Features</router-link>
-              <router-link to="/how-it-works" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">How It Works</router-link>
-              <router-link to="/security" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Security</router-link>
+              <router-link to="/about" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">About the Portal</router-link>
+              <router-link to="/attendance" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Attendance System</router-link>
             </div>
           </div>
 
@@ -180,7 +177,6 @@ function closeMobileMenu() {
             <div class="space-y-2">
               <router-link to="/faq" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">FAQ</router-link>
               <router-link to="/contact" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Contact</router-link>
-              <router-link to="/security" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Privacy Policy</router-link>
             </div>
           </div>
 
@@ -207,7 +203,7 @@ function closeMobileMenu() {
 
         <div class="mt-10 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3">
           <div class="text-xs text-white/30">
-            © 2026 USC Attendance System. All rights reserved.
+            © 2026 University Student Council. All rights reserved.
           </div>
           <div class="text-xs text-white/30">
             Developed by <span class="text-gold-soft font-medium">Syntaxure Labs</span> for the University Student Council
