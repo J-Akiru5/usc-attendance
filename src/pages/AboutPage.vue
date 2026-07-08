@@ -9,23 +9,45 @@ const timeline = [
 
 <template>
   <div>
-    <!-- Header -->
-    <section class="bg-navy text-white py-16 md:py-20 relative overflow-hidden">
+    <!-- ========== HEADER ========== -->
+    <section class="relative text-white py-20 md:py-28 overflow-hidden">
+      <!-- Campus background photo -->
       <div
-        class="absolute inset-0 opacity-[0.04]"
-        style="
-          background-image:
-            linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
-          background-size: 40px 40px;
-        "
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style="background-image: url('/isufst.jpg');"
       />
-      <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center">
-        <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">About the Portal</div>
-        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">USC Digital Portal</h1>
-        <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
-          The official digital platform of the University Student Council of ISUFST Dingle Campus.
-        </p>
+      <!-- Gradient overlays -->
+      <div class="absolute inset-0 bg-navy/75" />
+      <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(12,27,54,0.95) 0%, rgba(12,27,54,0.70) 60%, rgba(12,27,54,0.40) 100%);" />
+      <div class="absolute inset-x-0 bottom-0 h-24" style="background: linear-gradient(to top, rgba(12,27,54,0.8) 0%, transparent 100%);" />
+
+      <div class="relative max-w-7xl mx-auto px-4 md:px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">About the System</div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold font-serif mb-4 leading-tight drop-shadow-lg">
+              About the System
+            </h1>
+            <p class="text-white/70 max-w-lg leading-relaxed">
+              Learn more about the USC Attendance System and its purpose for the USC officers.
+            </p>
+          </div>
+          <!-- ISUFST campus badge -->
+          <div class="hidden lg:flex justify-end">
+            <div class="w-72 h-48 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-sm flex items-center justify-center relative overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-br from-gold/10 to-transparent" />
+              <div class="text-center relative z-10">
+                <div class="w-16 h-16 rounded-2xl bg-gold/20 border border-gold/40 flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                </div>
+                <div class="text-sm font-semibold text-white">ISUFST Dingle Campus</div>
+                <div class="text-xs text-white/50 font-mono mt-1">University Student Council</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
