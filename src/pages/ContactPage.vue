@@ -82,21 +82,6 @@ async function handleSubmit() {
                 </div>
               </div>
 
-              <!-- Location -->
-              <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-xl bg-navy/5 border border-line flex items-center justify-center shrink-0">
-                  <svg class="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                </div>
-                <div>
-                  <div class="text-[10px] font-mono uppercase tracking-wider text-slate mb-1">Location</div>
-                  <div class="text-sm font-semibold text-navy">Dingle, Iloilo</div>
-                  <div class="text-sm text-slate">Philippines</div>
-                </div>
-              </div>
-
               <!-- Hours -->
               <div class="flex items-start gap-4">
                 <div class="w-10 h-10 rounded-xl bg-navy/5 border border-line flex items-center justify-center shrink-0">
@@ -187,6 +172,28 @@ async function handleSubmit() {
               </button>
             </form>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MAP ========== -->
+    <section class="bg-[#F0EDE6]">
+      <div class="max-w-5xl mx-auto px-4 md:px-6 py-12">
+        <div class="text-center mb-6">
+          <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-2">Find Us</div>
+          <h2 class="text-xl font-bold font-serif text-navy">ISUFST Dingle Campus Location</h2>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-line shadow-lg">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1261.002418629341!2d122.66186618376757!3d11.001723175838514!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33af1776ffd9b7f1%3A0x2c4663ccaaf49fa8!2sIloilo%20State%20University%20of%20Fisheries%20Science%20and%20Technology%E2%80%93%20Dingle%20Campus!5e1!3m2!1sen!2sph!4v1783527671337!5m2!1sen!2sph"
+            width="100%"
+            height="400"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+            class="w-full"
+          />
         </div>
       </div>
     </section>
