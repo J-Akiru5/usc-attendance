@@ -20,10 +20,6 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-const cardHoverVariants = {
-  initial: { scale: 1, y: 0, boxShadow: '0 0 0 0 transparent' },
-  hover: { scale: 1.03, y: -4, boxShadow: '0 12px 24px -8px rgba(12,27,54,0.12)' }
-}
 
 const logos = [
   '/webp/isufst_logo.webp',
@@ -131,11 +127,9 @@ const logos = [
               v-motion
               :initial="{ opacity: 0, scale: 0.8 }"
               :enter="{ opacity: 1, scale: 1, transition: { duration: 0.7, delay: 300 } }"
-              :variants="{ animate: { y: [0, -12, 0], transition: { duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 800 } } }"
-              v="animate"
               src="/gif/usc%20logo%20animation.gif"
               alt="USC Logo Animation"
-              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] hover:scale-105 transition-transform duration-500"
+              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] hover:scale-105 transition-transform duration-500 animate-float"
             />
           </div>
         </div>
@@ -259,7 +253,7 @@ const logos = [
             v-motion
             :initial="{ opacity: 0, y: 30 }"
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
-            :hover="cardHoverVariants.hover"
+            :hovered="{ scale: 1.03, y: -2 }"
             class="flex flex-col items-center text-center p-5 rounded-xl border border-line bg-paper-panel shadow-sm cursor-default"
           >
             <div class="w-16 h-16 rounded-full bg-navy border-2 border-gold/40 flex items-center justify-center mb-3">
@@ -304,7 +298,7 @@ const logos = [
             v-motion
             :initial="{ opacity: 0, y: 40 }"
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
-            :hover="cardHoverVariants.hover"
+            :hovered="{ scale: 1.03, y: -2 }"
             class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm transition-all cursor-default"
           >
             <div class="text-2xl mb-3">{{ project.icon }}</div>
@@ -348,7 +342,7 @@ const logos = [
             v-motion
             :initial="{ opacity: 0, y: 40 }"
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
-            :hover="cardHoverVariants.hover"
+            :hovered="{ scale: 1.03, y: -2 }"
             class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm transition-all cursor-default"
           >
             <div class="flex items-center gap-3 mb-3">
@@ -412,11 +406,25 @@ const logos = [
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 .animate-marquee {
   animation: marquee 25s linear infinite;
 }
 
 .animate-marquee:hover {
   animation-play-state: paused;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 0.8s;
 }
 </style>

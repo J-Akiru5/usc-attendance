@@ -189,7 +189,7 @@ async function handleSubmit() {
             width="100%"
             height="400"
             style="border:0;"
-            allowfullscreen=""
+            :allowfullscreen="true"
             loading="lazy"
             referrerpolicy="strict-origin-when-cross-origin"
             class="w-full"
