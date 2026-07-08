@@ -1,0 +1,91 @@
+<script setup lang="ts">
+const securityCards = [
+  {
+    title: 'Authentication',
+    desc: 'Supabase Auth powers secure user sessions with email-based sign-in. Passwords are never stored in plain text.',
+    icon: 'lock',
+  },
+  {
+    title: 'Attendance Integrity',
+    desc: 'All attendance records are append-only. Once created, a record cannot be edited or deleted. Corrections are new rows with full history preserved.',
+    icon: 'shield',
+  },
+  {
+    title: 'QR Security',
+    desc: 'Every QR token is time-limited to 60 seconds and cryptographically signed. Reuse or screenshotting is ineffective.',
+    icon: 'qr',
+  },
+  {
+    title: 'Location Validation',
+    desc: 'GPS coordinates are validated server-side against the event location. The client cannot spoof a successful check-in.',
+    icon: 'map',
+  },
+  {
+    title: 'Privacy',
+    desc: 'The system does not track officers in the background. Location is only read at the moment of check-in and is never stored separately.',
+    icon: 'eye',
+  },
+  {
+    title: 'Availability',
+    desc: 'Offline capability means attendance can be recorded during network outages. Data syncs when connectivity returns.',
+    icon: 'wifi',
+  },
+]
+</script>
+
+<template>
+  <div>
+    <!-- Header -->
+    <section class="bg-navy text-white py-16 md:py-20">
+      <div class="max-w-4xl mx-auto px-4 md:px-6 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-white/10 border border-gold/40 flex items-center justify-center mx-auto mb-6">
+          <svg class="w-8 h-8 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div class="text-xs font-mono uppercase tracking-wider text-gold-soft mb-3">Security & Privacy</div>
+        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Trust through transparency</h1>
+        <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
+          Security is not a feature — it is the foundation. Every design decision prioritizes the integrity of attendance data and the privacy of officers.
+        </p>
+      </div>
+    </section>
+
+    <!-- Cards -->
+    <section class="py-16 md:py-20 bg-paper">
+      <div class="max-w-6xl mx-auto px-4 md:px-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div
+            v-for="card in securityCards"
+            :key="card.title"
+            class="rounded-xl border border-line bg-paper-panel p-6 shadow-sm hover:shadow-md transition-all"
+          >
+            <div class="w-10 h-10 rounded-lg bg-navy/5 flex items-center justify-center mb-4">
+              <svg v-if="card.icon === 'lock'" class="w-5 h-5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <svg v-else-if="card.icon === 'shield'" class="w-5 h-5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <svg v-else-if="card.icon === 'qr'" class="w-5 h-5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <svg v-else-if="card.icon === 'map'" class="w-5 h-5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <svg v-else-if="card.icon === 'eye'" class="w-5 h-5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+              <svg v-else-if="card.icon === 'wifi'" class="w-5 h-5 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3" />
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-navy mb-2">{{ card.title }}</h3>
+            <p class="text-sm text-slate leading-relaxed">{{ card.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>

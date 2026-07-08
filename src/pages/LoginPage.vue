@@ -30,7 +30,7 @@ async function handleLogin() {
 
   try {
     await auth.login(email.value, password.value)
-    router.push('/')
+    router.push('/dashboard')
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : 'Login failed'
   } finally {
@@ -40,15 +40,27 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-paper flex items-center justify-center p-4">
+  <div class="flex-1 flex items-center justify-center p-4 bg-paper">
     <div class="w-full max-w-md">
-      <!-- Header -->
+      <!-- Institutional Header -->
       <div class="text-center mb-8">
-        <div class="mx-auto w-16 h-16 rounded-full bg-navy border-3 border-gold flex items-center justify-center mb-4">
-          <span class="text-gold font-bold text-lg font-serif">USC</span>
+        <div class="flex items-center justify-center gap-6 mb-6">
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-navy border-2 border-gold/60 flex items-center justify-center">
+              <span class="text-gold font-bold text-sm font-serif">ISUFST</span>
+            </div>
+          </div>
+          <div class="h-10 w-px bg-line" />
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-navy border-2 border-gold/60 flex items-center justify-center">
+              <span class="text-gold font-bold text-sm font-serif">USC</span>
+            </div>
+          </div>
         </div>
-        <h1 class="text-2xl font-bold text-navy font-serif">USC Attendance System</h1>
-        <p class="text-sm text-slate mt-1">Geolocation-gated attendance tracking</p>
+
+        <h1 class="text-xl font-bold text-navy font-serif leading-tight">University Student Council</h1>
+        <h2 class="text-lg font-semibold text-navy mt-1">Attendance System</h2>
+        <p class="text-xs text-slate font-mono uppercase tracking-wider mt-2">ISUFST Dingle Campus</p>
       </div>
 
       <!-- Login Card -->
@@ -92,9 +104,11 @@ async function handleLogin() {
         </CardContent>
       </Card>
 
-      <p class="text-center text-xs text-slate mt-6">
-        University Student Council · ISUFST Dingle Campus
-      </p>
+      <div class="text-center mt-8 space-y-1">
+        <p class="text-xs text-slate">Developed by <span class="font-semibold text-navy">Syntaxure Labs</span></p>
+        <p class="text-xs text-slate/70">for the University Student Council · ISUFST Dingle Campus</p>
+        <p class="text-[10px] text-slate/50 font-mono mt-2">Version 2.0</p>
+      </div>
     </div>
   </div>
 </template>

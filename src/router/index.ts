@@ -4,14 +4,61 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // Public pages
+    {
+      path: '/',
+      name: 'home',
+      component: () => import('@/pages/HomePage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('@/pages/AboutPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/features',
+      name: 'features',
+      component: () => import('@/pages/FeaturesPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/how-it-works',
+      name: 'how-it-works',
+      component: () => import('@/pages/HowItWorksPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/security',
+      name: 'security',
+      component: () => import('@/pages/SecurityPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/faq',
+      name: 'faq',
+      component: () => import('@/pages/FAQPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/contact',
+      name: 'contact',
+      component: () => import('@/pages/ContactPage.vue'),
+      meta: { layout: 'public' },
+    },
+
+    // Login
     {
       path: '/login',
       name: 'login',
       component: () => import('@/pages/LoginPage.vue'),
-      meta: { guest: true },
+      meta: { guest: true, layout: 'public' },
     },
+
+    // Authenticated app
     {
-      path: '/',
+      path: '/dashboard',
       name: 'dashboard',
       component: () => import('@/pages/DashboardPage.vue'),
       meta: { requiresAuth: true },
