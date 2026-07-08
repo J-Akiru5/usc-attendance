@@ -30,8 +30,87 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    <!-- Splash Screen -->
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #142850;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        transition: opacity 0.4s ease-out;
+      }
+      #splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash-logo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid rgba(201, 162, 75, 0.5);
+        box-shadow: 0 0 40px rgba(201, 162, 75, 0.15);
+        animation: spin 3s linear infinite;
+      }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      #splash-org {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 22px;
+        font-weight: 600;
+        color: #ffffff;
+        text-align: center;
+        letter-spacing: -0.01em;
+      }
+      #splash-campus {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+        text-align: center;
+      }
+      #splash-dots {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+      }
+      #splash-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #C9A24B;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      #splash-dots span:nth-child(2) { animation-delay: 0.2s; }
+      #splash-dots span:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes pulse {
+        0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1.2); }
+      }
+    </style>
   </head>
   <body>
+    <!-- Splash Screen -->
+    <div id="splash">
+      <img id="splash-logo" src="/logo/USC_logo.jpg" alt="USC Logo" />
+      <div id="splash-org">University Student Council</div>
+      <div id="splash-campus">ISUFST Dingle Campus</div>
+      <div id="splash-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

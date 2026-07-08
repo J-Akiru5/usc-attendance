@@ -10,3 +10,9 @@ app.use(createPinia())
 app.use(router)
 app.use(MotionPlugin)
 app.mount('#app')
+
+const splash = document.getElementById('splash')
+if (splash) {
+  splash.classList.add('fade-out')
+  setTimeout(() => splash.remove(), 500)
+}
