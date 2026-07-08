@@ -120,7 +120,7 @@ function formatTime(dateStr: string) {
         v-for="event in events.events"
         :key="event.id"
         class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push(`/events/${event.id}`)"
+        @click="router.push(`/manage/events/${event.id}`)"
       >
         <CardContent class="p-4 flex items-center justify-between">
           <div>

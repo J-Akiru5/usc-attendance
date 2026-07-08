@@ -9,7 +9,7 @@ const route = useRoute()
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client'] },
-  { label: 'Events', to: '/events', icon: '📅', roles: ['super_admin', 'staff'] },
+  { label: 'Events', to: '/manage/events', icon: '📅', roles: ['super_admin', 'staff'] },
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Scan QR', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
@@ -27,7 +27,7 @@ function isActive(to: string) {
       <div class="flex items-center gap-3">
         <img src="/logo-192.png" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold" />
         <div>
-          <div class="text-xs tracking-widest uppercase text-gold-soft font-mono">USC Attendance</div>
+          <div class="text-xs tracking-widest uppercase text-gold-soft font-mono">Officer Portal</div>
         </div>
       </div>
     </div>

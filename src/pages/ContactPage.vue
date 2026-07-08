@@ -38,7 +38,7 @@ async function handleSubmit() {
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Contact</div>
         <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Contact Us</h1>
         <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
-          We're here to help. Reach out to the University Student Council for questions about the USC Digital Portal.
+          We're here to help. Reach out to the University Student Council for questions, concerns, or suggestions.
         </p>
       </div>
     </section>

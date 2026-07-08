@@ -10,9 +10,11 @@ const mobileMenuOpen = ref(false)
 
 const navLinks = [
   { label: 'Home', to: '/' },
-  { label: 'Attendance System', to: '/attendance' },
   { label: 'About', to: '/about' },
-  { label: 'FAQ', to: '/faq' },
+  { label: 'Officers', to: '/officers' },
+  { label: 'Projects', to: '/projects' },
+  { label: 'Events', to: '/events' },
+  { label: 'Portal', to: '/portal' },
   { label: 'Contact', to: '/contact' },
 ]
 
@@ -154,11 +156,11 @@ function closeMobileMenu() {
               </div>
               <div>
                 <div class="text-sm font-bold text-white leading-tight">University Student Council</div>
-                <div class="text-[10px] text-white/40 font-mono">USC Digital Portal</div>
+                <div class="text-[10px] text-white/40 font-mono">ISUFST Dingle Campus</div>
               </div>
             </div>
             <p class="text-sm text-white/40 leading-relaxed">
-              Official digital platform of the University Student Council, ISUFST Dingle Campus.
+              Official website of the University Student Council, ISUFST Dingle Campus.
             </p>
           </div>
 
@@ -166,16 +168,20 @@ function closeMobileMenu() {
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">About</div>
             <div class="space-y-2">
-              <router-link to="/about" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">About the Portal</router-link>
-              <router-link to="/attendance" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Attendance System</router-link>
+              <router-link to="/about" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">About USC</router-link>
+              <router-link to="/officers" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Officers</router-link>
+              <router-link to="/projects" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Projects</router-link>
+              <router-link to="/events" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Events</router-link>
             </div>
           </div>
 
-          <!-- Support -->
+          <!-- Portal -->
           <div>
-            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">Support</div>
+            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">Officer Portal</div>
             <div class="space-y-2">
-              <router-link to="/faq" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">FAQ</router-link>
+              <router-link to="/portal" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Portal Home</router-link>
+              <router-link to="/portal/features" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Features</router-link>
+              <router-link to="/portal/faq" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">FAQ</router-link>
               <router-link to="/contact" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Contact</router-link>
             </div>
           </div>

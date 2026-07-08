@@ -88,7 +88,7 @@ function methodLabel(method: string) {
 
 <template>
   <div class="max-w-4xl mx-auto space-y-6">
-    <button @click="router.push(`/events/${eventId}`)" class="text-sm text-navy hover:underline">&larr; Back to event</button>
+    <button @click="router.push(`/manage/events/${eventId}`)" class="text-sm text-navy hover:underline">&larr; Back to event</button>
 
     <div v-if="events.loading" class="text-center text-slate py-12">Loading...</div>
 

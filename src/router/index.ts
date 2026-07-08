@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    // Public pages
+    // Public pages — USC Official Website
     {
       path: '/',
       name: 'home',
@@ -18,33 +18,59 @@ const router = createRouter({
       meta: { layout: 'public' },
     },
     {
-      path: '/features',
-      name: 'features',
-      component: () => import('@/pages/FeaturesPage.vue'),
+      path: '/officers',
+      name: 'officers',
+      component: () => import('@/pages/OfficersPage.vue'),
       meta: { layout: 'public' },
     },
     {
-      path: '/how-it-works',
-      name: 'how-it-works',
-      component: () => import('@/pages/HowItWorksPage.vue'),
+      path: '/projects',
+      name: 'projects',
+      component: () => import('@/pages/ProjectsPage.vue'),
       meta: { layout: 'public' },
     },
     {
-      path: '/security',
-      name: 'security',
-      component: () => import('@/pages/SecurityPage.vue'),
-      meta: { layout: 'public' },
-    },
-    {
-      path: '/faq',
-      name: 'faq',
-      component: () => import('@/pages/FAQPage.vue'),
+      path: '/events',
+      name: 'public-events',
+      component: () => import('@/pages/PublicEventsPage.vue'),
       meta: { layout: 'public' },
     },
     {
       path: '/contact',
       name: 'contact',
       component: () => import('@/pages/ContactPage.vue'),
+      meta: { layout: 'public' },
+    },
+
+    // Officer Portal
+    {
+      path: '/portal',
+      name: 'portal',
+      component: () => import('@/pages/PortalPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/portal/features',
+      name: 'portal-features',
+      component: () => import('@/pages/FeaturesPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/portal/how-it-works',
+      name: 'portal-how-it-works',
+      component: () => import('@/pages/HowItWorksPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/portal/security',
+      name: 'portal-security',
+      component: () => import('@/pages/SecurityPage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/portal/faq',
+      name: 'portal-faq',
+      component: () => import('@/pages/FAQPage.vue'),
       meta: { layout: 'public' },
     },
 
@@ -64,13 +90,13 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/events',
+      path: '/manage/events',
       name: 'events',
-      component: () => import('@/pages/EventsPage.vue'),
+      component: () => import('@/pages/EventsManagePage.vue'),
       meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
     },
     {
-      path: '/events/:id',
+      path: '/manage/events/:id',
       name: 'event-detail',
       component: () => import('@/pages/EventDetailPage.vue'),
       meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },

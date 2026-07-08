@@ -114,7 +114,7 @@ onUnmounted(() => {
     <div class="text-center">
       <button
         class="text-xs text-navy font-bold hover:underline"
-        @click="router.push('/events')"
+        @click="router.push('/manage/events')"
       >
         Back to events
       </button>

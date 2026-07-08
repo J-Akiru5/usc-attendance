@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo-192.png', 'logo-512.png'],
       manifest: {
-        name: 'USC Attendance System',
-        short_name: 'USC Attendance',
-        description: 'Geolocation-gated attendance tracking for USC officers',
+        name: 'University Student Council — ISUFST Dingle Campus',
+        short_name: 'USC ISUFST',
+        description: 'Official website of the University Student Council, ISUFST Dingle Campus',
         theme_color: '#142850',
         background_color: '#F7F5F0',
         display: 'standalone',

@@ -21,7 +21,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Home', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client'] },
-  { label: 'Events', to: '/events', icon: '📅', roles: ['super_admin', 'staff'] },
+  { label: 'Events', to: '/manage/events', icon: '📅', roles: ['super_admin', 'staff'] },
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Scan', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },

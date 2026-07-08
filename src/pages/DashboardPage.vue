@@ -69,7 +69,7 @@ function formatTime(dateStr: string) {
       <Card
         v-if="auth.isStaff"
         class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push('/events')"
+        @click="router.push('/manage/events')"
       >
         <CardContent class="p-4 text-center">
           <div class="text-2xl mb-1">📅</div>
@@ -133,7 +133,7 @@ function formatTime(dateStr: string) {
           v-for="event in todayEvents"
           :key="event.id"
           class="cursor-pointer hover:shadow-md transition-shadow"
-          @click="auth.isStaff ? router.push(`/events/${event.id}`) : router.push(`/check-in/${event.id}`)"
+          @click="auth.isStaff ? router.push(`/manage/events/${event.id}`) : router.push(`/check-in/${event.id}`)"
         >
           <CardContent class="p-4 flex items-center justify-between">
             <div>
