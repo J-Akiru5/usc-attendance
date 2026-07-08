@@ -13,14 +13,22 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-function generateTempPassword(): string {
-  const prefix = 'USC2026!'
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  let suffix = ''
-  for (let i = 0; i < 6; i++) {
-    suffix += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return prefix + suffix
+// Deterministic passwords — must match docs/credentials.html exactly
+const OFFICER_PASSWORDS: Record<string, string> = {
+  'jdemonteverde@isufst.edu.ph': 'USC2026!EGKJ3G',
+  'kbicodo@isufst.edu.ph':      'USC2026!hwLRTq',
+  'ndanugrao@isufst.edu.ph':    'USC2026!EJLFDZ',
+  'ddaguro@isufst.edu.ph':      'USC2026!VcKuMB',
+  'lparcia@isufst.edu.ph':      'USC2026!Jkcbru',
+  'raquino@isufst.edu.ph':      'USC2026!feSSKx',
+  'cmanderico@isufst.edu.ph':   'USC2026!NYwzMM',
+  'ndeang@isufst.edu.ph':       'USC2026!FgAkpM',
+  'jnatalio@isufst.edu.ph':     'USC2026!nmBMAS',
+  'jbalinas@isufst.edu.ph':     'USC2026!qU4D2N',
+  'jmartinez@isufst.edu.ph':    'USC2026!atwgVf',
+  'aperisme@isufst.edu.ph':     'USC2026!qXJWSD',
+  'ralmirante@isufst.edu.ph':   'USC2026!QVj3be',
+  'jfrial@isufst.edu.ph':       'USC2026!xUcMMf',
 }
 
 const officers = [
@@ -47,7 +55,11 @@ async function main() {
 
   for (const u of officers) {
     let authUserId: string | null = null
-    const tempPassword = generateTempPassword()
+    const tempPassword = OFFICER_PASSWORDS[u.email]
+    if (!tempPassword) {
+      console.error(`  ✗ No password defined for ${u.email} — skipping`)
+      continue
+    }
 
     // 1. Check if user already exists in Supabase Auth
     const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers()
@@ -60,6 +72,17 @@ async function main() {
     if (existingAuthUser) {
       console.log(`  ✓ ${u.email} already exists in Supabase Auth (ID: ${existingAuthUser.id.slice(0, 8)}...)`)
       authUserId = existingAuthUser.id
+
+      // Update password to match credentials.html
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingAuthUser.id,
+        { password: tempPassword }
+      )
+      if (updateError) {
+        console.error(`  ✗ Error updating password for ${u.email}: ${updateError.message}`)
+      } else {
+        console.log(`  → Password updated for ${u.email}`)
+      }
     } else {
       console.log(`  + Creating ${u.email}...`)
       const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({

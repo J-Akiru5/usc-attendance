@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import Toast from '@/components/ui/Toast.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -11,6 +12,8 @@ const password = ref('')
 const rememberMe = ref(false)
 const loading = ref(false)
 const error = ref('')
+const showPassword = ref(false)
+const toastRef = ref<InstanceType<typeof Toast>>()
 
 async function handleLogin() {
   if (!email.value || !password.value) {
@@ -25,7 +28,9 @@ async function handleLogin() {
     await auth.login(email.value, password.value)
     router.push('/dashboard')
   } catch (err: unknown) {
-    error.value = err instanceof Error ? err.message : 'Login failed'
+    const msg = err instanceof Error ? err.message : 'Login failed'
+    error.value = msg
+    toastRef.value?.addToast(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -33,18 +38,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="flex-1 flex min-h-screen relative">
-    <!-- Floating Back to Home Button -->
-    <button
-      @click="router.push('/')"
-      class="absolute top-6 left-6 z-30 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all backdrop-blur-md bg-navy/10 hover:bg-navy/20 text-navy border border-navy/10 hover:border-navy/20 lg:bg-white/10 lg:hover:bg-white/20 lg:text-white lg:border-white/10 lg:hover:border-white/20"
-    >
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-      </svg>
-      Back to Home
-    </button>
-
+  <div class="flex-1 flex min-h-screen">
     <!-- Left panel: Branding -->
     <div class="hidden lg:flex lg:w-1/2 bg-navy flex-col justify-between p-12 relative overflow-hidden">
       <!-- Grid texture -->
@@ -104,7 +98,17 @@ async function handleLogin() {
     </div>
 
     <!-- Right panel: Login form -->
-    <div class="flex-1 flex items-center justify-center p-6 bg-paper">
+    <div class="flex-1 flex items-center justify-center p-6 bg-paper relative">
+      <!-- Floating Back to Home Button (White side / Right panel) -->
+      <button
+        @click="router.push('/')"
+        class="absolute top-6 right-6 z-30 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all bg-navy/10 hover:bg-navy/20 text-navy border border-navy/10 hover:border-navy/20"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Back to Home
+      </button>
       <div class="w-full max-w-sm">
         <!-- Mobile logos (only shown on mobile) -->
         <div class="flex lg:hidden items-center justify-center gap-3 mb-8">
@@ -165,11 +169,27 @@ async function handleLogin() {
               <input
                 id="password"
                 v-model="password"
-                type="password"
+                :type="showPassword ? 'text' : 'password'"
                 placeholder="••••••••"
                 :disabled="loading"
-                class="w-full pl-10 pr-4 py-2.5 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-colors disabled:opacity-60"
+                class="w-full pl-10 pr-10 py-2.5 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-colors disabled:opacity-60"
               />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="absolute inset-y-0 right-3 flex items-center text-slate hover:text-navy transition-colors"
+                tabindex="-1"
+              >
+                <!-- Eye (show) -->
+                <svg v-if="!showPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <!-- Eye off (hide) -->
+                <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.879L21 21"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -201,4 +221,5 @@ async function handleLogin() {
       </div>
     </div>
   </div>
+  <Toast ref="toastRef" />
 </template>
