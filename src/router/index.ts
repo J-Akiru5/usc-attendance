@@ -53,7 +53,7 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/pages/LoginPage.vue'),
-      meta: { guest: true, layout: 'public' },
+      meta: { guest: true },
     },
 
     // Authenticated app

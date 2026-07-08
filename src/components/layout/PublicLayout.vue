@@ -9,7 +9,6 @@ const auth = useAuthStore()
 const mobileMenuOpen = ref(false)
 
 const navLinks = [
-  { label: 'Home', to: '/' },
   { label: 'About', to: '/about' },
   { label: 'Features', to: '/features' },
   { label: 'How It Works', to: '/how-it-works' },
@@ -28,21 +27,32 @@ function closeMobileMenu() {
 <template>
   <div class="min-h-screen bg-paper flex flex-col">
     <!-- Navbar -->
-    <header class="sticky top-0 z-50 bg-paper-panel/95 backdrop-blur-md border-b border-line">
-      <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-        <!-- Logo -->
-        <div class="flex items-center gap-3 cursor-pointer" @click="router.push('/')">
-          <div class="w-9 h-9 rounded-full bg-navy border border-gold flex items-center justify-center shrink-0">
-            <span class="text-gold font-bold text-sm font-serif">USC</span>
+    <header class="sticky top-0 z-50 bg-navy border-b border-white/10 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
+        <!-- Logo Group -->
+        <div class="flex items-center gap-3 cursor-pointer shrink-0" @click="router.push('/')">
+          <!-- ISUFST Logo -->
+          <div class="flex items-center gap-1.5">
+            <div class="w-9 h-9 rounded-full bg-white/10 border-2 border-gold/70 flex items-center justify-center shrink-0">
+              <span class="text-gold font-bold text-[10px] font-serif leading-none">ISUFST</span>
+            </div>
           </div>
-          <div class="hidden sm:block">
-            <div class="text-xs font-bold text-navy leading-tight">University Student Council</div>
-            <div class="text-[10px] text-slate font-mono uppercase tracking-wider">Attendance System</div>
+          <!-- Divider -->
+          <div class="h-6 w-px bg-white/20" />
+          <!-- USC Logo -->
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-full bg-gold border-2 border-gold flex items-center justify-center shrink-0">
+              <span class="text-navy font-bold text-sm font-serif leading-none">USC</span>
+            </div>
+            <div class="hidden sm:block">
+              <div class="text-[11px] font-bold text-white leading-tight">University Student Council</div>
+              <div class="text-[9px] text-white/50 font-mono uppercase tracking-wider">ISUFST Dingle Campus</div>
+            </div>
           </div>
         </div>
 
         <!-- Desktop Nav -->
-        <nav class="hidden lg:flex items-center gap-1">
+        <nav class="hidden lg:flex items-center gap-0.5">
           <router-link
             v-for="link in navLinks"
             :key="link.to"
@@ -50,8 +60,8 @@ function closeMobileMenu() {
             :class="[
               'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
               isActive(link.to)
-                ? 'text-navy bg-navy/5'
-                : 'text-slate hover:text-navy hover:bg-navy/5'
+                ? 'text-gold bg-white/10'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             ]"
           >
             {{ link.label }}
@@ -59,25 +69,25 @@ function closeMobileMenu() {
         </nav>
 
         <!-- Right Actions -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 shrink-0">
           <router-link
             v-if="!auth.isAuthenticated"
             to="/login"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy-deep transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold text-navy text-sm font-bold hover:brightness-110 transition-all shadow-md"
           >
-            Sign In
+            Login
           </router-link>
           <router-link
             v-else
             to="/dashboard"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold text-ink text-sm font-bold hover:brightness-110 transition-all"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold text-navy text-sm font-bold hover:brightness-110 transition-all"
           >
             Dashboard
           </router-link>
 
           <!-- Mobile menu button -->
           <button
-            class="lg:hidden p-2 rounded-lg hover:bg-navy/5 text-navy transition-colors"
+            class="lg:hidden p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
             @click="mobileMenuOpen = !mobileMenuOpen"
             aria-label="Toggle menu"
           >
@@ -102,7 +112,7 @@ function closeMobileMenu() {
       >
         <div
           v-if="mobileMenuOpen"
-          class="lg:hidden border-t border-line bg-paper-panel"
+          class="lg:hidden border-t border-white/10 bg-navy-deep"
         >
           <nav class="px-4 py-3 space-y-1">
             <router-link
@@ -113,8 +123,8 @@ function closeMobileMenu() {
               :class="[
                 'block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive(link.to)
-                  ? 'text-navy bg-navy/5'
-                  : 'text-slate hover:text-navy hover:bg-navy/5'
+                  ? 'text-gold bg-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               ]"
             >
               {{ link.label }}
@@ -132,16 +142,20 @@ function closeMobileMenu() {
     <!-- Footer -->
     <footer class="bg-navy-deep text-white/60 border-t border-white/10">
       <div class="max-w-7xl mx-auto px-4 md:px-6 py-12">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <!-- Brand -->
-          <div>
+          <div class="sm:col-span-2 lg:col-span-1">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-white/10 border border-gold flex items-center justify-center shrink-0">
-                <span class="text-gold font-bold text-sm font-serif">USC</span>
+              <div class="w-10 h-10 rounded-full bg-white/10 border border-gold/60 flex items-center justify-center shrink-0">
+                <span class="text-gold font-bold text-[10px] font-serif">ISUFST</span>
+              </div>
+              <div class="w-px h-8 bg-white/20" />
+              <div class="w-10 h-10 rounded-full bg-gold border border-gold flex items-center justify-center shrink-0">
+                <span class="text-navy font-bold text-sm font-serif">USC</span>
               </div>
               <div>
-                <div class="text-sm font-bold text-white">University Student Council</div>
-                <div class="text-xs text-white/50 font-mono">Attendance System</div>
+                <div class="text-sm font-bold text-white leading-tight">University Student Council</div>
+                <div class="text-[10px] text-white/40 font-mono">Attendance System</div>
               </div>
             </div>
             <p class="text-sm text-white/40 leading-relaxed">
@@ -149,41 +163,54 @@ function closeMobileMenu() {
             </p>
           </div>
 
-          <!-- Navigation -->
+          <!-- About -->
           <div>
-            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">Information</div>
+            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">About</div>
             <div class="space-y-2">
-              <router-link
-                v-for="link in navLinks"
-                :key="link.to"
-                :to="link.to"
-                class="block text-sm text-white/50 hover:text-gold-soft transition-colors"
-              >
-                {{ link.label }}
-              </router-link>
+              <router-link to="/about" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">About the System</router-link>
+              <router-link to="/features" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Features</router-link>
+              <router-link to="/how-it-works" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">How It Works</router-link>
+              <router-link to="/security" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Security</router-link>
             </div>
           </div>
 
-          <!-- Legal -->
+          <!-- Support -->
           <div>
-            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">Legal</div>
+            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">Support</div>
             <div class="space-y-2">
-              <router-link to="/security" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Privacy Policy</router-link>
-              <router-link to="/security" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Terms of Use</router-link>
+              <router-link to="/faq" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">FAQ</router-link>
               <router-link to="/contact" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Contact</router-link>
+              <router-link to="/security" class="block text-sm text-white/50 hover:text-gold-soft transition-colors">Privacy Policy</router-link>
+            </div>
+          </div>
+
+          <!-- Contact -->
+          <div>
+            <div class="text-xs font-mono uppercase tracking-wider text-white/40 mb-4">Contact</div>
+            <div class="space-y-3 text-sm text-white/50">
+              <div class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-gold shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <a href="mailto:usc@isufst.edu.ph" class="hover:text-gold-soft transition-colors">usc@isufst.edu.ph</a>
+              </div>
+              <div class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-gold shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span>ISUFST Dingle Campus<br>Dingle, Iloilo, Philippines</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="mt-10 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3">
           <div class="text-xs text-white/30">
-            <span class="font-mono">Version 2.0</span> · ISUFST Dingle Campus
+            © 2026 USC Attendance System. All rights reserved.
           </div>
           <div class="text-xs text-white/30">
             Developed by <span class="text-gold-soft font-medium">Syntaxure Labs</span> for the University Student Council
-          </div>
-          <div class="text-xs text-white/30">
-            © 2026 ISUFST Dingle Campus
           </div>
         </div>
       </div>

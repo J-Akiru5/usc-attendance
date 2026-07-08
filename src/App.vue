@@ -10,6 +10,7 @@ const route = useRoute()
   <PublicLayout v-if="route.meta.layout === 'public'">
     <RouterView />
   </PublicLayout>
+  <RouterView v-else-if="!route.meta.requiresAuth && !route.meta.layout" />
   <AppShell v-else>
     <RouterView />
   </AppShell>
