@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase } from '@/lib/api'
+import { supabase, api } from '@/lib/api'
 import type { User, Role } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -54,6 +54,12 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
+  async function updateProfile(name: string, position: string) {
+    const res = await api.put<{ user: User }>('/auth/profile', { name, position })
+    user.value = res.user
+    return res.user
+  }
+
   return {
     user,
     loading,
@@ -65,5 +71,6 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser,
     login,
     logout,
+    updateProfile,
   }
 })
