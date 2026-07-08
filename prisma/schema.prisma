@@ -20,6 +20,8 @@ model User {
   name      String
   position  String
   role      String   // "super_admin" | "staff" | "client"
+  mustChangePassword Boolean @default(true)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
   createdEvents Event[]       @relation("EventCreator")
@@ -76,4 +78,15 @@ model OfficeDuty {
   user      User    @relation(fields: [userId], references: [id])
 
   @@map("office_duties")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  // user being acted upon (nullable for system actions)
+  action      String   // "account_created", "password_changed", "password_reset", "officer_deactivated", "role_changed", "manual_override"
+  details     String?  // JSON string with additional context
+  performedBy String?  // user ID of the admin/system performing the action
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
 }

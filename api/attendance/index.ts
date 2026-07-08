@@ -36,9 +36,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { type, eventId, dutyDate, userId, method, lat, lng, recordedBy } = req.body
+      const { type, eventId, dutyDate, userId, method, lat, lng } = req.body
 
-      if (!userId || !method || !recordedBy) {
+      if (!userId || !method) {
         return res.status(400).json({ error: 'Missing required fields' })
       }
 
@@ -107,6 +107,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         requireStaff(user)
       }
 
+      // Guard: staff cannot manually record their own attendance
+      if (method === 'manual' && user.id === userId) {
+        return res.status(403).json({
+          error: 'Staff cannot manually record their own attendance. Use self check-in (geolocation) or QR instead.',
+        })
+      }
+
+      // recordedBy is always the authenticated user, never from client input
       const record = await prisma.attendance.create({
         data: {
           type: attendanceType,
@@ -116,7 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           method,
           lat: lat ? parseFloat(lat) : null,
           lng: lng ? parseFloat(lng) : null,
-          recordedBy,
+          recordedBy: user.id,
         },
         include: {
           user: { select: { id: true, name: true, position: true, role: true } },

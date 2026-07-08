@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USC Attendance System — Scope & Build Record v2.0</title>
+<style>
+  :root{
+    --navy:#142850;
+    --navy-deep:#0C1B36;
+    --gold:#C9A24B;
+    --gold-soft:#E4CD8E;
+    --paper:#F7F5F0;
+    --paper-panel:#FFFFFF;
+    --ink:#1B1B1D;
+    --slate:#5C6773;
+    --line:#DCD6C8;
+    --green:#3F7D5C;
+    --red:#A23E3E;
+    --success:#3F7D5C;
+    --danger:#A23E3E;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --serif: 'Source Serif 4', 'Georgia', serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media print{ .toc{display:none;} .layout{display:block;} }
+
+  /* HEADER / STAMP */
+  .cover{
+    background:linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 60%);
+    color:#fff;
+    padding:64px 48px 56px;
+    position:relative;
+    overflow:hidden;
+  }
+  .cover::after{
+    content:"";
+    position:absolute; right:-60px; top:-60px;
+    width:280px; height:280px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
+  .cover::before{
+    content:"";
+    position:absolute; right:20px; top:40px;
+    width:180px; height:180px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
+  .cover-logos{
+    display:flex;
+    gap:16px;
+    margin-bottom:24px;
+  }
+  .cover-logos img{
+    height:56px;
+    width:auto;
+    filter:brightness(0) invert(1);
+    opacity:0.9;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin-bottom:18px;
+  }
+  .cover h1{
+    font-family:var(--serif);
+    font-size:42px;
+    font-weight:600;
+    margin:0 0 12px;
+    max-width:640px;
+    letter-spacing:-0.01em;
+  }
+  .cover p.lede{
+    max-width:560px;
+    color:rgba(255,255,255,0.72);
+    font-size:16px;
+    margin:0 0 28px;
+  }
+  .stamp{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--gold);
+    color:var(--gold-soft);
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    padding:8px 16px;
+    border-radius:2px;
+    transform:rotate(-1deg);
+  }
+  .stamp .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);}
+
+  /* LAYOUT */
+  .layout{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:0;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  .toc{
+    padding:48px 20px 48px 48px;
+    position:sticky;
+    top:0;
+    align-self:start;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .toc-title{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-bottom:14px;
+  }
+  .toc a{
+    display:block;
+    font-size:13px;
+    color:var(--ink);
+    text-decoration:none;
+    padding:6px 0;
+    border-left:2px solid transparent;
+    padding-left:12px;
+    margin-left:-13px;
+    opacity:0.72;
+  }
+  .toc a:hover{opacity:1; border-left-color:var(--gold); color:var(--navy);}
+
+  main{padding:48px 48px 100px 40px; max-width:820px;}
+  section{margin-bottom:56px; scroll-margin-top:24px;}
+  .num{
+    font-family:var(--mono);
+    color:var(--gold);
+    font-size:13px;
+    margin-right:8px;
+  }
+  h2{
+    font-family:var(--serif);
+    font-size:26px;
+    color:var(--navy);
+    border-bottom:1px solid var(--line);
+    padding-bottom:14px;
+    margin:0 0 22px;
+  }
+  h3{
+    font-family:var(--sans);
+    font-size:16px;
+    font-weight:700;
+    color:var(--navy);
+    margin:28px 0 10px;
+  }
+  p{color:#333; font-size:15px;}
+  .panel{
+    background:var(--paper-panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:22px 24px;
+  }
+
+  /* SCOPE TABLE */
+  .scope-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-top:16px;
+  }
+  .scope-col{
+    border-radius:6px;
+    padding:20px;
+  }
+  .scope-col.in{background:#EEF4EF; border:1px solid #CFE1D3;}
+  .scope-col.out{background:#F7ECEC; border:1px solid #E5CBCB;}
+  .scope-col h4{
+    margin:0 0 12px;
+    font-size:13px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    font-family:var(--mono);
+  }
+  .scope-col.in h4{color:var(--green);}
+  .scope-col.out h4{color:var(--red);}
+  .scope-col ul{margin:0; padding-left:18px;}
+  .scope-col li{font-size:14px; margin-bottom:8px; color:#333;}
+
+  /* CHECKLIST */
+  .phase{margin-bottom:28px;}
+  .phase-label{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    background:var(--navy);
+    color:#fff;
+    padding:4px 10px;
+    border-radius:3px;
+    margin-bottom:12px;
+  }
+  ul.checklist{list-style:none; margin:0; padding:0;}
+  ul.checklist li{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:14.5px;
+  }
+  ul.checklist li:last-child{border-bottom:none;}
+  ul.checklist input[type=checkbox]{
+    margin-top:3px;
+    accent-color:var(--navy);
+    width:15px;height:15px;
+    flex-shrink:0;
+  }
+  ul.checklist code{
+    background:#F0EEE6;
+    padding:1px 6px;
+    border-radius:3px;
+    font-size:13px;
+    font-family:var(--mono);
+  }
+
+  /* CALLOUT */
+  .callout{
+    border-left:3px solid var(--gold);
+    background:#FBF6E9;
+    padding:18px 22px;
+    border-radius:0 6px 6px 0;
+    margin:20px 0;
+  }
+  .callout .tag{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:#8A6D2F;
+    display:block;
+    margin-bottom:6px;
+  }
+  .callout p{margin:0; font-size:14.5px;}
+  .callout.danger{border-left-color:var(--red); background:#FBEFEF;}
+  .callout.danger .tag{color:var(--red);}
+  .callout.info{border-left-color:var(--navy); background:#EEF2F7;}
+  .callout.info .tag{color:var(--navy);}
+
+  /* MANUAL STEPS */
+  .step{
+    display:grid;
+    grid-template-columns:36px 1fr;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  .step-num{
+    width:36px; height:36px;
+    border-radius:50%;
+    background:var(--navy);
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono);
+    font-size:14px;
+    flex-shrink:0;
+  }
+  .step h4{margin:0 0 6px; font-size:15px; color:var(--navy);}
+  .step p{margin:0 0 6px; font-size:14px;}
+  .step .detail{
+    font-size:13px;
+    color:var(--slate);
+    background:#F0EFE9;
+    padding:8px 12px;
+    border-radius:4px;
+    margin-top:8px;
+  }
+
+  table.schema{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    margin-top:14px;
+  }
+  table.schema th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--slate);
+    border-bottom:1px solid var(--line);
+    padding:8px 10px;
+  }
+  table.schema td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  table.schema tr:last-child td{border-bottom:none;}
+  .badge{
+    font-family:var(--mono);
+    font-size:11px;
+    background:var(--navy);
+    color:#fff;
+    padding:2px 7px;
+    border-radius:3px;
+  }
+  .badge.green{background:var(--green);}
+  .badge.gold{background:var(--gold);color:var(--navy-deep);}
+
+  /* CHANGELOG */
+  .changelog-entry{
+    display:grid;
+    grid-template-columns:100px 1fr;
+    gap:20px;
+    margin-bottom:24px;
+    padding-bottom:24px;
+    border-bottom:1px solid var(--line);
+  }
+  .changelog-entry:last-child{border-bottom:none;}
+  .changelog-date{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--slate);
+    padding-top:2px;
+  }
+  .changelog-content h4{
+    margin:0 0 8px;
+    font-size:15px;
+    color:var(--navy);
+  }
+  .changelog-content p{
+    margin:0;
+    font-size:14px;
+  }
+  .changelog-content ul{
+    margin:8px 0 0;
+    padding-left:18px;
+  }
+  .changelog-content li{
+    font-size:14px;
+    margin-bottom:4px;
+  }
+  .tag-new{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10px;
+    background:var(--green);
+    color:#fff;
+    padding:2px 6px;
+    border-radius:3px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-left:6px;
+  }
+  .tag-changed{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10px;
+    background:var(--gold);
+    color:var(--navy-deep);
+    padding:2px 6px;
+    border-radius:3px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-left:6px;
+  }
+  .tag-removed{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10px;
+    background:var(--red);
+    color:#fff;
+    padding:2px 6px;
+    border-radius:3px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-left:6px;
+  }
+
+  /* UI MOCKUP */
+  .mockup-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+    gap:24px;
+    margin-top:20px;
+  }
+  .mockup-card{
+    background:var(--paper-panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .mockup-screen{
+    background:#1a1a2e;
+    border-radius:12px;
+    padding:16px;
+    margin:16px;
+    min-height:320px;
+    position:relative;
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  }
+  .mockup-screen::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:60px;
+    height:20px;
+    background:#000;
+    border-radius:0 0 12px 12px;
+    z-index:10;
+  }
+  .mockup-label{
+    padding:12px 16px;
+    border-top:1px solid var(--line);
+  }
+  .mockup-label h4{
+    margin:0;
+    font-size:14px;
+    color:var(--navy);
+  }
+  .mockup-label p{
+    margin:4px 0 0;
+    font-size:12px;
+    color:var(--slate);
+  }
+  .mockup-screen .header-bar{
+    background:linear-gradient(135deg, var(--navy-deep), var(--navy));
+    border-radius:8px 8px 0 0;
+    padding:24px 16px 16px;
+    color:#fff;
+    margin:-16px -16px 16px -16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .mockup-screen .header-bar::after{
+    content:"";
+    position:absolute;
+    right:-20px;
+    top:-20px;
+    width:80px;
+    height:80px;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:50%;
+  }
+  .mockup-screen .header-bar .eyebrow{
+    font-size:9px;
+    margin-bottom:4px;
+    color:var(--gold-soft);
+  }
+  .mockup-screen .header-bar h3{
+    font-size:16px;
+    margin:0;
+    color:#fff;
+  }
+  .mockup-screen .header-bar p{
+    font-size:11px;
+    color:rgba(255,255,255,0.5);
+    margin:4px 0 0;
+  }
+  .mockup-screen .content-area{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .mockup-row{
+    background:rgba(255,255,255,0.05);
+    border-radius:6px;
+    padding:10px 12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .mockup-row .dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--gold);
+  }
+  .mockup-row .text{
+    flex:1;
+  }
+  .mockup-row .text small{
+    font-size:9px;
+    color:rgba(255,255,255,0.4);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  .mockup-row .text div{
+    font-size:12px;
+    color:#fff;
+    font-weight:500;
+  }
+  .mockup-btn{
+    background:linear-gradient(135deg, var(--gold), #a8863d);
+    border:none;
+    border-radius:8px;
+    padding:14px;
+    width:100%;
+    text-align:center;
+    font-weight:700;
+    font-size:13px;
+    color:var(--navy-deep);
+    box-shadow:0 4px 12px rgba(201,162,75,0.3);
+  }
+  .mockup-btn.secondary{
+    background:rgba(255,255,255,0.1);
+    color:#fff;
+    box-shadow:none;
+  }
+  .mockup-qr-box{
+    width:120px;
+    height:120px;
+    background:#fff;
+    border-radius:8px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+  }
+  .mockup-qr-box .qr-grid{
+    display:grid;
+    grid-template-columns:repeat(8, 1fr);
+    gap:2px;
+    width:80px;
+    height:80px;
+  }
+  .mockup-qr-box .qr-cell{
+    background:#000;
+    border-radius:1px;
+  }
+  .mockup-qr-box .qr-cell.white{background:#fff;}
+  .mockup-qr-box .label{
+    font-size:7px;
+    color:#000;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .mockup-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    background:rgba(255,255,255,0.05);
+    border-radius:6px;
+    border-left:3px solid var(--gold);
+  }
+  .mockup-status .indicator{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:var(--green);
+  }
+  .mockup-status .indicator.warning{background:var(--gold);}
+  .mockup-status span{
+    font-size:11px;
+    color:#fff;
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:28px 48px;
+    font-size:12px;
+    color:var(--slate);
+    font-family:var(--mono);
+    max-width:820px;
+    margin-left:40px;
+  }
+
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+    .toc{display:none;}
+    main{padding:32px 24px 80px;}
+    .cover{padding:48px 24px 40px;}
+    .scope-grid{grid-template-columns:1fr;}
+    footer{margin-left:0; padding:24px;}
+    .mockup-grid{grid-template-columns:1fr;}
+    .changelog-entry{grid-template-columns:1fr; gap:8px;}
+    .changelog-date{padding-top:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-logos">
+    <img src="logo/ISUFST_logo.png" alt="ISUFST Logo">
+    <img src="logo/USC_logo.jpg" alt="USC Logo">
+  </div>
+  <div class="eyebrow">Syntaxure Labs · Internal Build Record</div>
+  <h1>USC Attendance System</h1>
+  <p class="lede">Geolocation-gated attendance tracking for University Student Council officers. Vue 3 SPA, PWA-enabled, offline-first. v2.0 adds QR-based check-in, office duty scheduling, and full identity lifecycle management.</p>
+  <div class="stamp"><span class="dot"></span>Scope Locked · v2.0</div>
+</div>
+
+<div class="layout">
+  <nav class="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#changelog">01 — Changelog v1→v2</a>
+    <a href="#scope">02 — Scope of v2</a>
+    <a href="#stack">03 — Tech Stack</a>
+    <a href="#schema">04 — Data Model</a>
+    <a href="#identity">05 — Identity Lifecycle</a>
+    <a href="#ui">06 — UI/UX Walkthrough</a>
+    <a href="#checklist">07 — Dev Checklist</a>
+    <a href="#reminders">08 — Anti Over-Eng.</a>
+    <a href="#manual">09 — Manual Setup</a>
+    <a href="#yearly">10 — Yearly Transition</a>
+  </nav>
+
+  <main>
+
+    <section id="changelog">
+      <h2><span class="num">01</span>Changelog v1 → v2.0</h2>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">NEW</div>
+        <div class="changelog-content">
+          <h4>QR-Based Check-In <span class="tag-new">Major</span></h4>
+          <p>Staff can scan officer QR codes instead of manual entry. Each QR contains a signed, time-limited token (60s expiry) validated server-side via HMAC-SHA256.</p>
+          <ul>
+            <li><code>/qr</code> page — officer generates a QR token for a selected event</li>
+            <li><code>/scan</code> page — staff scans QR using device camera (html5-qrcode)</li>
+            <li><code>/attendance/qr</code> API — validates token signature + expiry before recording</li>
+            <li>QR secret stored in <code>VITE_QR_SECRET</code> env var</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">NEW</div>
+        <div class="changelog-content">
+          <h4>Identity Lifecycle <span class="tag-new">Major</span></h4>
+          <p>Complete officer onboarding and lifecycle management. No public registration — all accounts are provisioned by the secretary/super_admin from the official roster.</p>
+          <ul>
+            <li><code>mustChangePassword</code> field on User — forces password change on first login</li>
+            <li><code>active</code> field on User — soft-delete for officer graduation/transition</li>
+            <li>CSV Import — bulk officer provisioning from official roster</li>
+            <li>Supabase Auth password recovery flow (email reset link)</li>
+            <li>Yearly transition workflow: deactivate outgoing → import incoming → go live</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">NEW</div>
+        <div class="changelog-content">
+          <h4>Audit Log <span class="tag-new">New Table</span></h4>
+          <p>Lightweight audit table tracking who changed what and when.</p>
+          <ul>
+            <li>Logs: account created, password reset, officer deactivated, role changed, manual attendance override</li>
+            <li><code>performedBy</code> captures the actor (admin/system)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">NEW</div>
+        <div class="changelog-content">
+          <h4>Office Duty Scheduling <span class="tag-new">Major</span></h4>
+          <p>Recurring daily duty tracking for officers assigned to regular office hours (Mon–Sun). Officers check in/out for daily duty separate from event attendance.</p>
+          <ul>
+            <li><code>OfficeDuty</code> model — links user to day-of-week + time range</li>
+            <li><code>/duty</code> page — officer views today's duty and checks in</li>
+            <li><code>/attendance/duty</code> API — records duty attendance with date-based uniqueness</li>
+            <li>Attendance type split: <code>type: "event"</code> vs <code>type: "duty"</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">CHANGED</div>
+        <div class="changelog-content">
+          <h4>Attendance Model <span class="tag-changed">Breaking</span></h4>
+          <p>Attendance records now support two types and use date-level uniqueness instead of per-event uniqueness.</p>
+          <ul>
+            <li><code>type</code> field added — <span class="badge">event</span> or <span class="badge">duty</span></li>
+            <li><code>eventId</code> now nullable (required only for type=event)</li>
+            <li><code>dutyDate</code> added — required for type=duty</li>
+            <li><code>@@unique</code> changed — per-event unique → per-event unique + per-duty-date unique</li>
+            <li><code>method</code> now supports <span class="badge">qr</span> in addition to self/manual</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">CHANGED</div>
+        <div class="changelog-content">
+          <h4>Pages & Routing</h4>
+          <p>Three new pages added to the SPA.</p>
+          <ul>
+            <li><code>/qr</code> — QR token generation page for officers</li>
+            <li><code>/scan</code> — Camera-based QR scanner for staff (role-restricted)</li>
+            <li><code>/duty</code> — Daily duty check-in page for all authenticated users</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">CHANGED</div>
+        <div class="changelog-content">
+          <h4>Branding</h4>
+          <p>Org-specific branding updated from generic USC to ISUFST Dingle Campus.</p>
+          <ul>
+            <li>Footer stamp reads "ISUFST · Dingle Campus"</li>
+            <li>Logo assets at <code>/public/logo/ISUFST_logo.png</code> and <code>/public/logo/USC_logo.jpg</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <div class="changelog-date">UNCHANGED</div>
+        <div class="changelog-content">
+          <h4>Core Stack</h4>
+          <p>Vue 3, Vite, TypeScript, Tailwind, shadcn-vue, Pinia, Supabase, Prisma, PWA (Workbox), offline queue (idb), Vercel serverless — all unchanged from v1.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="scope">
+      <h2><span class="num">02</span>Scope of v2.0</h2>
+      <p>v2.0 adds QR check-in, office duty scheduling, and full identity lifecycle management. Accounts are provisioned by the secretary/super_admin from the official roster — no public registration. Officers authenticate, change password on first login, and use authenticated, short-lived QR tokens for check-in. The system supports the complete yearly officer transition cycle.</p>
+      <div class="scope-grid">
+        <div class="scope-col in">
+          <h4>In scope</h4>
+          <ul>
+            <li>3 roles: super_admin, staff (officer-on-duty), client (officer)</li>
+            <li>Officer provisioning via CSV import (no public registration)</li>
+            <li>Force password change on first login (<code>mustChangePassword</code>)</li>
+            <li>Password recovery via Supabase Auth email reset</li>
+            <li>Account soft-delete via <code>active</code> flag (preserves attendance history)</li>
+            <li>Audit log for account and attendance changes</li>
+            <li>Event creation with location + radius</li>
+            <li>Self check-in via geolocation match (event)</li>
+            <li>QR check-in via signed token scan (event)</li>
+            <li>Manual override check-in by staff with recorded_by audit</li>
+            <li>Office duty scheduling per day-of-week + time range</li>
+            <li>Self duty check-in for scheduled officers</li>
+            <li>Offline queueing of check-ins (event and duty), synced on reconnect</li>
+            <li>Attendance list/export per event (CSV)</li>
+            <li>PWA install + offline app shell</li>
+            <li>Basic auth (email/password or magic link via Supabase Auth)</li>
+            <li>HMAC-signed QR tokens with 60s expiry</li>
+          </ul>
+        </div>
+        <div class="scope-col out">
+          <h4>Explicitly not in v2.0</h4>
+          <ul>
+            <li>Push notifications / reminders</li>
+            <li>Analytics dashboards, charts, streak tracking</li>
+            <li>Multi-org / multi-council support</li>
+            <li>Editing or deleting attendance records (append-only)</li>
+            <li>Background location tracking</li>
+            <li>Native app wrapper (Capacitor) — PWA only</li>
+            <li>CI/CD pipelines, automated test suites</li>
+            <li>Duty schedule management UI (staff create/edit duties) — seeded via Prisma seed only</li>
+            <li>Duty export or reporting beyond per-day view</li>
+            <li>Face recognition, NFC — geolocation and QR only</li>
+            <li>Duty geolocation enforcement — location not required for duty check-in</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="tag">Rule of thumb</span>
+        <p>If a feature isn't required to answer "was this officer present at this event or duty, yes or no, recorded by whom, and how?" — it doesn't belong in v2.0.</p>
+      </div>
+    </section>
+
+    <section id="stack">
+      <h2><span class="num">03</span>Tech Stack</h2>
+      <table class="schema">
+        <tr><th>Layer</th><th>Choice</th><th>Why</th></tr>
+        <tr><td>Frontend</td><td>Vue 3 + Vite + TypeScript</td><td>No SSR needed; predictable for agents to execute</td></tr>
+        <tr><td>UI</td><td>Tailwind + shadcn-vue</td><td>Consistent with your other projects' conventions</td></tr>
+        <tr><td>State</td><td>Pinia</td><td>Official, minimal boilerplate</td></tr>
+        <tr><td>PWA</td><td>vite-plugin-pwa (Workbox)</td><td>Manifest + service worker, config not code</td></tr>
+        <tr><td>Offline queue</td><td>idb (IndexedDB wrapper)</td><td>Queue check-ins, flush on reconnect</td></tr>
+        <tr><td>ORM</td><td>Prisma</td><td>Schema + migrations only, no hand-written SQL</td></tr>
+        <tr><td>DB / Auth</td><td>Supabase (Postgres + Auth)</td><td>Matches existing stack; Auth handles sessions</td></tr>
+        <tr><td>API layer</td><td>Vercel serverless functions</td><td>Role checks happen here, not in RLS — one source of truth</td></tr>
+        <tr><td>Hosting</td><td>Vercel</td><td>Zero-config static/SPA deploy</td></tr>
+        <tr><td>QR Scanning</td><td>html5-qrcode</td><td>Camera-based QR scanning in browser</td></tr>
+        <tr><td>QR Signing</td><td>Web Crypto API (HMAC-SHA256)</td><td>Server-validated signed tokens, no server-side session needed</td></tr>
+      </table>
+      <div class="callout">
+        <span class="tag">Architecture note</span>
+        <p>Prisma bypasses Supabase RLS. Don't run both RLS policies and Prisma role checks — pick Prisma + code-level checks in API routes as the single enforcement point, and leave RLS off (or default-deny) for tables Prisma touches.</p>
+      </div>
+      <div class="callout info">
+        <span class="tag">QR Token Security</span>
+        <p>QR tokens are signed with HMAC-SHA256 using a secret stored in <code>VITE_QR_SECRET</code>. The secret must be at least 32 characters, randomly generated, and never committed to git. Token expiry (60s) is enforced server-side — do not trust client-side countdown alone.</p>
+      </div>
+    </section>
+
+    <section id="schema">
+      <h2><span class="num">04</span>Data Model — v2.0</h2>
+      <table class="schema">
+        <tr><th>Table</th><th>Key fields</th></tr>
+        <tr><td>users</td><td>id, name, position, role <span class="badge">enum</span>, mustChangePassword <span class="badge green">NEW</span>, active <span class="badge green">NEW</span></td></tr>
+        <tr><td>events</td><td>id, title, date, lat, lng, radius_meters, created_by</td></tr>
+        <tr><td>attendance</td><td>id, type <span class="badge">event|duty</span>, event_id, duty_date, user_id, method <span class="badge">self|manual|qr</span>, lat, lng, recorded_by, created_at</td></tr>
+        <tr><td>office_duties <span class="badge green">NEW</span></td><td>id, user_id, day_of_week <span class="badge">0-6</span>, start_time, end_time, active</td></tr>
+        <tr><td>audit_logs <span class="badge green">NEW</span></td><td>id, user_id, action, details, performed_by, created_at</td></tr>
+      </table>
+      <p style="margin-top:14px;">Attendance is append-only. No update/delete paths — if a mistake happens, it gets corrected by a new row, not an edit, so the audit trail stays honest.</p>
+      <h3>Attendance Uniqueness Constraints</h3>
+      <table class="schema">
+        <tr><th>Type</th><th>Constraint</th></tr>
+        <tr><td>event</td><td><code>@@unique([event_id, user_id])</code> — one check-in per officer per event</td></tr>
+        <tr><td>duty</td><td><code>@@unique([user_id, duty_date])</code> — one check-in per officer per calendar day</td></tr>
+      </table>
+    </section>
+
+    <section id="identity">
+      <h2><span class="num">05</span>Identity Lifecycle — Account Provisioning</h2>
+      <p>This is the most important operational workflow in the system. Every officer is already known — there is no public registration. Accounts are created by the secretary or super_admin from the official roster.</p>
+
+      <h3>Officer Provisioning Flow</h3>
+      <div class="callout info">
+        <span class="tag">How an officer becomes a user</span>
+        <p>Secretary compiles official roster → Super Admin imports via CSV → System creates accounts → Temporary password generated → Credentials sent privately → Officer logs in → Forced password change → Account activated</p>
+      </div>
+
+      <h3>User Model — New Fields</h3>
+      <table class="schema">
+        <tr><th>Field</th><th>Type</th><th>Default</th><th>Purpose</th></tr>
+        <tr><td><code>mustChangePassword</code></td><td>Boolean</td><td>true</td><td>Forces password change on first login. Set to false after successful change.</td></tr>
+        <tr><td><code>active</code></td><td>Boolean</td><td>true</td><td>Soft-delete flag. Set to false at end of academic year to preserve attendance history while blocking login.</td></tr>
+      </table>
+
+      <h3>Account Provisioning Rules</h3>
+      <ul class="checklist">
+        <li>No public registration — login page is the only entry point</li>
+        <li>Accounts are created via CSV import or <code>prisma db seed</code> — not by officers themselves</li>
+        <li>Initial password is randomly generated (e.g. <code>USC2026!Xr2</code>) and shared privately by the secretary</li>
+        <li><code>mustChangePassword: true</code> on account creation — officer must change password before accessing any other page</li>
+        <li>If <code>active: false</code>, login is blocked and officer sees "Your account has been deactivated" message</li>
+        <li>Password recovery uses Supabase Auth's built-in email reset flow — no admin intervention needed</li>
+        <li>All account operations (create, deactivate, role change, password reset) are logged to <code>audit_logs</code></li>
+      </ul>
+
+      <h3>CSV Import Format</h3>
+      <table class="schema">
+        <tr><th>Column</th><th>Required</th><th>Example</th></tr>
+        <tr><td>name</td><td>Yes</td><td>Juan dela Cruz</td></tr>
+        <tr><td>email</td><td>Yes</td><td>juan.delacruz@isufst.edu.ph</td></tr>
+        <tr><td>position</td><td>Yes</td><td>Secretary</td></tr>
+        <tr><td>role</td><td>Yes</td><td>staff</td></tr>
+      </table>
+      <p style="margin-top:10px;">Role must be one of: <code>super_admin</code>, <code>staff</code>, <code>client</code>. The import generates a temporary password for each officer and writes it to a downloadable CSV for the secretary to distribute.</p>
+
+      <h3>Audit Log Events</h3>
+      <table class="schema">
+        <tr><th>Action</th><th>Logged When</th></tr>
+        <tr><td><code>account_created</code></td><td>Officer provisioned via CSV import or seed</td></tr>
+        <tr><td><code>password_changed</code></td><td>Officer completes first password change</td></tr>
+        <tr><td><code>password_reset</code></td><td>Officer requests password recovery via email</td></tr>
+        <tr><td><code>officer_deactivated</code></td><td>Admin sets <code>active: false</code> on an account</td></tr>
+        <tr><td><code>role_changed</code></td><td>Admin changes an officer's role</td></tr>
+        <tr><td><code>manual_override</code></td><td>Staff manually records attendance for an officer</td></tr>
+      </table>
+
+      <div class="callout">
+        <span class="tag">Why no permanent QR IDs</span>
+        <p>Permanent QR codes introduce problems: screenshot sharing, revocation, regeneration, blacklisting. Temporary, signed tokens (60s expiry) eliminate all of these. The officer's authenticated account IS their identity — no printed card needed.</p>
+      </div>
+    </section>
+
+    <section id="ui">
+      <h2><span class="num">06</span>UI/UX Walkthrough</h2>
+      <p>Mobile-first SPA with bottom navigation. All pages render a navy/gold branded header and ISUFST footer stamp.</p>
+
+      <div class="mockup-grid">
+
+        <!-- Login -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">ISUFST · Dingle Campus</div>
+              <h3>Sign In</h3>
+              <p>University Student Council</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div style="flex:1;">
+                  <small style="color:rgba(255,255,255,0.4);font-size:9px;text-transform:uppercase;">Email</small>
+                  <div style="font-size:12px;color:#fff;padding-top:2px;">officer@isufst.edu.ph</div>
+                </div>
+              </div>
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div style="flex:1;">
+                  <small style="color:rgba(255,255,255,0.4);font-size:9px;text-transform:uppercase;">Password</small>
+                  <div style="font-size:12px;color:#fff;padding-top:2px;">••••••••</div>
+                </div>
+              </div>
+              <div class="mockup-btn">Sign In</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/login — LoginPage.vue</h4>
+            <p>Email/password auth via Supabase. Redirects to dashboard on success.</p>
+          </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Welcome back</div>
+              <h3>Good morning, Juan</h3>
+              <p>Secretary · ISUFST Dingle Campus</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-row">
+                <div class="dot" style="background:var(--green);"></div>
+                <div class="text">
+                  <small>Today's Duty</small>
+                  <div>08:00 — 17:00 · Checked in</div>
+                </div>
+              </div>
+              <div class="mockup-row">
+                <div class="dot" style="background:var(--gold);"></div>
+                <div class="text">
+                  <small>Next Event</small>
+                  <div>General Assembly · 2:00 PM</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="mockup-btn secondary" style="padding:10px;font-size:11px;">📋 Events</div>
+                <div class="mockup-btn secondary" style="padding:10px;font-size:11px;">📅 Duty</div>
+              </div>
+              <div class="mockup-btn" style="padding:10px;font-size:11px;">📍 Check In for Event</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/ — DashboardPage.vue</h4>
+            <p>Role-aware dashboard. Shows today's duty status, next event, and quick action buttons. Bottom nav: Home, Events, Check-in, Duty, Profile.</p>
+          </div>
+        </div>
+
+        <!-- Event List -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Manage</div>
+              <h3>Events</h3>
+              <p>Staff / Super Admin only</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-row">
+                <div class="text">
+                  <small>Jul 15, 2026</small>
+                  <div>General Assembly</div>
+                </div>
+                <div style="font-size:10px;color:var(--gold);">📍 Geofence</div>
+              </div>
+              <div class="mockup-row">
+                <div class="text">
+                  <small>Jul 20, 2026</small>
+                  <div>Mid-Year Congress</div>
+                </div>
+                <div style="font-size:10px;color:var(--gold);">📍 Geofence</div>
+              </div>
+              <div class="mockup-btn secondary" style="text-align:center;">+ Create Event</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/events — EventsPage.vue</h4>
+            <p>Staff/super_admin only. Lists all events with date. Tap to view attendance detail. "+ Create Event" button opens event creation modal.</p>
+          </div>
+        </div>
+
+        <!-- Check-In (Event) -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Location Required</div>
+              <h3>Check In</h3>
+              <p>General Assembly</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-status" style="border-left-color:var(--green);">
+                <div class="indicator"></div>
+                <span>Within venue radius (42m)</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;color:rgba(255,255,255,0.5);text-align:center;">
+                <div>Lat: 10.7452</div>
+                <div>Lng: 122.1234</div>
+              </div>
+              <div class="mockup-btn">Check In — Self</div>
+              <div class="mockup-btn secondary" style="text-align:center;">Or Show QR Code</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/check-in/:eventId — CheckInPage.vue</h4>
+            <p>Geolocation check-in. Shows distance to venue. Allow/deny based on radius. If within range, "Check In — Self" button records attendance. Officers can alternatively use QR.</p>
+          </div>
+        </div>
+
+        <!-- QR Code Page -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">QR Check-In</div>
+              <h3>Show your QR</h3>
+              <p>Staff will scan this to record attendance</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-qr-box" style="margin:0 auto;">
+                <div class="qr-grid">
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div>
+                  <div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell white"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                </div>
+                <div class="label">USC QR TOKEN</div>
+              </div>
+              <div style="height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin-top:12px;">
+                <div style="width:75%;height:100%;background:var(--gold);border-radius:3px;"></div>
+              </div>
+              <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);">Auto-refreshes in 45s · Tap to copy token</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/qr — QRCodePage.vue</h4>
+            <p>Officer selects event, then displays a QR token valid for 60s (auto-refreshes every 45s). Token is HMAC-signed JSON. Tap to copy raw token for manual entry fallback.</p>
+          </div>
+        </div>
+
+        <!-- Scanner Page -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Scanner</div>
+              <h3>Scan Officer QR</h3>
+              <p>Staff / Super Admin only</p>
+            </div>
+            <div class="content-area">
+              <div style="background:#000;border-radius:8px;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+                <div style="width:100px;height:100px;border:2px solid var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <div style="width:60px;height:60px;background:var(--gold);opacity:0.3;border-radius:4px;"></div>
+                </div>
+              </div>
+              <div class="mockup-status" style="border-left-color:var(--green);">
+                <div class="indicator"></div>
+                <span>Camera active — point at QR code</span>
+              </div>
+              <div class="mockup-status" style="border-left-color:var(--green);margin-top:8px;">
+                <div class="indicator"></div>
+                <span>Juan dela Cruz · Check-in recorded</span>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/scan — ScannerPage.vue</h4>
+            <p>Staff only. Uses html5-qrcode for camera scanning. On successful scan → validates token server-side → records attendance → shows success/error message. Manual fallback link to event list.</p>
+          </div>
+        </div>
+
+        <!-- Duty Check-In -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">USC Attendance</div>
+              <h3>Good morning,<br>Juan</h3>
+              <p>Secretary · ISUFST Dingle Campus</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-status" style="border-left-color:var(--green);">
+                <div class="indicator"></div>
+                <span>Already checked in for duty</span>
+              </div>
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div class="text">
+                  <small>Today's Duty</small>
+                  <div>08:00 — 17:00 · ISUFST Dingle Campus</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="mockup-btn secondary" style="padding:10px;font-size:11px;">📍 Event check-in</div>
+                <div class="mockup-btn secondary" style="padding:10px;font-size:11px;">📋 Events</div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/duty — DutyCheckInPage.vue</h4>
+            <p>Officers see today's duty schedule (if any). If not checked in, show "Check in for duty" button. If no duty scheduled today, show rest message. No geolocation required for duty check-in.</p>
+          </div>
+        </div>
+
+        <!-- Event Detail -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Jul 15, 2026 · 2:00 PM</div>
+              <h3>General Assembly</h3>
+              <p>Session Hall · ISUFST Main</p>
+            </div>
+            <div class="content-area">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:rgba(255,255,255,0.08);border-radius:6px;padding:10px;text-align:center;">
+                  <div style="font-size:20px;font-weight:700;color:#fff;">12</div>
+                  <div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;">Present</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.08);border-radius:6px;padding:10px;text-align:center;">
+                  <div style="font-size:20px;font-weight:700;color:#fff;">3</div>
+                  <div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;">Absent</div>
+                </div>
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.5);padding:4px 0;">Attendance method breakdown below</div>
+              <div class="mockup-btn secondary" style="text-align:center;font-size:11px;">📥 Export CSV</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/events/:id — EventDetailPage.vue</h4>
+            <p>Staff/super_admin only. Shows attendance count (present/absent), method breakdown (self/manual/qr), and CSV export. Lists individual officer records with check-in time and method badge.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <h3>Bottom Navigation</h3>
+      <table class="schema">
+        <tr><th>Role</th><th>Nav Items</th></tr>
+        <tr><td>client (officer)</td><td>Home, Check-in, Duty, Profile</td></tr>
+        <tr><td>staff</td><td>Home, Events, Check-in, Scan, Duty, Profile</td></tr>
+        <tr><td>super_admin</td><td>Home, Events, Check-in, Scan, Duty, Profile, Officers</td></tr>
+      </table>
+
+      <h3 style="margin-top:40px;">Identity Lifecycle Screens (Super Admin Only)</h3>
+      <div class="mockup-grid">
+
+        <!-- Import Officers -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Super Admin</div>
+              <h3>Import Officers</h3>
+              <p>Bulk provisioning from roster</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);border:1px dashed rgba(255,255,255,0.2);text-align:center;padding:20px;">
+                <div style="flex:1;">
+                  <div style="font-size:12px;color:rgba(255,255,255,0.6);">Drop CSV file here</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:4px;">name, email, position, role</div>
+                </div>
+              </div>
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div class="text">
+                  <small>Preview (3 officers)</small>
+                  <div>Juan dela Cruz · Secretary · staff</div>
+                </div>
+              </div>
+              <div class="mockup-btn">Import & Generate Passwords</div>
+              <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);">Temporary passwords will be downloadable as CSV</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/officers/import — ImportOfficersPage.vue</h4>
+            <p>Super admin only. Upload CSV with name, email, position, role. Validates format, checks email uniqueness, creates accounts with mustChangePassword: true, generates temporary passwords, offers downloadable credentials CSV.</p>
+          </div>
+        </div>
+
+        <!-- Force Password Change -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Security</div>
+              <h3>Change Password</h3>
+              <p>Required on first login</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div style="flex:1;">
+                  <small style="color:rgba(255,255,255,0.4);font-size:9px;text-transform:uppercase;">Current Password</small>
+                  <div style="font-size:12px;color:#fff;padding-top:2px;">••••••••</div>
+                </div>
+              </div>
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div style="flex:1;">
+                  <small style="color:rgba(255,255,255,0.4);font-size:9px;text-transform:uppercase;">New Password</small>
+                  <div style="font-size:12px;color:#fff;padding-top:2px;">••••••••••••</div>
+                </div>
+              </div>
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div style="flex:1;">
+                  <small style="color:rgba(255,255,255,0.4);font-size:9px;text-transform:uppercase;">Confirm New Password</small>
+                  <div style="font-size:12px;color:#fff;padding-top:2px;">••••••••••••</div>
+                </div>
+              </div>
+              <div class="mockup-btn">Update Password</div>
+              <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);">Must be at least 8 characters</div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/change-password — ChangePasswordPage.vue</h4>
+            <p>Forced redirect when mustChangePassword = true. Current + new + confirm fields. On success, mustChangePassword set to false, redirects to dashboard. Cannot navigate away until completed.</p>
+          </div>
+        </div>
+
+        <!-- Forgot Password -->
+        <div class="mockup-card">
+          <div class="mockup-screen">
+            <div class="header-bar">
+              <div class="eyebrow">Recovery</div>
+              <h3>Forgot Password</h3>
+              <p>We'll send a reset link</p>
+            </div>
+            <div class="content-area">
+              <div class="mockup-row" style="background:rgba(255,255,255,0.08);">
+                <div style="flex:1;">
+                  <small style="color:rgba(255,255,255,0.4);font-size:9px;text-transform:uppercase;">Email Address</small>
+                  <div style="font-size:12px;color:#fff;padding-top:2px;">juan.delacruz@isufst.edu.ph</div>
+                </div>
+              </div>
+              <div class="mockup-btn">Send Reset Link</div>
+              <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);">Check your inbox for the reset link</div>
+              <div style="text-align:center;">
+                <div style="font-size:11px;color:var(--gold);cursor:pointer;">← Back to login</div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-label">
+            <h4>/forgot-password — ForgotPasswordPage.vue</h4>
+            <p>Uses Supabase Auth's built-in password recovery. Officer enters email → receives reset link → sets new password. No admin intervention needed. Accessible from the login page.</p>
+          </div>
+        </div>
+
+      </div>
+
+    <section id="checklist">
+      <h2><span class="num">07</span>Dev Checklist</h2>
+
+      <div class="phase">
+        <span class="phase-label">Phase 0 — Foundation</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Supabase project created, connection string saved</li>
+          <li><input type="checkbox">Prisma schema updated with <code>OfficeDuty</code> model, <code>AuditLog</code> model, and new User fields (<code>mustChangePassword</code>, <code>active</code>)</li>
+          <li><input type="checkbox">Migration run via <code>prisma migrate dev</code></li>
+          <li><input type="checkbox"><code>VITE_QR_SECRET</code> env var set (min 32 char random string)</li>
+          <li><input type="checkbox">Vite + Vue 3 + TS scaffold, Tailwind + shadcn-vue installed</li>
+          <li><input type="checkbox">html5-qrcode installed for QR scanning</li>
+          <li><input type="checkbox">Vercel project linked, env vars set (DATABASE_URL, DIRECT_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_QR_SECRET)</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 1 — Auth, identity & roles</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Supabase Auth wired (email/password or magic link)</li>
+          <li><input type="checkbox"><code>mustChangePassword</code> check on login — redirect to change password screen if true</li>
+          <li><input type="checkbox"><code>active</code> check on login — block login and show deactivation message if false</li>
+          <li><input type="checkbox">Role field enforced server-side in every API route</li>
+          <li><input type="checkbox">Route guards for staff-only and super_admin-only pages</li>
+          <li><input type="checkbox">Password recovery via Supabase Auth email reset flow</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 2 — Officer provisioning</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">CSV import UI for super_admin (name, email, position, role)</li>
+          <li><input type="checkbox">Server-side CSV parsing + validation (email uniqueness, role enum)</li>
+          <li><input type="checkbox">Account creation with <code>mustChangePassword: true</code>, <code>active: true</code></li>
+          <li><input type="checkbox">Temporary password generation + downloadable CSV for secretary</li>
+          <li><input type="checkbox">Audit log entries for each account created</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 3 — Core event attendance flow</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Event CRUD (staff/super_admin only)</li>
+          <li><input type="checkbox">Client check-in screen: geolocation request → Haversine distance calc → allow/deny</li>
+          <li><input type="checkbox">Server-side distance re-validation on insert</li>
+          <li><input type="checkbox">Staff manual override screen with recorded_by captured automatically</li>
+          <li><input type="checkbox">Attendance list per event + CSV export</li>
+          <li><input type="checkbox">Attendance type field set to <code>"event"</code> for all event check-ins</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 4 — QR check-in</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox"><code>/qr</code> page: event selector + QR token generation via <code>generateQRToken()</code></li>
+          <li><input type="checkbox">Token countdown + auto-refresh (45s interval, 60s expiry)</li>
+          <li><input type="checkbox">Copy token button for manual fallback</li>
+          <li><input type="checkbox"><code>/scan</code> page: html5-qrcode camera initialization</li>
+          <li><input type="checkbox"><code>/attendance/qr</code> API: <code>verifyQRToken()</code> → HMAC validation + expiry check</li>
+          <li><input type="checkbox">Attendance type field set to <code>"event"</code>, method set to <code>"qr"</code></li>
+          <li><input type="checkbox">Manual smoke test: generate QR → scan → confirm attendance row appears in DB</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 5 — Office duty flow</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox"><code>/duties</code> API: list duties for today (filter by dayOfWeek + active)</li>
+          <li><input type="checkbox"><code>/attendance/duty</code> API: create duty attendance with <code>type="duty"</code>, <code>duty_date</code> set to today</li>
+          <li><input type="checkbox"><code>/duty</code> page: show today's duty schedule + check-in button</li>
+          <li><input type="checkbox">Offline queue supports duty check-ins (type field included)</li>
+          <li><input type="checkbox">Prisma seed updated with realistic office duty schedules</li>
+          <li><input type="checkbox">Manual smoke test: complete duty check-in flow end-to-end</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 6 — PWA & offline</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">vite-plugin-pwa configured with ISUFST branding</li>
+          <li><input type="checkbox">App shell precached, installable on mobile home screen</li>
+          <li><input type="checkbox">IndexedDB queue: check-ins write locally first with <code>synced:false</code></li>
+          <li><input type="checkbox">Background sync / reconnect listener flushes queue to API</li>
+          <li><input type="checkbox">Manual test: airplane mode check-in (event + duty) → reconnect → confirm rows appear in DB</li>
+        </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <span class="phase-label">Phase 7 — Ship</span>
+        <div class="panel">
+        <ul class="checklist">
+          <li><input type="checkbox">Manual smoke test of all 3 roles end-to-end</li>
+          <li><input type="checkbox">Test QR flow on real iOS and Android devices (in-app browsers may block camera)</li>
+          <li><input type="checkbox">Vercel production deploy</li>
+          <li><input type="checkbox">Real events and duty schedules seeded (no demo data left behind)</li>
+        </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="reminders">
+      <h2><span class="num">08</span>Anti Over-Engineering Reminders</h2>
+      <div class="callout danger">
+        <span class="tag">Before adding anything</span>
+        <p>Ask: does this help answer "was this officer present, yes or no, recorded by whom, and how did they check in (self/QR/manual)?" If not, it's v2.1 or later.</p>
+      </div>
+      <ul class="checklist">
+        <li>No CI/CD pipeline. Deploy from your machine via Vercel CLI or git push, review it yourself.</li>
+        <li>No automated test suite for v2.0. Manual smoke test per phase is enough at this scale.</li>
+        <li>No edit/delete on attendance rows. Append-only, corrections are new rows.</li>
+        <li>No analytics, streaks, leaderboards, or gamification — these always sound small and never are.</li>
+        <li>No multi-council/multi-org abstraction. Build for ISUFST Dingle Campus. Generalize later if it's ever actually needed.</li>
+        <li>No native app. PWA covers "add to home screen" and offline — that's the whole ask.</li>
+        <li>Resist RLS + Prisma both. Pick one enforcement layer (Prisma + API route checks) and stop there.</li>
+        <li>No duty schedule management UI. Office duties are seeded via <code>prisma/seed.ts</code> only. If staff need to add/edit duties, that's a future feature.</li>
+        <li>No geolocation enforcement for duty check-in. Location is not required for duty attendance — only for event self-check-in.</li>
+        <li>No permanent QR codes or printed ID cards. Temporary, signed tokens (60s) are the identity — the officer's authenticated account is their ID.</li>
+        <li>No self-registration. All accounts are provisioned by the secretary/super_admin from the official roster via CSV import.</li>
+        <li>QR tokens are signed but not encrypted. Don't put sensitive data in the token payload beyond what's already in the DB.</li>
+        <li>If an execution agent proposes a "flexible" or "extensible" abstraction you didn't ask for — reject it. Flexibility you don't need yet is a bug waiting to happen.</li>
+      </ul>
+    </section>
+
+    <section id="manual">
+      <h2><span class="num">09</span>Manual Setup Steps (you, not an agent)</h2>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Gather ISUFST branding assets</h4>
+          <p>Logos are already in <code>/public/logo/</code> — <code>ISUFST_logo.png</code> and <code>USC_logo.jpg</code>. If you need alternate versions, get transparent PNGs from the council's official channels.</p>
+          <div class="detail">PWA manifest icons should use the ISUFST logo at 512×512 and 192×192. Update manifest.json if the icon paths change.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Generate VITE_QR_SECRET</h4>
+          <p>Generate a cryptographically random string at least 32 characters long. Use a password manager or run:</p>
+          <div class="detail" style="font-family:var(--mono);">node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</div>
+          <p style="margin-top:8px;">Add this to Vercel as <code>VITE_QR_SECRET</code> (client-visible, but not secret enough to harm if exposed — the real protection is the HMAC signature).</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Create the Supabase project</h4>
+          <p>Sign up/log in at supabase.com, create a new project, choose a region close to the Philippines (Singapore is usually closest).</p>
+          <div class="detail">Save: project URL, anon key, service role key, and the session-pooler connection string (port 5432) for Prisma's DATABASE_URL. Also save DIRECT_URL for Prisma's directUrl.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Set up the Vercel project</h4>
+          <p>Import the repo into Vercel, set framework preset to Vite, add environment variables.</p>
+          <div class="detail">DATABASE_URL, DIRECT_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_QR_SECRET. Mark service role key as a server-only env var.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h4>Run initial Prisma migration</h4>
+          <p>After schema is finalized, run <code>prisma migrate dev --name init</code> (or v2 migration name). This creates the tables including the new <code>office_duties</code> table and updated <code>attendance</code> schema.</p>
+          <div class="detail">Never use <code>db push</code> for production — use migrations only so the schema history is tracked.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <h4>Get real venue coordinates</h4>
+          <p>For each recurring venue (session hall, gym, quadrangle, office), grab the lat/lng from Google Maps (right-click → coordinates) ahead of time so staff aren't guessing radius values on event-creation day.</p>
+          <div class="detail">Suggested starting radius: 50–75 meters for open areas like a quadrangle, 25–30 meters for smaller rooms.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">7</div>
+        <div>
+          <h4>Seed real duty schedules</h4>
+          <p>Edit <code>prisma/seed.ts</code> with the actual officer roster and their weekly duty schedules (dayOfWeek 0–6, startTime, endTime). Run <code>prisma db seed</code> to populate <code>office_duties</code>.</p>
+          <div class="detail">This is the only way to create duties in v2.0 — there is no admin UI for duty management.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">8</div>
+        <div>
+          <h4>Compile and import officer roster</h4>
+          <p>Compile the actual officer roster (name, email, position, role) before go-live. Use the CSV import feature in the super_admin dashboard to bulk-create accounts. Each officer gets a temporary password generated by the system.</p>
+          <div class="detail">Example CSV format: name,email,position,role — one officer per line. The secretary distributes credentials privately (email, DM, or printed handout).</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">9</div>
+        <div>
+          <h4>Test QR scanning on real devices</h4>
+          <p>Browser-based QR scanning behaves differently across platforms. Test the scan flow on at least one Android (Chrome) and one iPhone (Safari) before the first real event. Facebook's in-app browser often blocks camera access — advise officers to open the PWA in the system browser.</p>
+          <div class="detail">html5-qrcode requires HTTPS in production. Localhost works with dev server. The PWA's service worker also requires HTTPS.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">10</div>
+        <div>
+          <h4>Test geolocation on real devices</h4>
+          <p>Same as QR — test event check-in via geolocation on real devices. iOS Safari requires the site to be served over HTTPS and needs the user's location permission granted.</p>
+          <div class="detail">High-accuracy mode (GPS) may take longer on some devices. Consider whether to request high-accuracy or accept coarse location for v2.0.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">11</div>
+        <div>
+          <h4>Domain (optional)</h4>
+          <p>If ISUFST has or can get a subdomain (e.g. attendance.isufst.edu.ph), point it at the Vercel deployment for credibility instead of a random .vercel.app URL.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="yearly">
+      <h2><span class="num">10</span>Yearly Transition — Academic Year Rollover</h2>
+      <p>Every academic year, USC officers change. The system must handle this transition cleanly while preserving attendance history.</p>
+
+      <h3>Annual Officer Transition Process</h3>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Export attendance archive</h4>
+          <p>Before any changes, export all attendance data as CSV for the outgoing academic year. Store this in the council's records folder as a permanent backup.</p>
+          <div class="detail">The export includes all event and duty attendance with timestamps, methods, and officer details. This is your audit trail for the previous year.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Deactivate outgoing officers</h4>
+          <p>Set <code>active: false</code> on all outgoing officer accounts. This preserves their attendance history while preventing future logins. Do NOT delete users — the attendance rows reference their user IDs.</p>
+          <div class="detail">Super admin can bulk-deactivate via the officer management page, or run a script: UPDATE users SET active = false WHERE role != 'super_admin'.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Import new officer roster</h4>
+          <p>Receive the new academic year's official roster from the incoming secretary. Use the CSV import feature to create accounts for all new officers.</p>
+          <div class="detail">If an officer is continuing for another term, they need a new account (or their existing account can be reactivated). Do not reuse deactivated accounts — create fresh ones to keep the audit trail clean.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Generate and distribute temporary passwords</h4>
+          <p>After import, download the generated credentials CSV. Distribute credentials privately to each new officer — email, DM, or printed handout from the secretary.</p>
+          <div class="detail">Each officer will be forced to change their password on first login (mustChangePassword: true).</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h4>Update duty schedules</h4>
+          <p>Edit <code>prisma/seed.ts</code> with the new officer IDs and their weekly duty schedules. Run <code>prisma db seed</code> to update <code>office_duties</code>.</p>
+          <div class="detail">Old duty schedules from the previous year should be deactivated (active: false) or deleted. The seed script should handle this cleanly.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <h4>Go live</h4>
+          <p>New officers log in, change passwords, and start using the system. The first event of the new academic year is the real test.</p>
+          <div class="detail">Monitor the first week closely. If an officer can't log in, check: (1) account exists, (2) active = true, (3) correct email, (4) password reset if needed.</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="tag">Why soft-delete, not hard-delete</span>
+        <p>Attendance rows reference user IDs. If you delete a user, their attendance records become orphaned and break referential integrity. Setting <code>active: false</code> preserves history while blocking access. This is standard practice for systems with audit requirements.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  usc-attendance-system · scope v2.0 · prepared as an internal build reference — not for external distribution · ISUFST Dingle Campus
+</footer>
+
+</body>
+</html>
