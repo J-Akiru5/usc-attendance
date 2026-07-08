@@ -43,8 +43,8 @@ function getInitials(name: string) {
         style="background: linear-gradient(to bottom, rgba(12,27,54,0.6) 0%, transparent 100%);"
       />
 
-      <div class="relative max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 w-full">
-        <div class="max-w-2xl">
+      <div class="relative max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7">
           <div class="text-xs font-mono uppercase tracking-widest text-gold mb-5">
             ISUFST Dingle Campus
           </div>
@@ -78,6 +78,21 @@ function getInitials(name: string) {
             >
               Learn More
             </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex justify-center lg:justify-end">
+          <div class="relative group">
+            <!-- Decorative backdrop glow -->
+            <div class="absolute -inset-2 rounded-full bg-gradient-to-r from-gold via-gold-soft to-gold opacity-20 blur-2xl group-hover:opacity-45 transition duration-1000 group-hover:duration-200"></div>
+            <!-- Image Container -->
+            <div class="relative bg-navy-deep/80 backdrop-blur-md border border-gold/30 rounded-full p-6 shadow-2xl flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80 lg:w-[22rem] lg:h-[22rem] overflow-hidden">
+              <img
+                src="/gif/usc%20logo%20animation.gif"
+                alt="USC Logo Animation"
+                class="w-full h-full object-contain scale-105 select-none pointer-events-none drop-shadow-[0_0_15px_rgba(201,162,75,0.25)]"
+              />
+            </div>
           </div>
         </div>
       </div>
