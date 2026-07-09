@@ -20,6 +20,7 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
 
   if (error || !user) {
+    console.error('[auth] Supabase token verification failed:', error?.message ?? 'no user returned')
     throw new Error('Invalid or expired token')
   }
 
@@ -28,6 +29,7 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
   })
 
   if (!dbUser) {
+    console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
     throw new Error('User not found in database')
   }
 

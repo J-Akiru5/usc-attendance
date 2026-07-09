@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
-import crypto from 'crypto'
 
-// Load environment variables
 dotenv.config()
 
 const prisma = new PrismaClient()
@@ -13,7 +11,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Deterministic passwords — must match docs/credentials.html exactly
 const adminPassword = process.env.SEED_ADMIN_PASSWORD
 if (!adminPassword) {
   console.error('SEED_ADMIN_PASSWORD env var is required to seed the admin account')
@@ -60,39 +57,38 @@ async function main() {
   console.log('Seeding Supabase Auth users and syncing with Prisma DB...\n')
 
   const credentials: { name: string; email: string; password: string; position: string }[] = []
+  const skippedMismatches: { email: string; authId: string; dbId: string }[] = []
+
+  // Fetch all auth users once to avoid repeated API calls
+  const { data: authList, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+  if (listError) {
+    throw listError
+  }
 
   for (const u of officers) {
-    let authUserId: string | null = null
     const tempPassword = OFFICER_PASSWORDS[u.email]
     if (!tempPassword) {
       console.error(`  ✗ No password defined for ${u.email} — skipping`)
       continue
     }
 
-    // 1. Check if user already exists in Supabase Auth
-    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-    if (listError) {
-      throw listError
-    }
-
-    const existingAuthUser = listData.users.find(user => user.email === u.email)
+    // 1. Resolve Supabase Auth user (reuse cached list)
+    const existingAuthUser = authList.users.find(user => user.email === u.email)
+    let authUserId: string
+    let status: string
 
     if (existingAuthUser) {
-      console.log(`  ✓ ${u.email} already exists in Supabase Auth (ID: ${existingAuthUser.id.slice(0, 8)}...)`)
       authUserId = existingAuthUser.id
+      status = 'already existed'
 
-      // Update password to match credentials.html
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingAuthUser.id,
         { password: tempPassword }
       )
       if (updateError) {
         console.error(`  ✗ Error updating password for ${u.email}: ${updateError.message}`)
-      } else {
-        console.log(`  → Password updated for ${u.email}`)
       }
     } else {
-      console.log(`  + Creating ${u.email}...`)
       const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: u.email,
         password: tempPassword,
@@ -105,35 +101,61 @@ async function main() {
       }
 
       authUserId = createData.user.id
+      status = 'created'
       credentials.push({ name: u.name, email: u.email, password: tempPassword, position: u.position })
-      console.log(`  ✓ Created ${u.email} (ID: ${authUserId.slice(0, 8)}...)`)
     }
 
-    if (authUserId) {
-      // 2. Clear out any existing user in the public DB with the same email but different ID
-      const existingDbUser = await prisma.user.findUnique({
-        where: { email: u.email }
-      })
+    // 2. Upsert Prisma user by EMAIL — repair ID if mismatched
+    const existingDbUser = await prisma.user.findUnique({
+      where: { email: u.email }
+    })
 
-      if (existingDbUser && existingDbUser.id !== authUserId) {
-        console.log(`  → Replacing mismatched DB record for ${u.email}`)
-        await prisma.user.delete({
-          where: { email: u.email }
+    if (existingDbUser) {
+      if (existingDbUser.id === authUserId) {
+        // IDs match — just update metadata
+        await prisma.user.update({
+          where: { email: u.email },
+          data: {
+            name: u.name,
+            position: u.position,
+            role: u.role,
+            mustChangePassword: true,
+            active: true,
+          }
         })
-      }
+      } else {
+        // IDs mismatch — check for related records before repairing
+        const [attendanceCount, dutyCount] = await Promise.all([
+          prisma.attendance.count({ where: { userId: existingDbUser.id } }),
+          prisma.officeDuty.count({ where: { userId: existingDbUser.id } }),
+        ])
 
-      // 3. Upsert the public DB record with the correct auth ID
-      await prisma.user.upsert({
-        where: { id: authUserId },
-        update: {
-          email: u.email,
-          name: u.name,
-          position: u.position,
-          role: u.role,
-          mustChangePassword: true,
-          active: true,
-        },
-        create: {
+        if (attendanceCount > 0 || dutyCount > 0) {
+          status = 'SKIPPED (has related records, manual migration needed)'
+          skippedMismatches.push({ email: u.email, authId: authUserId, dbId: existingDbUser.id })
+          console.error(`  ⚠ ${u.email} — ID mismatch but has ${attendanceCount} attendance + ${dutyCount} duty rows — SKIPPED`)
+          console.error(`    auth id: ${authUserId}`)
+          console.error(`    db   id: ${existingDbUser.id}`)
+        } else {
+          // No related rows — safe to repair the ID
+          await prisma.user.update({
+            where: { email: u.email },
+            data: {
+              id: authUserId,
+              name: u.name,
+              position: u.position,
+              role: u.role,
+              mustChangePassword: true,
+              active: true,
+            }
+          })
+          status = 'id repaired'
+        }
+      }
+    } else {
+      // No Prisma user exists — create with correct ID
+      await prisma.user.create({
+        data: {
           id: authUserId,
           email: u.email,
           name: u.name,
@@ -143,12 +165,24 @@ async function main() {
           active: true,
         }
       })
+      status = 'created'
     }
+
+    console.log(`  ${u.email} — ${status}`)
   }
 
   console.log('\n' + '='.repeat(70))
   console.log('AUTH AND DB SYNC COMPLETED')
   console.log('='.repeat(70))
+
+  if (skippedMismatches.length > 0) {
+    console.log('\n⚠ SKIPPED RECORDS (manual migration required):')
+    for (const s of skippedMismatches) {
+      console.log(`  ${s.email}`)
+      console.log(`    auth id: ${s.authId}`)
+      console.log(`    db   id: ${s.dbId}`)
+    }
+  }
 
   if (credentials.length > 0) {
     console.log('\nTEMPORARY CREDENTIALS — Distribute these privately to each officer:\n')
@@ -160,7 +194,6 @@ async function main() {
     }
     console.log('-'.repeat(70))
     console.log(`\nTotal new accounts: ${credentials.length}`)
-    console.log('Officers will be forced to change their password on first login.')
   } else {
     console.log('\nAll officers already have accounts. No new credentials generated.')
   }
