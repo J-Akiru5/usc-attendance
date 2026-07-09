@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USC Attendance System — Check-Out &amp; Schedule Management Spec</title>
+<style>
+  :root{
+    --navy:#142850;
+    --navy-deep:#0C1B36;
+    --gold:#C9A24B;
+    --gold-soft:#E4CD8E;
+    --paper:#F7F5F0;
+    --paper-panel:#FFFFFF;
+    --ink:#1B1B1D;
+    --slate:#5C6773;
+    --line:#DCD6C8;
+    --green:#3F7D5C;
+    --red:#A23E3E;
+    --mono:'JetBrains Mono','Courier New',monospace;
+    --serif:'Source Serif 4','Georgia',serif;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  @media print{.no-print{display:none!important;}.section{break-inside:avoid;}body{background:#fff;}}
+
+  .cover{background:linear-gradient(160deg,var(--navy-deep) 0%,var(--navy) 60%);color:#fff;padding:48px 48px 40px;position:relative;overflow:hidden;}
+  .cover::after{content:"";position:absolute;right:-40px;bottom:-40px;width:200px;height:200px;border:1px solid rgba(255,255,255,0.06);border-radius:50%;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold-soft);margin-bottom:12px;}
+  .cover h1{font-family:var(--serif);font-size:32px;font-weight:600;margin:0 0 8px;letter-spacing:-0.01em;}
+  .cover p{color:rgba(255,255,255,0.6);font-size:14px;margin:0;max-width:600px;}
+  .stamp{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--gold);color:var(--gold-soft);font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 12px;border-radius:2px;margin-top:16px;}
+  .stamp .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);}
+
+  .container{max-width:960px;margin:0 auto;padding:40px 32px 60px;}
+
+  .progress-bar{background:var(--line);border-radius:6px;height:8px;margin:24px 0 8px;overflow:hidden;}
+  .progress-fill{background:linear-gradient(90deg,var(--green),#5ea87a);height:100%;border-radius:6px;transition:width 0.5s;}
+  .progress-text{font-family:var(--mono);font-size:11px;color:var(--slate);margin-bottom:32px;}
+
+  .section-title{font-family:var(--serif);font-size:20px;color:var(--navy);border-bottom:1px solid var(--line);padding-bottom:10px;margin:32px 0 20px;}
+  .section-title .num{font-family:var(--mono);color:var(--gold);font-size:12px;margin-right:6px;}
+
+  .task{background:var(--paper-panel);border:1px solid var(--line);border-radius:8px;padding:16px 20px;margin-bottom:12px;transition:box-shadow 0.2s;}
+  .task:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06);}
+  .task-header{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .task-title{font-weight:600;font-size:14px;}
+  .task-badge{font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;white-space:nowrap;}
+  .badge-pending{background:var(--line);color:var(--slate);}
+  .badge-progress{background:#E8F0FE;color:#1A73E8;}
+  .badge-done{background:#E6F4EA;color:var(--green);}
+  .badge-blocked{background:#FCE8E6;color:var(--red);}
+  .task-desc{font-size:13px;color:var(--slate);margin-top:8px;line-height:1.5;}
+  .task-files{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:8px;padding:8px 12px;background:var(--paper);border-radius:4px;}
+  .task-files span{display:block;margin-bottom:2px;}
+  .task-files .file-new{color:var(--green);}
+  .task-files .file-mod{color:#1A73E8;}
+
+  .checklist{list-style:none;padding:0;margin:12px 0 0;}
+  .checklist li{font-size:13px;padding:4px 0;display:flex;align-items:flex-start;gap:8px;}
+  .checklist li::before{content:"☐";font-size:14px;color:var(--slate);flex-shrink:0;}
+  .checklist li.done::before{content:"☑";color:var(--green);}
+
+  .note{background:#FBF6E9;border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:16px 20px;margin:24px 0;}
+  .note .label{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#8A6D2F;margin-bottom:4px;}
+  .note p{margin:0;font-size:14px;color:#333;}
+
+  .sql-block{background:var(--ink);color:#e6e6e6;font-family:var(--mono);font-size:12px;padding:16px 20px;border-radius:6px;overflow-x:auto;margin:12px 0;line-height:1.6;}
+  .sql-block .kw{color:#569cd6;}
+  .sql-block .fn{color:#dcdcaa;}
+  .sql-block .str{color:#ce9178;}
+  .sql-block .cm{color:#6a9955;}
+
+  .schema-table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0;}
+  .schema-table th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--slate);padding:8px 12px;border-bottom:2px solid var(--line);}
+  .schema-table td{padding:8px 12px;border-bottom:1px solid var(--line);}
+  .schema-table td:first-child{font-family:var(--mono);font-weight:600;color:var(--navy);}
+  .schema-table .new{color:var(--green);font-weight:600;}
+  .schema-table .removed{color:var(--red);text-decoration:line-through;}
+
+  .footer{border-top:1px solid var(--line);padding:24px 0;font-size:12px;color:var(--slate);font-family:var(--mono);margin-top:40px;}
+  .print-btn{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;border:none;border-radius:8px;padding:12px 24px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:background 0.2s;z-index:100;}
+  .print-btn:hover{background:var(--navy-deep);}
+  @media(max-width:640px){.cover{padding:32px 20px;}.container{padding:24px 16px 40px;}.task-header{flex-direction:column;align-items:flex-start;gap:8px;}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Implementation Spec — USC Attendance System</div>
+  <h1>Check-Out Flow, Time-Window Enforcement &amp; Schedule Management</h1>
+  <p>Adding checkout capability (morning check-in / afternoon check-out), duty time-window enforcement via OrgProfile, and a super-admin schedule management UI. Event assignments are explicitly OUT of scope.</p>
+  <div class="stamp"><span class="dot"></span>v3.1 — July 2026</div>
+</div>
+
+<div class="container">
+
+  <!-- PROGRESS -->
+  <h2 class="section-title"><span class="num">00</span>Overall Progress</h2>
+  <div class="progress-bar"><div class="progress-fill" style="width:100%" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">24 / 24 tasks completed</div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1: SCHEMA -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">01</span>Schema Changes</h2>
+
+  <div class="task" id="task-1">
+    <div class="task-header">
+      <span class="task-title">1a. Add <code>checkOutAt</code> to Attendance</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add nullable <code>DateTime? checkOutAt</code> field to the <code>Attendance</code> model. This stores when the officer checked out. Null means still open (checked in but not yet checked out).
+    </div>
+    <div class="task-files"><span class="file-mod">prisma/schema.prisma</span></div>
+    <table class="schema-table">
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>checkOutAt</td><td class="new">DateTime?</td><td class="new">NEW — null = open, set on checkout</td></tr>
+    </table>
+  </div>
+
+  <div class="task" id="task-2">
+    <div class="task-header">
+      <span class="task-title">1b. Replace <code>@@unique</code> with partial unique indexes</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Remove the Prisma-level <code>@@unique([eventId, userId])</code> and <code>@@unique([userId, dutyDate])</code> constraints. Replace with PostgreSQL partial unique indexes that only enforce uniqueness when <code>checkOutAt IS NULL</code> (i.e., only one open record per officer per event/day). This allows unlimited historical rows while preventing race conditions.
+    </div>
+    <div class="task-files"><span class="file-mod">prisma/schema.prisma</span><span class="file-mod">prisma/migrations/…/migration.sql (raw SQL block)</span></div>
+    <div class="sql-block">
+<span class="cm">-- Added manually to the generated migration.sql</span>
+<span class="kw">CREATE UNIQUE INDEX</span> attendance_event_open_unique
+  <span class="kw">ON</span> <span class="str">"Attendance"</span> (<span class="str">"eventId"</span>, <span class="str">"userId"</span>)
+  <span class="kw">WHERE</span> <span class="str">"checkOutAt"</span> <span class="kw">IS NULL</span> <span class="kw">AND</span> <span class="str">"eventId"</span> <span class="kw">IS NOT NULL</span>;
+
+<span class="kw">CREATE UNIQUE INDEX</span> attendance_duty_open_unique
+  <span class="kw">ON</span> <span class="str">"Attendance"</span> (<span class="str">"userId"</span>, <span class="str">"dutyDate"</span>)
+  <span class="kw">WHERE</span> <span class="str">"checkOutAt"</span> <span class="kw">IS NULL</span> <span class="kw">AND</span> <span class="str">"dutyDate"</span> <span class="kw">IS NOT NULL</span>;
+    </div>
+  </div>
+
+  <div class="task" id="task-3">
+    <div class="task-header">
+      <span class="task-title">1c. Create <code>OrgProfile</code> model</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Singleton model to store org-wide settings. Fields for duty time-window enforcement. Only one row ever exists.
+    </div>
+    <div class="task-files"><span class="file-mod">prisma/schema.prisma</span></div>
+    <table class="schema-table">
+      <tr><th>Field</th><th>Type</th><th>Default</th><th>Purpose</th></tr>
+      <tr><td>id</td><td>String (PK)</td><td>uuid</td><td>Singleton ID</td></tr>
+      <tr><td>dutyCheckInCutoff</td><td class="new">String</td><td class="new">"12:00"</td><td class="new">HH:mm — duty check-ins must occur before this</td></tr>
+      <tr><td>dutyCheckOutStart</td><td class="new">String</td><td class="new">"12:00"</td><td class="new">HH:mm — duty check-outs must occur at or after this</td></tr>
+    </table>
+  </div>
+
+  <div class="task" id="task-4">
+    <div class="task-header">
+      <span class="task-title">1d. Migration name</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      <code>npx prisma migrate dev --name add_checkout_and_time_windows</code><br>
+      Verify the generated <code>migration.sql</code> includes both partial unique indexes after manual edit.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2: SEED -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">02</span>Admin User Seed</h2>
+
+  <div class="task" id="task-5">
+    <div class="task-header">
+      <span class="task-title">2a. Add admin to <code>seed.ts</code></span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add to officers array: <code>{ email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' }</code>
+    </div>
+    <div class="task-files"><span class="file-mod">prisma/seed.ts</span></div>
+  </div>
+
+  <div class="task" id="task-6">
+    <div class="task-header">
+      <span class="task-title">2b. Add admin to <code>seed_auth.ts</code> with env-var password</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Do NOT hardcode the password. Read from <code>process.env.SEED_ADMIN_PASSWORD</code>. Throw if missing. Add to <code>OFFICER_PASSWORDS</code> map as <code>'admin@usc.edu.ph': adminPassword</code>.
+    </div>
+    <div class="task-files"><span class="file-mod">prisma/seed_auth.ts</span></div>
+  </div>
+
+  <div class="task" id="task-7">
+    <div class="task-header">
+      <span class="task-title">2c. Update <code>.env.example</code></span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add <code>SEED_ADMIN_PASSWORD=your-admin-password-here</code> to .env.example.
+    </div>
+    <div class="task-files"><span class="file-mod">.env.example</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 3: TYPES -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">03</span>Type Definitions</h2>
+
+  <div class="task" id="task-8">
+    <div class="task-header">
+      <span class="task-title">3a. Update <code>Attendance</code> type + add <code>OrgProfile</code></span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add <code>checkOutAt: string | null</code> to Attendance interface. Add new OrgProfile interface with <code>dutyCheckInCutoff</code> and <code>dutyCheckOutStart</code>.
+    </div>
+    <div class="task-files"><span class="file-mod">src/types/index.ts</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 4: API -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">04</span>API Endpoints</h2>
+
+  <div class="task" id="task-9">
+    <div class="task-header">
+      <span class="task-title">4a. Create checkout endpoint</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      <code>POST /api/attendance/checkout</code> — Body: <code>{ eventId?, dutyDate?, userId }</code><br>
+      • Self-checkout: <code>authUser.id === body.userId</code> — no role restriction<br>
+      • Manual checkout: <code>authUser.id !== body.userId</code> — require staff/super_admin<br>
+      • Self-targeting guard: staff cannot manually check themselves out (403)<br>
+      • Find open record (<code>checkOutAt IS NULL</code>), 404 if none<br>
+      • Duty time-window: fetch OrgProfile, compare server time (Asia/Manila) vs <code>dutyCheckOutStart</code><br>
+      • Set <code>checkOutAt = new Date()</code>, save, return
+    </div>
+    <div class="task-files"><span class="file-new">api/attendance/checkout.ts</span></div>
+  </div>
+
+  <div class="task" id="task-10">
+    <div class="task-header">
+      <span class="task-title">4b. Update attendance check-in (index.ts)</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Replace <code>findUnique</code> duplicate check with <code>findFirst</code> where <code>checkOutAt IS NULL</code>. Add try/catch for Prisma P2002 unique constraint violation → same 409 message.
+    </div>
+    <div class="task-files"><span class="file-mod">api/attendance/index.ts</span></div>
+  </div>
+
+  <div class="task" id="task-11">
+    <div class="task-header">
+      <span class="task-title">4c. Update duty check-in + time-window enforcement</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Same duplicate-check pattern as 4b. Add time-window enforcement: fetch OrgProfile, compare current server time (Asia/Manila) against <code>dutyCheckInCutoff</code>. Reject 403 if <code>currentTime >= cutoff</code>. Create default OrgProfile if none exists.
+    </div>
+    <div class="task-files"><span class="file-mod">api/attendance/duty.ts</span></div>
+  </div>
+
+  <div class="task" id="task-12">
+    <div class="task-header">
+      <span class="task-title">4d. Update CSV export</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add "Checked Out At" column to CSV header and row data.
+    </div>
+    <div class="task-files"><span class="file-mod">api/attendance/export.ts</span></div>
+  </div>
+
+  <div class="task" id="task-13">
+    <div class="task-header">
+      <span class="task-title">4e. Create org-profile route</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      <code>GET /api/org-profile</code> — Returns OrgProfile (create default with 12:00 cutoffs if none exists). Any authenticated user.
+    </div>
+    <div class="task-files"><span class="file-new">api/org-profile/index.ts</span></div>
+  </div>
+
+  <div class="task" id="task-14">
+    <div class="task-header">
+      <span class="task-title">4f. Create schedules CRUD</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      <code>GET /api/schedules</code> — list all OfficeDuty records (staff+)<br>
+      <code>POST /api/schedules</code> — create OfficeDuty (super_admin only)<br>
+      <code>PUT /api/schedules/:id</code> — update OfficeDuty (super_admin only)<br>
+      <code>DELETE /api/schedules/:id</code> — hard delete OfficeDuty (super_admin only)
+    </div>
+    <div class="task-files"><span class="file-new">api/schedules/index.ts</span><span class="file-new">api/schedules/[id].ts</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 5: STORES -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">05</span>Pinia Stores</h2>
+
+  <div class="task" id="task-15">
+    <div class="task-header">
+      <span class="task-title">5a. Update events store</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add <code>checkOut(eventId, userId)</code> and <code>manualCheckOut(eventId, userId)</code> actions calling <code>POST /api/attendance/checkout</code>.
+    </div>
+    <div class="task-files"><span class="file-mod">src/stores/events.ts</span></div>
+  </div>
+
+  <div class="task" id="task-16">
+    <div class="task-header">
+      <span class="task-title">5b. Update duties store</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add <code>checkOutDuty(userId)</code>. Update <code>isCheckedInForDuty</code> to check <code>checkOutAt === null</code>. Add <code>isCheckedOutForDuty(userId)</code>.
+    </div>
+    <div class="task-files"><span class="file-mod">src/stores/duties.ts</span></div>
+  </div>
+
+  <div class="task" id="task-17">
+    <div class="task-header">
+      <span class="task-title">5c. Create schedules store</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      CRUD actions for OfficeDuty: fetchSchedules, createDutySchedule, updateDutySchedule, deleteDutySchedule.
+    </div>
+    <div class="task-files"><span class="file-new">src/stores/schedules.ts</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 6: FRONTEND — CHECK-OUT FLOW -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">06</span>Frontend — Check-Out Flow</h2>
+
+  <div class="task" id="task-18">
+    <div class="task-header">
+      <span class="task-title">6a. CheckInPage.vue — checkout button</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      After successful check-in, if record has <code>checkOutAt: null</code>, show "Check Out" button. On tap → call <code>events.checkOut()</code>. Show both check-in and check-out timestamps after completion.
+    </div>
+    <div class="task-files"><span class="file-mod">src/pages/CheckInPage.vue</span></div>
+  </div>
+
+  <div class="task" id="task-19">
+    <div class="task-header">
+      <span class="task-title">6b. DutyCheckInPage.vue — checkout + cutoff display</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Same checkout button pattern. Fetch OrgProfile to display cutoff times ("Check-in available until {cutoff}"). Show server rejection messages directly — never hardcode "12:00".
+    </div>
+    <div class="task-files"><span class="file-mod">src/pages/DutyCheckInPage.vue</span></div>
+  </div>
+
+  <div class="task" id="task-20">
+    <div class="task-header">
+      <span class="task-title">6c. AttendancePage.vue — check-out column + manual checkout</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add "Check Out" column. Add manual "Check Out" button per row (hidden for own row). Update stats grid.
+    </div>
+    <div class="task-files"><span class="file-mod">src/pages/AttendancePage.vue</span></div>
+  </div>
+
+  <div class="task" id="task-21">
+    <div class="task-header">
+      <span class="task-title">6d. EventDetailPage.vue — check-out column</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add "Check Out" column to attendance summary table.
+    </div>
+    <div class="task-files"><span class="file-mod">src/pages/EventDetailPage.vue</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 7: FRONTEND — SCHEDULE MANAGEMENT -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">07</span>Frontend — Schedule Management</h2>
+
+  <div class="task" id="task-22">
+    <div class="task-header">
+      <span class="task-title">7a. ManageSchedulesPage.vue</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Route: <code>/manage/schedules</code>, super_admin only. Single section (no tabs). Group schedules by day of week. Create form with officer dropdown, day selector, start/end time. Inline edit. Delete with confirm.
+    </div>
+    <div class="task-files"><span class="file-new">src/pages/ManageSchedulesPage.vue</span></div>
+  </div>
+
+  <div class="task" id="task-23">
+    <div class="task-header">
+      <span class="task-title">7b. Sidebar + Router</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add "Schedules" nav item for super_admin in AppSidebar.vue. Add route in router/index.ts with role guard.
+    </div>
+    <div class="task-files"><span class="file-mod">src/components/layout/AppSidebar.vue</span><span class="file-mod">src/router/index.ts</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 8: OFFLINE QUEUE -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">08</span>Offline Queue Update</h2>
+
+  <div class="task" id="task-24">
+    <div class="task-header">
+      <span class="task-title">8a. Offline queue — checkout support</span>
+      <span class="task-badge badge-done">done</span>
+    </div>
+    <div class="task-desc">
+      Add <code>type: 'checkin' | 'checkout'</code> to queued items. FIFO flush order. Checkout items POST to <code>/api/attendance/checkout</code>. Re-queue on 404 (matching check-in not synced yet). Surface permanent failures to user.
+    </div>
+    <div class="task-files"><span class="file-mod">src/composables/useOfflineQueue.ts</span></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- VERIFICATION -->
+  <!-- ============================================================ -->
+  <h2 class="section-title"><span class="num">09</span>Verification Checklist</h2>
+
+  <div class="task">
+    <ul class="checklist">
+      <li class="done">Diff/schema showing partial unique indexes in migration.sql</li>
+      <li class="done">Duty check-in after cutoff → 403 with correct cutoff time in message</li>
+      <li class="done">Duty checkout before dutyCheckOutStart → 403 with correct time in message</li>
+      <li class="done">Staff self-checkout attempt → 403 (same guard as manual check-in)</li>
+      <li class="done">Staff manual checkout of different officer → success</li>
+      <li class="done">Duplicate open check-in → 409 (findFirst pre-check + P2002 fallback)</li>
+      <li class="done">ManageSchedulesPage CRUD end-to-end</li>
+      <li class="done">No EventAssignment model, route, store, or UI anywhere in codebase</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <div class="label">Scope Guard</div>
+    <p><strong>OUT OF SCOPE:</strong> Event Assignment (no EventAssignment model, no assignments tab, no assigning officers to specific events). All officers remain able to check into any event.</p>
+  </div>
+
+  <div class="footer">
+    USC Attendance System v3.1 Spec · ISUFST Dingle Campus · July 2026 · Check-Out &amp; Schedule Management
+  </div>
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+<script>
+  // Update progress bar based on completed tasks
+  function updateProgress() {
+    const badges = document.querySelectorAll('.task-badge');
+    let done = 0;
+    badges.forEach(b => { if (b.classList.contains('badge-done')) done++; });
+    const pct = Math.round((done / badges.length) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = done + ' / ' + badges.length + ' tasks completed';
+  }
+  updateProgress();
+</script>
+
+</body>
+</html>

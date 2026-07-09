@@ -73,6 +73,16 @@ async function handleManualOverride() {
   }
 }
 
+async function handleManualCheckOut(userId: string) {
+  if (!auth.user) return
+  try {
+    await events.manualCheckOut(eventId.value, userId)
+    await events.fetchAttendance(eventId.value)
+  } catch (err) {
+    // Error handled by API
+  }
+}
+
 function methodBadgeVariant(method: string) {
   if (method === 'self') return 'success'
   if (method === 'qr') return 'default'
@@ -129,7 +139,7 @@ function methodLabel(method: string) {
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-4 gap-3">
+      <div class="grid grid-cols-5 gap-3">
         <Card>
           <CardContent class="p-4 text-center">
             <div class="text-2xl font-bold text-navy">{{ events.attendance.length }}</div>
@@ -152,6 +162,12 @@ function methodLabel(method: string) {
           <CardContent class="p-4 text-center">
             <div class="text-2xl font-bold text-gold-dark">{{ events.attendance.filter(a => a.method === 'manual').length }}</div>
             <div class="text-xs text-slate">Manual</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl font-bold text-success">{{ events.attendance.filter(a => a.checkOutAt).length }}</div>
+            <div class="text-xs text-slate">Checked Out</div>
           </CardContent>
         </Card>
       </div>
@@ -177,8 +193,19 @@ function methodLabel(method: string) {
                   {{ methodLabel(record.method) }}
                 </Badge>
                 <div class="text-xs text-slate text-right min-w-[80px]">
-                  {{ formatTime(record.createdAt) }}
+                  <div>{{ formatTime(record.createdAt) }}</div>
+                  <div v-if="record.checkOutAt" class="text-success font-medium">
+                    Out: {{ formatTime(record.checkOutAt) }}
+                  </div>
+                  <div v-else class="text-slate">—</div>
                 </div>
+                <button
+                  v-if="auth.isStaff && !record.checkOutAt && record.userId !== auth.user?.id"
+                  class="text-xs text-navy font-bold hover:underline whitespace-nowrap"
+                  @click="handleManualCheckOut(record.userId)"
+                >
+                  Check Out
+                </button>
               </div>
             </div>
           </div>

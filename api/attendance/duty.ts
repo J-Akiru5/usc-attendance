@@ -2,6 +2,18 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma'
 import { authenticate, requireStaff } from '../_lib/auth'
 
+function manilaHHMM(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Manila',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+  const hh = parts.find((p) => p.type === 'hour')?.value ?? '00'
+  const mm = parts.find((p) => p.type === 'minute')?.value ?? '00'
+  return `${hh}:${mm}`
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await authenticate(req)
@@ -59,7 +71,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(403).json({ error: 'No duty scheduled for today' })
       }
 
-      // Check for duplicate duty check-in today
+      // Time-window enforcement: duty check-in cutoff
+      let orgProfile = await prisma.orgProfile.findFirst()
+      if (!orgProfile) {
+        orgProfile = await prisma.orgProfile.create({ data: {} })
+      }
+
+      const nowManila = manilaHHMM(new Date())
+      if (nowManila >= orgProfile.dutyCheckInCutoff) {
+        return res.status(403).json({
+          error: `Duty check-in is only allowed before ${orgProfile.dutyCheckInCutoff}.`,
+        })
+      }
+
+      // Check for open (not-yet-checked-out) duty record today
       const todayStart = new Date(date)
       todayStart.setHours(0, 0, 0, 0)
       const todayEnd = new Date(date)
@@ -70,35 +95,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           userId,
           type: 'duty',
           dutyDate: { gte: todayStart, lte: todayEnd },
+          checkOutAt: null,
         },
       })
 
       if (existing) {
-        return res.status(409).json({ error: 'Already checked in for duty today' })
+        return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
       }
 
       // Server-side distance validation for self check-ins
       if (lat !== undefined && lng !== undefined) {
-        // For now, require staff for duty check-ins (no office coords in OrgProfile yet)
         requireStaff(user)
       }
 
-      const record = await prisma.attendance.create({
-        data: {
-          type: 'duty',
-          dutyDate: date,
-          userId,
-          method: lat !== undefined ? 'self' : 'manual',
-          lat: lat ? parseFloat(lat) : null,
-          lng: lng ? parseFloat(lng) : null,
-          recordedBy,
-        },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-        },
-      })
+      try {
+        const record = await prisma.attendance.create({
+          data: {
+            type: 'duty',
+            dutyDate: date,
+            userId,
+            method: lat !== undefined ? 'self' : 'manual',
+            lat: lat ? parseFloat(lat) : null,
+            lng: lng ? parseFloat(lng) : null,
+            recordedBy,
+          },
+          include: {
+            user: { select: { id: true, name: true, position: true, role: true } },
+          },
+        })
 
-      return res.status(201).json(record)
+        return res.status(201).json(record)
+      } catch (dbErr: unknown) {
+        if (dbErr && typeof dbErr === 'object' && 'code' in dbErr && (dbErr as { code: string }).code === 'P2002') {
+          return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
+        }
+        throw dbErr
+      }
     }
 
     return res.status(405).json({ error: 'Method not allowed' })

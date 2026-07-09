@@ -62,6 +62,14 @@ export const useEventStore = defineStore('events', () => {
     })
   }
 
+  async function checkOut(eventId: string, userId: string) {
+    return api.post<Attendance>('/attendance/checkout', { eventId, userId })
+  }
+
+  async function manualCheckOut(eventId: string, userId: string) {
+    return api.post<Attendance>('/attendance/checkout', { eventId, userId })
+  }
+
   return {
     events,
     currentEvent,
@@ -73,5 +81,7 @@ export const useEventStore = defineStore('events', () => {
     fetchAttendance,
     checkIn,
     manualCheckIn,
+    checkOut,
+    manualCheckOut,
   }
 })

@@ -145,7 +145,13 @@ function methodBadgeVariant(method: string) {
                 <Badge :variant="methodBadgeVariant(record.method)">
                   {{ methodLabel(record.method) }}
                 </Badge>
-                <div class="text-xs text-slate mt-1">{{ formatCheckInTime(record.createdAt) }}</div>
+                <div class="text-xs text-slate mt-1">
+                  <div>In: {{ formatCheckInTime(record.createdAt) }}</div>
+                  <div v-if="record.checkOutAt" class="text-success font-medium">
+                    Out: {{ formatCheckInTime(record.checkOutAt) }}
+                  </div>
+                  <div v-else class="text-slate">Out: —</div>
+                </div>
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const officers = [
+  { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
   { email: 'jdemonteverde@isufst.edu.ph', name: 'Jared S. Demonteverde', position: 'President', role: 'super_admin' },
   { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'staff' },
   { email: 'ndanugrao@isufst.edu.ph', name: 'Nikki Loraine B. Danugrao', position: 'Secretary', role: 'staff' },

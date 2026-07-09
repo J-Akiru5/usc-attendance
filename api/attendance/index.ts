@@ -52,15 +52,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'dutyDate is required for duty check-ins' })
       }
 
-      // Check for duplicate
+      // Check for open (not-yet-checked-out) record
       if (attendanceType === 'event') {
-        const existing = await prisma.attendance.findUnique({
-          where: { eventId_userId: { eventId, userId } },
+        const existing = await prisma.attendance.findFirst({
+          where: { eventId, userId, checkOutAt: null },
         })
 
         if (existing) {
           return res.status(409).json({
-            error: 'This officer has already checked in to this event',
+            error: 'Already checked in. Check out before checking in again.',
           })
         }
       }
@@ -77,12 +77,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             userId,
             type: 'duty',
             dutyDate: { gte: todayStart, lte: todayEnd },
+            checkOutAt: null,
           },
         })
 
         if (existing) {
           return res.status(409).json({
-            error: 'Already checked in for duty today',
+            error: 'Already checked in. Check out before checking in again.',
           })
         }
       }
@@ -115,23 +116,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // recordedBy is always the authenticated user, never from client input
-      const record = await prisma.attendance.create({
-        data: {
-          type: attendanceType,
-          eventId: attendanceType === 'event' ? eventId : null,
-          dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
-          userId,
-          method,
-          lat: lat ? parseFloat(lat) : null,
-          lng: lng ? parseFloat(lng) : null,
-          recordedBy: user.id,
-        },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-        },
-      })
+      try {
+        const record = await prisma.attendance.create({
+          data: {
+            type: attendanceType,
+            eventId: attendanceType === 'event' ? eventId : null,
+            dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
+            userId,
+            method,
+            lat: lat ? parseFloat(lat) : null,
+            lng: lng ? parseFloat(lng) : null,
+            recordedBy: user.id,
+          },
+          include: {
+            user: { select: { id: true, name: true, position: true, role: true } },
+          },
+        })
 
-      return res.status(201).json(record)
+        return res.status(201).json(record)
+      } catch (dbErr: unknown) {
+        // P2002 = Prisma unique constraint violation (race condition fallback from partial unique index)
+        if (dbErr && typeof dbErr === 'object' && 'code' in dbErr && (dbErr as { code: string }).code === 'P2002') {
+          return res.status(409).json({
+            error: 'Already checked in. Check out before checking in again.',
+          })
+        }
+        throw dbErr
+      }
     }
 
     return res.status(405).json({ error: 'Method not allowed' })

@@ -21,6 +21,7 @@ const { enqueue } = useOfflineQueue()
 
 const selectedEventId = ref<string | null>((route.params.eventId as string) || null)
 const checkingIn = ref(false)
+const checkingOut = ref(false)
 const result = ref<{ success: boolean; message: string } | null>(null)
 const mode = ref<'select' | 'geo' | 'qr'>('select')
 
@@ -45,7 +46,25 @@ const isInRange = computed(() => {
 
 const alreadyCheckedIn = computed(() => {
   if (!selectedEvent.value || !auth.user) return false
-  return events.attendance.some((a) => a.userId === auth.user!.id)
+  return events.attendance.some((a) => a.userId === auth.user!.id && !a.checkOutAt)
+})
+
+const isCheckedOut = computed(() => {
+  if (!selectedEvent.value || !auth.user) return false
+  const record = events.attendance.find((a) => a.userId === auth.user!.id)
+  return !!record?.checkOutAt
+})
+
+const checkInTime = computed(() => {
+  if (!selectedEvent.value || !auth.user) return null
+  const record = events.attendance.find((a) => a.userId === auth.user!.id)
+  return record?.createdAt || null
+})
+
+const checkOutTime = computed(() => {
+  if (!selectedEvent.value || !auth.user) return null
+  const record = events.attendance.find((a) => a.userId === auth.user!.id)
+  return record?.checkOutAt || null
 })
 
 const hasDutyToday = computed(() => {
@@ -86,20 +105,36 @@ async function handleCheckIn() {
       await events.fetchAttendance(selectedEventId.value!)
     } else {
       await enqueue({
-        type: 'event',
         eventId: selectedEvent.value.id,
         userId: auth.user.id,
         method: 'self',
         lat: geo.latitude.value,
         lng: geo.longitude.value,
         recordedBy: auth.user.id,
-      })
+      }, 'checkin')
       result.value = { success: true, message: 'Check-in queued — will sync when online' }
     }
   } catch (err: unknown) {
     result.value = { success: false, message: err instanceof Error ? err.message : 'Check-in failed' }
   } finally {
     checkingIn.value = false
+  }
+}
+
+async function handleCheckOut() {
+  if (!selectedEvent.value || !auth.user) return
+
+  checkingOut.value = true
+  result.value = null
+
+  try {
+    await events.checkOut(selectedEvent.value.id, auth.user.id)
+    result.value = { success: true, message: 'Check-out successful!' }
+    await events.fetchAttendance(selectedEventId.value!)
+  } catch (err: unknown) {
+    result.value = { success: false, message: err instanceof Error ? err.message : 'Check-out failed' }
+  } finally {
+    checkingOut.value = false
   }
 }
 
@@ -247,9 +282,33 @@ function getGreeting() {
         {{ result.message }}
       </div>
 
-      <!-- Already checked in -->
-      <div v-if="alreadyCheckedIn" class="text-center py-4">
-        <Badge variant="success" class="text-base px-4 py-1">Already checked in</Badge>
+      <!-- Already checked in — show checkout option -->
+      <div v-if="alreadyCheckedIn && !isCheckedOut" class="space-y-3">
+        <div class="text-center py-2">
+          <Badge variant="success" class="text-base px-4 py-1">Checked in</Badge>
+          <div v-if="checkInTime" class="text-xs text-slate mt-2">
+            Check-in: {{ formatTime(checkInTime) }}
+          </div>
+        </div>
+        <button
+          :disabled="checkingOut"
+          class="w-full bg-gradient-to-br from-navy to-navy-deep rounded-2xl p-6 flex flex-col items-center gap-1.5 shadow-lg shadow-navy/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-[0.98]"
+          @click="handleCheckOut"
+        >
+          <span class="text-lg font-black text-white">
+            {{ checkingOut ? 'Checking out...' : 'Check Out' }}
+          </span>
+          <span class="text-xs text-white/60">End your session</span>
+        </button>
+      </div>
+
+      <!-- Fully checked out -->
+      <div v-if="isCheckedOut" class="text-center py-4 space-y-2">
+        <Badge variant="success" class="text-base px-4 py-1">Session complete</Badge>
+        <div class="text-xs text-slate">
+          <div v-if="checkInTime">Check-in: {{ formatTime(checkInTime) }}</div>
+          <div v-if="checkOutTime">Check-out: {{ formatTime(checkOutTime) }}</div>
+        </div>
       </div>
 
       <!-- Check In Button (matches mockup) -->

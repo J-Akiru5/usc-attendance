@@ -58,13 +58,12 @@ model Attendance {
   lng        Float?
   recordedBy String
   createdAt  DateTime  @default(now())
+  checkOutAt DateTime?
 
   event    Event?  @relation(fields: [eventId], references: [id])
   user     User    @relation(fields: [userId], references: [id])
   recorder User    @relation("RecordedBy", fields: [recordedBy], references: [id])
 
-  @@unique([eventId, userId])        // one check-in per officer per event
-  @@unique([userId, dutyDate])       // one duty check-in per officer per day
   @@map("attendance")
 }
 
@@ -89,4 +88,12 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   @@map("audit_logs")
+}
+
+model OrgProfile {
+  id                  String @id @default(uuid())
+  dutyCheckInCutoff   String @default("12:00") // HH:mm 24hr — duty check-ins must occur before this
+  dutyCheckOutStart   String @default("12:00") // HH:mm 24hr — duty check-outs must occur at or after this
+
+  @@map("org_profile")
 }

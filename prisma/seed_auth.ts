@@ -14,7 +14,14 @@ const supabaseAdmin = createClient(
 )
 
 // Deterministic passwords — must match docs/credentials.html exactly
+const adminPassword = process.env.SEED_ADMIN_PASSWORD
+if (!adminPassword) {
+  console.error('SEED_ADMIN_PASSWORD env var is required to seed the admin account')
+  process.exit(1)
+}
+
 const OFFICER_PASSWORDS: Record<string, string> = {
+  'admin@usc.edu.ph': adminPassword,
   'jdemonteverde@isufst.edu.ph': 'USC2026!EGKJ3G',
   'kbicodo@isufst.edu.ph':      'USC2026!hwLRTq',
   'ndanugrao@isufst.edu.ph':    'USC2026!EJLFDZ',
@@ -32,6 +39,7 @@ const OFFICER_PASSWORDS: Record<string, string> = {
 }
 
 const officers = [
+  { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
   { email: 'jdemonteverde@isufst.edu.ph', name: 'Jared S. Demonteverde', position: 'President', role: 'super_admin' },
   { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'staff' },
   { email: 'ndanugrao@isufst.edu.ph', name: 'Nikki Loraine B. Danugrao', position: 'Secretary', role: 'staff' },

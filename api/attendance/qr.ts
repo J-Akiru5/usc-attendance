@@ -43,32 +43,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(403).json({ error: 'QR code has expired' })
       }
 
-      // Check for duplicate
-      const existing = await prisma.attendance.findUnique({
-        where: { eventId_userId: { eventId, userId } },
+      // Check for open (not-yet-checked-out) record
+      const existing = await prisma.attendance.findFirst({
+        where: { eventId, userId, checkOutAt: null },
       })
 
       if (existing) {
-        return res.status(409).json({ error: 'This officer has already checked in to this event' })
+        return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
       }
 
       // QR scan requires staff
       requireStaff(user)
 
-      const record = await prisma.attendance.create({
-        data: {
-          type: 'event',
-          eventId,
-          userId,
-          method: 'qr',
-          recordedBy,
-        },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-        },
-      })
+      try {
+        const record = await prisma.attendance.create({
+          data: {
+            type: 'event',
+            eventId,
+            userId,
+            method: 'qr',
+            recordedBy,
+          },
+          include: {
+            user: { select: { id: true, name: true, position: true, role: true } },
+          },
+        })
 
-      return res.status(201).json(record)
+        return res.status(201).json(record)
+      } catch (dbErr: unknown) {
+        if (dbErr && typeof dbErr === 'object' && 'code' in dbErr && (dbErr as { code: string }).code === 'P2002') {
+          return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
+        }
+        throw dbErr
+      }
     }
 
     return res.status(405).json({ error: 'Method not allowed' })

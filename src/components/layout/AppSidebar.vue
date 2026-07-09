@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Scan QR', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
+  { label: 'Schedules', to: '/manage/schedules', icon: '📋', roles: ['super_admin'] },
 ]
 
 function isActive(to: string) {

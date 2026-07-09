@@ -138,6 +138,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
     },
     {
+      path: '/manage/schedules',
+      name: 'schedules',
+      component: () => import('@/pages/ManageSchedulesPage.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'] },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

@@ -54,6 +54,13 @@ export const useDutyStore = defineStore('duties', () => {
     })
   }
 
+  async function checkOutDuty(userId: string) {
+    return api.post<Attendance>('/attendance/checkout', {
+      userId,
+      dutyDate: new Date().toISOString(),
+    })
+  }
+
   function hasDutyToday(userId: string) {
     return todayDuties.value.some((d) => d.userId === userId)
   }
@@ -65,7 +72,14 @@ export const useDutyStore = defineStore('duties', () => {
   function isCheckedInForDuty(userId: string) {
     const today = new Date().toISOString().split('T')[0]
     return dutyAttendance.value.some(
-      (a) => a.userId === userId && a.dutyDate?.startsWith(today)
+      (a) => a.userId === userId && a.dutyDate?.startsWith(today) && !a.checkOutAt
+    )
+  }
+
+  function isCheckedOutForDuty(userId: string) {
+    const today = new Date().toISOString().split('T')[0]
+    return dutyAttendance.value.some(
+      (a) => a.userId === userId && a.dutyDate?.startsWith(today) && a.checkOutAt
     )
   }
 
@@ -78,8 +92,10 @@ export const useDutyStore = defineStore('duties', () => {
     fetchTodayDutyAttendance,
     checkInDuty,
     manualDutyCheckIn,
+    checkOutDuty,
     hasDutyToday,
     getDutyForUser,
     isCheckedInForDuty,
+    isCheckedOutForDuty,
   }
 })

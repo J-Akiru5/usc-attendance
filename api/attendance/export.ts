@@ -30,9 +30,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderBy: { createdAt: 'asc' },
     })
 
-    const header = 'Name,Position,Method,Latitude,Longitude,Recorded By,Checked In At\n'
+    const header = 'Name,Position,Method,Latitude,Longitude,Recorded By,Checked In At,Checked Out At\n'
     const rows = records
-      .map((r: { user: { name: string; position: string }; method: string; lat: number | null; lng: number | null; recorder: { name: string }; createdAt: Date }) =>
+      .map((r: { user: { name: string; position: string }; method: string; lat: number | null; lng: number | null; recorder: { name: string }; createdAt: Date; checkOutAt: Date | null }) =>
         [
           `"${r.user.name}"`,
           `"${r.user.position}"`,
@@ -41,6 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           r.lng ?? '',
           `"${r.recorder.name}"`,
           r.createdAt.toISOString(),
+          r.checkOutAt ? r.checkOutAt.toISOString() : '',
         ].join(',')
       )
       .join('\n')

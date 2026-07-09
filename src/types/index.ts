@@ -36,9 +36,16 @@ export interface Attendance {
   lng: number | null
   recordedBy: string
   createdAt: string
+  checkOutAt: string | null
   event?: USCEvent
   user?: User
   recorder?: User
+}
+
+export interface OrgProfile {
+  id: string
+  dutyCheckInCutoff: string
+  dutyCheckOutStart: string
 }
 
 export interface CheckInPayload {
@@ -50,12 +57,6 @@ export interface CheckInPayload {
   lat?: number
   lng?: number
   recordedBy: string
-}
-
-export interface OfflineCheckIn extends CheckInPayload {
-  id: string
-  synced: boolean
-  createdAt: string
 }
 
 export interface OfficeDuty {
