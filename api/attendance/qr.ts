@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { prisma } from '../_lib/prisma'
-import { authenticate, requireStaff } from '../_lib/auth'
+import { prisma } from '../_lib/prisma.js'
+import { authenticate, requireStaff } from '../_lib/auth.js'
 import { createHmac, timingSafeEqual } from 'crypto'
 
 const SECRET = process.env.QR_SECRET || 'usc-attendance-qr-secret-change-in-prod'

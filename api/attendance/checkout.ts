@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { prisma } from '../_lib/prisma'
-import { authenticate, requireStaff } from '../_lib/auth'
+import { prisma } from '../_lib/prisma.js'
+import { authenticate, requireStaff } from '../_lib/auth.js'
 
 function manilaHHMM(date: Date): string {
   const parts = new Intl.DateTimeFormat('en-GB', {

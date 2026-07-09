@@ -1,6 +1,6 @@
 import type { VercelRequest } from '@vercel/node'
-import { supabaseAdmin } from './supabase'
-import { prisma } from './prisma'
+import { supabaseAdmin } from './supabase.js'
+import { prisma } from './prisma.js'
 
 export interface AuthUser {
   id: string
