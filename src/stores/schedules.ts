@@ -10,21 +10,21 @@ export const useScheduleStore = defineStore('schedules', () => {
   async function fetchSchedules() {
     loading.value = true
     try {
-      schedules.value = await api.get<OfficeDuty[]>('/schedules')
+      schedules.value = await api.get<OfficeDuty[]>('/duties')
     } finally {
       loading.value = false
     }
   }
 
   async function createDutySchedule(data: { userId: string; dayOfWeek: number; startTime: string; endTime: string; active?: boolean }) {
-    const schedule = await api.post<OfficeDuty>('/schedules', data)
+      const schedule = await api.post<OfficeDuty>('/duties', data)
     schedules.value.push(schedule)
     schedules.value.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
     return schedule
   }
 
   async function updateDutySchedule(id: string, data: Partial<{ userId: string; dayOfWeek: number; startTime: string; endTime: string; active: boolean }>) {
-    const updated = await api.put<OfficeDuty>(`/schedules/${id}`, data)
+      const updated = await api.put<OfficeDuty>('/duties', { id, ...data })
     const idx = schedules.value.findIndex((s) => s.id === id)
     if (idx !== -1) schedules.value[idx] = updated
     schedules.value.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
@@ -32,7 +32,7 @@ export const useScheduleStore = defineStore('schedules', () => {
   }
 
   async function deleteDutySchedule(id: string) {
-    await api.delete(`/schedules/${id}`)
+      await api.delete('/duties', { id })
     schedules.value = schedules.value.filter((s) => s.id !== id)
   }
 

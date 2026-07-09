@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma'
-import { authenticate } from '../_lib/auth'
+import { authenticate, requireSuperAdmin } from '../_lib/auth'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -17,16 +17,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(duties)
     }
 
-    // POST: create or update duty schedule (staff only)
     if (req.method === 'POST') {
-      if (user.role === 'client') {
-        return res.status(403).json({ error: 'Access denied' })
-      }
+      requireSuperAdmin(user)
 
       const { userId, dayOfWeek, startTime, endTime, active } = req.body
 
       if (!userId || dayOfWeek === undefined || !startTime || !endTime) {
-        return res.status(400).json({ error: 'Missing required fields' })
+        return res.status(400).json({ error: 'Missing required fields: userId, dayOfWeek, startTime, endTime' })
       }
 
       const duty = await prisma.officeDuty.create({
@@ -37,20 +34,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           endTime,
           active: active !== false,
         },
+        include: {
+          user: { select: { id: true, name: true, position: true, role: true } },
+        },
       })
 
       return res.status(201).json(duty)
     }
 
-    // DELETE: remove a duty schedule
-    if (req.method === 'DELETE') {
-      if (user.role === 'client') {
-        return res.status(403).json({ error: 'Access denied' })
+    if (req.method === 'PUT') {
+      requireSuperAdmin(user)
+
+      const { id, userId, dayOfWeek, startTime, endTime, active } = req.body
+      if (!id) {
+        return res.status(400).json({ error: 'Schedule ID is required' })
       }
+
+      const existing = await prisma.officeDuty.findUnique({ where: { id } })
+      if (!existing) {
+        return res.status(404).json({ error: 'Schedule not found' })
+      }
+
+      const updated = await prisma.officeDuty.update({
+        where: { id },
+        data: {
+          ...(userId !== undefined && { userId }),
+          ...(dayOfWeek !== undefined && { dayOfWeek: parseInt(dayOfWeek) }),
+          ...(startTime !== undefined && { startTime }),
+          ...(endTime !== undefined && { endTime }),
+          ...(active !== undefined && { active }),
+        },
+        include: {
+          user: { select: { id: true, name: true, position: true, role: true } },
+        },
+      })
+
+      return res.status(200).json(updated)
+    }
+
+    if (req.method === 'DELETE') {
+      requireSuperAdmin(user)
 
       const { id } = req.body
       if (!id) {
         return res.status(400).json({ error: 'Missing duty id' })
+      }
+
+      const existing = await prisma.officeDuty.findUnique({ where: { id } })
+      if (!existing) {
+        return res.status(404).json({ error: 'Schedule not found' })
       }
 
       await prisma.officeDuty.delete({ where: { id } })
