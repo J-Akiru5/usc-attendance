@@ -16,23 +16,16 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser() {
     loading.value = true
     const { data: { session } } = await supabase.auth.getSession()
-
     if (!session) {
       user.value = null
       loading.value = false
       return
     }
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
-
-    if (error || !data) {
+    try {
+      const data = await api.get<User>('/auth/me')
+      user.value = data
+    } catch {
       user.value = null
-    } else {
-      user.value = data as User
     }
     loading.value = false
   }
