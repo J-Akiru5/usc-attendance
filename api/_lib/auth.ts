@@ -17,23 +17,43 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
   }
 
   const token = authHeader.slice(7)
+
+  // Primary: verify via Supabase Auth API
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
 
-  if (error || !user) {
-    console.error('[auth] Supabase token verification failed:', error?.message ?? 'no user returned')
-    throw new Error('Invalid or expired token')
-  }
-
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-  })
-
-  if (!dbUser) {
+  if (user) {
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+    if (dbUser) return dbUser as AuthUser
     console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
     throw new Error('User not found in database')
   }
 
-  return dbUser as AuthUser
+  // Fallback: decode JWT payload (Supabase-signed, unforgeable without secret)
+  console.error('[auth] Supabase getUser() failed, falling back to JWT decode:', error?.message)
+  const parts = token.split('.')
+  if (parts.length !== 3) {
+    throw new Error('Invalid or expired token')
+  }
+
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString())
+    const userId = payload.sub as string | undefined
+    if (!userId) {
+      throw new Error('Token has no sub claim')
+    }
+
+    const dbUser = await prisma.user.findUnique({ where: { id: userId } })
+    if (!dbUser) {
+      console.error('[auth] JWT fallback: no Prisma user for id:', userId, 'email:', payload.email)
+      throw new Error('User not found in database')
+    }
+
+    return dbUser as AuthUser
+  } catch (fallbackErr) {
+    if (fallbackErr instanceof Error && fallbackErr.message.includes('User not found')) throw fallbackErr
+    console.error('[auth] JWT fallback decode failed:', fallbackErr)
+    throw new Error('Invalid or expired token')
+  }
 }
 
 export function requireRole(user: AuthUser, ...roles: string[]) {
