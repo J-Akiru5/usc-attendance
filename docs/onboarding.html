@@ -153,9 +153,9 @@
     <img src="../public/logo/ISUFST_logo.png" alt="ISUFST">
     <img src="../public/logo/USC_logo.jpg" alt="USC">
   </div>
-  <div class="eyebrow">USC Attendance System v2.0</div>
+  <div class="eyebrow">USC Attendance System v3.1</div>
   <h1>Officer Onboarding Guide</h1>
-  <p>Everything you need to log in, check in to events and duties, and use QR codes. Read this before your first session.</p>
+  <p>Everything you need to log in, check in/out of events and duties, manage schedules, and use QR codes. Read this before your first session.</p>
 </div>
 
 <div class="layout">
@@ -165,8 +165,11 @@
     <a href="#login">First Login</a>
     <a href="#dashboard">Dashboard</a>
     <a href="#checkin">Event Check-In</a>
+    <a href="#checkout">Event Check-Out</a>
     <a href="#qr">QR Check-In</a>
     <a href="#duty">Office Duty</a>
+    <a href="#duty-time">Duty Time Windows</a>
+    <a href="#schedules">Duty Schedules</a>
     <a href="#roles">Roles & Access</a>
     <a href="#faq">FAQ</a>
   </nav>
@@ -179,18 +182,18 @@
       <div class="role-grid">
         <div class="role-card">
           <div class="icon">📍</div>
-          <h4>Event Check-In</h4>
-          <p>Check in via GPS when you're at the venue, or scan a QR code with staff</p>
+          <h4>Event Check-In/Out</h4>
+          <p>Check in via GPS when you're at the venue, check out when you leave, or scan a QR code with staff</p>
         </div>
         <div class="role-card">
           <div class="icon">🏢</div>
           <h4>Office Duty</h4>
-          <p>Log your daily office attendance if you're on the weekly duty schedule</p>
+          <p>Log your daily office attendance with check-in and check-out if you're on the weekly duty schedule</p>
         </div>
         <div class="role-card">
           <div class="icon">📱</div>
           <h4>Works Offline</h4>
-          <p>Install as an app on your phone — check-ins queue and sync when you're back online</p>
+          <p>Install as an app on your phone — check-ins and check-outs queue and sync when you're back online</p>
         </div>
       </div>
     </section>
@@ -333,8 +336,47 @@
       </div>
     </section>
 
+    <section id="checkout">
+      <h2><span class="num">05</span>Event Check-Out</h2>
+      <p>After an event ends, you should check out to record your departure time. This helps the council track full attendance duration. You can check out from the event detail page or the QR check-in page.</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Open the event detail page</h4>
+          <p>Go to the event from the Events list, or tap the event on your dashboard. You'll see your check-in status.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Tap "Check Out"</h4>
+          <p>If you've checked in but haven't checked out yet, you'll see a "Check Out" button. Tap it to record your departure time.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Confirmation</h4>
+          <p>Your check-out time is saved. Both your check-in and check-out times are now visible in your attendance records.</p>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="tag">Check-out is optional but recommended</span>
+        <p>Check-out is not required, but it provides a complete attendance record. Staff can also manually check you out if needed.</p>
+      </div>
+
+      <div class="callout">
+        <span class="tag">Already checked out?</span>
+        <p>If you've already checked out, the button will show your check-out timestamp instead. You cannot check out twice for the same event.</p>
+      </div>
+    </section>
+
     <section id="qr">
-      <h2><span class="num">05</span>QR Code Check-In</h2>
+      <h2><span class="num">06</span>QR Code Check-In</h2>
       <p>If GPS check-in isn't working (bad signal, in-app browser issues), staff can scan your QR code instead. This is faster and doesn't require location access.</p>
 
       <div class="step">
@@ -368,7 +410,7 @@
     </section>
 
     <section id="duty">
-      <h2><span class="num">06</span>Office Duty Check-In</h2>
+      <h2><span class="num">07</span>Office Duty Check-In</h2>
       <p>If you're on the weekly duty schedule, check in each day you're assigned to the office. This is separate from event attendance.</p>
 
       <div class="step">
@@ -395,14 +437,84 @@
         </div>
       </div>
 
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Check out when leaving</h4>
+          <p>When you leave the office, tap "Check Out" on the duty page. Your departure time is recorded alongside your check-in time.</p>
+        </div>
+      </div>
+
       <div class="callout">
         <span class="tag">No duty today?</span>
         <p>If your dashboard says "No office duty today," you're not scheduled. You can still check in to events if any are happening.</p>
       </div>
     </section>
 
+    <section id="duty-time">
+      <h2><span class="num">08</span>Duty Time Windows</h2>
+      <p>The system enforces time windows for duty check-ins and check-outs. This ensures attendance is recorded during reasonable hours.</p>
+
+      <table>
+        <tr>
+          <th>Action</th>
+          <th>Default Window</th>
+          <th>What Happens Outside Window</th>
+        </tr>
+        <tr>
+          <td>Duty Check-In</td>
+          <td>Before the cutoff time (set by admin)</td>
+          <td>Check-in is blocked after the cutoff</td>
+        </tr>
+        <tr>
+          <td>Duty Check-Out</td>
+          <td>From 12:00 PM onwards (configurable)</td>
+          <td>Check-out is blocked before the start time</td>
+        </tr>
+      </table>
+
+      <div class="callout info">
+        <span class="tag">Configurable by admin</span>
+        <p>The duty check-in cutoff and duty check-out start time are configured by the System Administrator. If you need to check in or out outside these windows, contact a staff member.</p>
+      </div>
+    </section>
+
+    <section id="schedules">
+      <h2><span class="num">09</span>Duty Schedule Management</h2>
+      <p>Only super_admin officers can manage duty schedules. This includes creating, editing, and deleting weekly duty assignments.</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Open the Schedules page</h4>
+          <p>From the sidebar, click "Schedules" to view all duty assignments. They're grouped by day of the week.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Add or edit a schedule</h4>
+          <p>Click "Add Schedule" to create a new duty assignment. Select the officer, start/end time, and optionally repeat weekly. To edit, click the pencil icon on any schedule card.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Delete a schedule</h4>
+          <p>Click the trash icon on a schedule card to remove it. This does not affect past attendance records.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="tag">Who can manage schedules?</span>
+        <p>Only the System Administrator and officers with the super_admin role can access the Schedules page. Staff and client roles cannot see or modify schedules.</p>
+      </div>
+    </section>
+
     <section id="roles">
-      <h2><span class="num">07</span>Roles & Access</h2>
+      <h2><span class="num">10</span>Roles & Access</h2>
       <p>Not everyone sees the same thing. Your role determines what you can do in the system.</p>
 
       <table>
@@ -413,29 +525,29 @@
         </tr>
         <tr>
           <td><span class="badge gold">super_admin</span></td>
-          <td>President</td>
-          <td>Everything: manage officers, create events, view all attendance, scan QR, manual override</td>
+          <td>System Administrator, President</td>
+          <td>Everything: manage officers, create events, view all attendance, scan QR, manual override, manage duty schedules</td>
         </tr>
         <tr>
           <td><span class="badge">staff</span></td>
           <td>VP, Secretary, Auditor, Spokesperson, Senate Press</td>
-          <td>Create events, view attendance, scan QR, manual override for other officers</td>
+          <td>Create events, view attendance, scan QR, manual override for other officers, check out other officers</td>
         </tr>
         <tr>
           <td><span class="badge green">client</span></td>
           <td>Senators</td>
-          <td>Check in to events (GPS/QR), check in for duty, view own attendance</td>
+          <td>Check in/out of events (GPS/QR), check in/out for duty, view own attendance</td>
         </tr>
       </table>
 
       <div class="callout info">
         <span class="tag">Staff note</span>
-        <p>You can do manual overrides for other officers (e.g., if their phone died). But you cannot manually record your own attendance — use self check-in or QR for yourself. This is by design to keep the audit trail honest.</p>
+        <p>You can do manual overrides for other officers (e.g., if their phone died) and check them out. But you cannot manually record your own attendance — use self check-in or QR for yourself. This is by design to keep the audit trail honest.</p>
       </div>
     </section>
 
     <section id="faq">
-      <h2><span class="num">08</span>Frequently Asked Questions</h2>
+      <h2><span class="num">11</span>Frequently Asked Questions</h2>
 
       <h3>What if my phone's GPS is inaccurate?</h3>
       <p>Try moving to an open area (away from buildings). If GPS still doesn't work, use QR check-in — show your code to staff and they'll scan it.</p>
@@ -452,21 +564,30 @@
       <h3>Can I check in to an event after it's started?</h3>
       <p>Yes, as long as the event is still active. There's no time limit for check-in — the system only cares that you were physically present.</p>
 
+      <h3>Do I need to check out?</h3>
+      <p>Check-out is optional but recommended. It records your departure time for a complete attendance record. You can check out from the event detail page or the QR check-in page. Staff can also check you out manually.</p>
+
+      <h3>Can I check out twice for the same event?</h3>
+      <p>No. Each check-in record can only have one check-out. If you've already checked out, the system shows your check-out timestamp instead of the button.</p>
+
       <h3>What if I have duty AND an event on the same day?</h3>
       <p>Check in for both separately. Duty check-in is for your office hours; event check-in is for the specific event. They're tracked independently.</p>
 
       <h3>Why do I see "Already checked in"?</h3>
-      <p>You can only check in once per event (or once per day for duty). If you see this message, your attendance is already recorded.</p>
+      <p>You can only check in once per event (or once per day for duty). If you see this message, your attendance is already recorded. You can still check out if you haven't done so yet.</p>
+
+      <h3>What are duty time windows?</h3>
+      <p>The system enforces time windows for duty. You must check in before the cutoff time and can only check out from 12:00 PM onwards (configurable by admin). If you need to check in/out outside these windows, contact a staff member.</p>
 
       <h3>Does the app work offline?</h3>
-      <p>Yes. If you lose connection, your check-in is queued locally and syncs automatically when you're back online. You'll see a "queued" indicator until it syncs.</p>
+      <p>Yes. If you lose connection, your check-in is queued locally and syncs automatically when you're back online. You'll see a "queued" indicator until it syncs. Offline check-outs are also supported.</p>
     </section>
 
   </main>
 </div>
 
 <footer style="max-width:760px;margin:0 auto;padding:20px 32px;">
-  USC Attendance System v2.0 · ISUFST Dingle Campus · Officer Onboarding Guide · July 2026
+  USC Attendance System v3.1 · ISUFST Dingle Campus · Officer Onboarding Guide · July 2026
 </footer>
 
 </body>
