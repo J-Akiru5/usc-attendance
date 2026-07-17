@@ -71,10 +71,10 @@ export const officers: Officer[] = [
   },
   {
     name: 'Chene D. Manderico',
-    position: 'Senator',
-    committee: 'Senate',
+    position: 'Treasurer',
+    committee: 'Executive',
     email: 'cmanderico@isufst.edu.ph',
-    role: 'senate',
+    role: 'executive',
   },
   {
     name: 'Nezie Ann A. Deang',

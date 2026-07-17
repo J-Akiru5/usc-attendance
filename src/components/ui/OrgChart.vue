@@ -10,12 +10,14 @@ const props = defineProps<{
 const president = computed(() => props.officers.find(o => o.position === 'President'))
 const vicePresident = computed(() => props.officers.find(o => o.position === 'Vice President'))
 const senatePresident = computed(() => props.officers.find(o => o.position === 'Senate President'))
-const committeeHeads = computed(() =>
-  props.officers.filter(
-    o => o.role === 'executive' && !['President', 'Vice President', 'Senate President'].includes(o.position)
-  )
-)
 const senators = computed(() => props.officers.filter(o => o.role === 'senate'))
+
+const officersUnderVP = computed(() => {
+  const order = ['Secretary', 'Auditor', 'Senate President', 'Treasurer', 'Spokesperson']
+  return order
+    .map(pos => props.officers.find(o => o.position === pos))
+    .filter((o): o is Officer => !!o)
+})
 
 function getInitials(name?: string) {
   if (!name) return '?'
@@ -195,7 +197,7 @@ function getPositionInitials(title: string) {
       <!-- ====== EXECUTIVE SECTION ====== -->
       <div class="exec-grid">
         <!-- Row 1: President -->
-        <div class="flex justify-center pb-2" style="grid-column: 1 / 5">
+        <div class="flex justify-center pb-2" style="grid-column: 1 / 6">
           <div class="node-card node-gold node-large">
             <div class="card-avatar-wrap">
               <div class="card-avatar">{{ getInitials(president?.name) }}</div>
@@ -212,12 +214,12 @@ function getPositionInitials(title: string) {
         </div>
 
         <!-- Row 2: Connector down to VP -->
-        <div class="connector" style="grid-column: 1 / 5">
+        <div class="connector" style="grid-column: 1 / 6">
           <div class="conn-line" style="top:0; left:50%; height:100%"></div>
         </div>
 
         <!-- Row 3: Vice President -->
-        <div class="flex justify-center pb-2" style="grid-column: 1 / 5">
+        <div class="flex justify-center pb-2" style="grid-column: 1 / 6">
           <div class="node-card node-gold node-large">
             <div class="card-avatar-wrap">
               <div class="card-avatar">{{ getInitials(vicePresident?.name) }}</div>
@@ -233,62 +235,60 @@ function getPositionInitials(title: string) {
           </div>
         </div>
 
-        <!-- Row 4: 1-to-4 Branch-down Connector -->
-        <div class="connector" style="grid-column: 1 / 5; --tl: 50%; --bar-l: 12.5%; --bar-w: 75%">
+        <!-- Row 4: 1-to-5 Branch-down Connector -->
+        <div class="connector" style="grid-column: 1 / 6; --tl: 50%; --bar-l: 10%; --bar-w: 80%">
           <div class="conn-line" style="top:0; left:var(--tl); height:50%"></div>
           <div class="conn-bar" style="top:50%; left:var(--bar-l); width:var(--bar-w)"></div>
-          <div class="conn-line" style="top:50%; left:12.5%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:37.5%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:62.5%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:87.5%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:10%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:30%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:50%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:70%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:90%; height:50%"></div>
         </div>
 
-        <!-- Row 5: Committee Heads + Senate President -->
-        <div v-for="ch in committeeHeads" :key="ch.position" class="flex justify-center">
-          <div class="node-card node-committee">
+        <!-- Row 5: 5 Officers under VP -->
+        <div v-for="officer in officersUnderVP" :key="officer.position" class="flex justify-center">
+          <div
+            :class="[
+              'node-card',
+              officer.position === 'Senate President' ? 'node-senate-pres' : 'node-committee'
+            ]"
+          >
             <div class="card-avatar-wrap">
-              <div class="card-avatar">{{ getInitials(ch.name) }}</div>
+              <div class="card-avatar">{{ getInitials(officer.name) }}</div>
             </div>
-            <span class="card-name">{{ ch.name }}</span>
-            <span class="card-badge badge-navy">{{ ch.position }}</span>
-            <div class="card-email" v-if="ch.email">
+            <span class="card-name">{{ officer.name }}</span>
+            <span
+              :class="[
+                'card-badge',
+                officer.position === 'Senate President' ? 'badge-teal' : 'badge-navy'
+              ]"
+            >
+              {{ officer.position }}
+            </span>
+            <div class="card-email" v-if="officer.email">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
-              {{ ch.email }}
-            </div>
-          </div>
-        </div>
-        <div class="flex justify-center">
-          <div class="node-card node-senate-pres">
-            <div class="card-avatar-wrap">
-              <div class="card-avatar">{{ getInitials(senatePresident?.name) }}</div>
-            </div>
-            <span class="card-name">{{ senatePresident?.name }}</span>
-            <span class="card-badge badge-teal">{{ senatePresident?.position }}</span>
-            <div class="card-email" v-if="senatePresident?.email">
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              {{ senatePresident?.email }}
+              {{ officer.email }}
             </div>
           </div>
         </div>
 
-        <!-- Row 6: Connector below Senate President (col 4) -->
-        <div class="connector" style="grid-column: 4 / 5">
+        <!-- Row 6: Connector below Senate President (col 3) -->
+        <div class="connector" style="grid-column: 3 / 4">
           <div class="conn-line" style="top:0; left:50%; height:100%"></div>
         </div>
       </div>
 
       <!-- Connector line from Senate President down to Senate Label -->
       <div class="connector-to-senate">
-        <div class="conn-line" style="top:0; left:87.5%; height:100%"></div>
+        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
       </div>
 
       <!-- ====== TIER LABEL WITH PASS-THROUGH CONNECTOR ====== -->
       <div class="tier-label senate-tier-label">
-        <div class="conn-line" style="top:-30px; bottom:0; left:87.5%; height:calc(100% + 30px); z-index: 1;"></div>
+        <div class="conn-line" style="top:-30px; bottom:0; left:50%; height:calc(100% + 30px); z-index: 1;"></div>
         <span>Legislative Body &mdash; Student Senate</span>
       </div>
 
@@ -381,7 +381,7 @@ function getPositionInitials(title: string) {
 ══════════════════════════════════════════ */
 .exec-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   width: 100%;
   gap: 0;
 }
