@@ -248,8 +248,12 @@ function closeMobileMenu() {
 
         <!-- Bottom bar -->
         <div class="mt-6 pt-5 border-t border-white/[0.06] flex flex-col md:flex-row items-center justify-between gap-3">
-          <div class="text-[11px] text-white/25 tracking-wide">
-            © 2026 University Student Council. All rights reserved.
+          <div class="text-[11px] text-white/25 tracking-wide flex items-center gap-2">
+            <span>© 2026 University Student Council. All rights reserved.</span>
+            <span class="text-white/10">·</span>
+            <router-link to="/privacy" class="text-gold/60 hover:text-gold transition-colors duration-200 font-semibold">
+              Privacy Policy
+            </router-link>
           </div>
           <div class="text-[11px] text-white/25 text-center md:text-right flex items-center gap-1.5 flex-wrap justify-center md:justify-end">
             <span>Developed by</span>

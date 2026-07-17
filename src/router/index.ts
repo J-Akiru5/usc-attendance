@@ -41,6 +41,12 @@ const router = createRouter({
       component: () => import('@/pages/ContactPage.vue'),
       meta: { layout: 'public' },
     },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/pages/PrivacyPolicyPage.vue'),
+      meta: { layout: 'public' },
+    },
 
     // Officer Portal
     {
