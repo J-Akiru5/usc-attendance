@@ -47,16 +47,18 @@ function getPositionInitials(title: string) {
 
 <template>
   <div class="org-chart-wrapper">
-    <p class="scroll-hint">&larr; Scroll to view full chart &rarr;</p>
     <div class="org-chart-inner">
+
       <!-- ====== OVERSIGHT SECTION ====== -->
 
       <!-- Tier 1: SUC President -->
       <div class="tier-row">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('SUC President') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('SUC President') }}</div>
+          </div>
           <span class="card-name">SUC President</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -71,14 +73,18 @@ function getPositionInitials(title: string) {
       <!-- Tier 2: FUSC Adviser + Placeholder -->
       <div class="tier-row two-up">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('FUSC Adviser') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('FUSC Adviser') }}</div>
+          </div>
           <span class="card-name">FUSC Adviser</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
         <div class="node-card placeholder-node">
-          <div class="card-avatar">?</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">?</div>
+          </div>
           <span class="card-name text-danger">Name to confirm</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -93,9 +99,11 @@ function getPositionInitials(title: string) {
       <!-- Tier 3: FUSC President -->
       <div class="tier-row">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('FUSC President') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('FUSC President') }}</div>
+          </div>
           <span class="card-name">FUSC President</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -107,9 +115,11 @@ function getPositionInitials(title: string) {
       <!-- Tier 4: Campus AD -->
       <div class="tier-row">
         <div class="node-card node-campus-ad">
-          <div class="card-avatar">{{ getPositionInitials('Campus AD') }}</div>
-          <span class="card-name" style="color: white">Campus AD</span>
-          <span class="card-position" style="color: #E4CD8E">Institutional Oversight</span>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('Campus AD') }}</div>
+          </div>
+          <span class="card-name">Campus AD</span>
+          <span class="card-badge badge-gold">Institutional Oversight</span>
         </div>
       </div>
 
@@ -121,9 +131,11 @@ function getPositionInitials(title: string) {
       <!-- Tier 5: SSC Chair -->
       <div class="tier-row">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('SSC Chair') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('SSC Chair') }}</div>
+          </div>
           <span class="card-name">SSC Chair</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -135,9 +147,11 @@ function getPositionInitials(title: string) {
       <!-- Tier 6: Vice Chair -->
       <div class="tier-row">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('Vice Chair') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('Vice Chair') }}</div>
+          </div>
           <span class="card-name">Vice Chair</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -149,9 +163,11 @@ function getPositionInitials(title: string) {
       <!-- Tier 6b: USC Adviser -->
       <div class="tier-row">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('USC Adviser') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('USC Adviser') }}</div>
+          </div>
           <span class="card-name">USC Adviser</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -163,9 +179,11 @@ function getPositionInitials(title: string) {
       <!-- Tier 6c: USC Co-Adviser -->
       <div class="tier-row">
         <div class="node-card node-inst">
-          <div class="card-avatar">{{ getPositionInitials('USC Co-Adviser') }}</div>
+          <div class="card-avatar-wrap">
+            <div class="card-avatar">{{ getPositionInitials('USC Co-Adviser') }}</div>
+          </div>
           <span class="card-name">USC Co-Adviser</span>
-          <span class="card-position">Institutional Oversight</span>
+          <span class="card-badge badge-inst">Institutional Oversight</span>
         </div>
       </div>
 
@@ -176,14 +194,16 @@ function getPositionInitials(title: string) {
 
       <!-- ====== EXECUTIVE SECTION ====== -->
       <div class="exec-grid">
-        <!-- Row 1: President (centered, spans cols 1-4) -->
+        <!-- Row 1: President -->
         <div class="flex justify-center pb-2" style="grid-column: 1 / 5">
           <div class="node-card node-gold node-large">
-            <div class="card-avatar">{{ getInitials(president?.name) }}</div>
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(president?.name) }}</div>
+            </div>
             <span class="card-name">{{ president?.name }}</span>
-            <span class="card-position">{{ president?.position }}</span>
+            <span class="card-badge badge-gold-dark">{{ president?.position }}</span>
             <div class="card-email" v-if="president?.email">
-              <svg class="w-3 h-3 text-navy/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               {{ president?.email }}
@@ -191,19 +211,21 @@ function getPositionInitials(title: string) {
           </div>
         </div>
 
-        <!-- Row 2: Connector (single line down to VP) -->
+        <!-- Row 2: Connector down to VP -->
         <div class="connector" style="grid-column: 1 / 5">
           <div class="conn-line" style="top:0; left:50%; height:100%"></div>
         </div>
 
-        <!-- Row 3: Vice President (centered, spans cols 1-4) -->
+        <!-- Row 3: Vice President -->
         <div class="flex justify-center pb-2" style="grid-column: 1 / 5">
           <div class="node-card node-gold node-large">
-            <div class="card-avatar">{{ getInitials(vicePresident?.name) }}</div>
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(vicePresident?.name) }}</div>
+            </div>
             <span class="card-name">{{ vicePresident?.name }}</span>
-            <span class="card-position">{{ vicePresident?.position }}</span>
+            <span class="card-badge badge-gold-dark">{{ vicePresident?.position }}</span>
             <div class="card-email" v-if="vicePresident?.email">
-              <svg class="w-3 h-3 text-navy/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               {{ vicePresident?.email }}
@@ -221,14 +243,16 @@ function getPositionInitials(title: string) {
           <div class="conn-line" style="top:50%; left:87.5%; height:50%"></div>
         </div>
 
-        <!-- Row 5: 3 Committee Heads + Senate President (Dein Daguro) -->
+        <!-- Row 5: Committee Heads + Senate President -->
         <div v-for="ch in committeeHeads" :key="ch.position" class="flex justify-center">
           <div class="node-card node-committee">
-            <div class="card-avatar">{{ getInitials(ch.name) }}</div>
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(ch.name) }}</div>
+            </div>
             <span class="card-name">{{ ch.name }}</span>
-            <span class="card-position">{{ ch.position }}</span>
+            <span class="card-badge badge-navy">{{ ch.position }}</span>
             <div class="card-email" v-if="ch.email">
-              <svg class="w-3 h-3 text-slate/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               {{ ch.email }}
@@ -237,11 +261,13 @@ function getPositionInitials(title: string) {
         </div>
         <div class="flex justify-center">
           <div class="node-card node-senate-pres">
-            <div class="card-avatar">{{ getInitials(senatePresident?.name) }}</div>
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(senatePresident?.name) }}</div>
+            </div>
             <span class="card-name">{{ senatePresident?.name }}</span>
-            <span class="card-position">{{ senatePresident?.position }}</span>
+            <span class="card-badge badge-teal">{{ senatePresident?.position }}</span>
             <div class="card-email" v-if="senatePresident?.email">
-              <svg class="w-3 h-3 text-slate/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               {{ senatePresident?.email }}
@@ -255,7 +281,7 @@ function getPositionInitials(title: string) {
         </div>
       </div>
 
-      <!-- Connector line from Senate President (col 4 / 87.5% point of grid width) down to Senate Label -->
+      <!-- Connector line from Senate President down to Senate Label -->
       <div class="connector-to-senate">
         <div class="conn-line" style="top:0; left:87.5%; height:100%"></div>
       </div>
@@ -266,7 +292,7 @@ function getPositionInitials(title: string) {
         <span>Legislative Body &mdash; Student Senate</span>
       </div>
 
-      <!-- ====== SENATORS SECTION WITH INTEGRATED CONNECTORS ====== -->
+      <!-- ====== SENATORS SECTION ====== -->
       <div class="senators-row-container">
         <div class="senators-row">
           <div
@@ -275,52 +301,69 @@ function getPositionInitials(title: string) {
             class="senator-node-container"
           >
             <div class="senator-card">
-              <div class="card-avatar">{{ getInitials(senator.name) }}</div>
-              <span class="card-name">{{ senator.name }}</span>
-              <span class="card-position">{{ senator.position }}</span>
+              <div class="senator-avatar-wrap">
+                <div class="card-avatar senator-avatar">{{ getInitials(senator.name) }}</div>
+              </div>
+              <span class="card-name senator-name">{{ senator.name }}</span>
+              <span class="card-badge badge-teal-soft">{{ senator.position }}</span>
             </div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
 
 <style scoped>
+/* ══════════════════════════════════════════
+   WRAPPER & CANVAS
+══════════════════════════════════════════ */
 .org-chart-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 2.5rem;
+  overflow-x: hidden;
+  padding-bottom: 3rem;
   width: 100%;
+  background: linear-gradient(160deg, #0a1628 0%, #0d1b2a 60%, #0e1f30 100%);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 2.5rem 1.5rem;
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 75, 0.08),
+    0 32px 80px -16px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .org-chart-wrapper {
+    padding: 1.25rem 0.75rem;
+    border-radius: 0.75rem;
+  }
+}
+
+/* Subtle ambient glow blobs */
+.org-chart-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 300px;
+  background: radial-gradient(ellipse, rgba(201, 162, 75, 0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .org-chart-inner {
   width: 100%;
-  min-width: 1200px; /* Ensures chart maintains structured spacing on desktop & scrollability on mobile */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
 }
 
-.scroll-hint {
-  display: none;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--color-slate, #5C6773);
-  margin-bottom: 1.5rem;
-  font-family: var(--font-mono, monospace);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-@media (max-width: 1024px) {
-  .scroll-hint {
-    display: block;
-  }
-}
-
-/* ---- Tiers ---- */
+/* ══════════════════════════════════════════
+   TIER ROWS
+══════════════════════════════════════════ */
 .tier-row {
   display: flex;
   justify-content: center;
@@ -333,7 +376,9 @@ function getPositionInitials(title: string) {
   gap: 16rem;
 }
 
-/* ---- Executive grid ---- */
+/* ══════════════════════════════════════════
+   EXECUTIVE GRID
+══════════════════════════════════════════ */
 .exec-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -341,7 +386,9 @@ function getPositionInitials(title: string) {
   gap: 0;
 }
 
-/* ---- Connectors ---- */
+/* ══════════════════════════════════════════
+   CONNECTORS — gold glow style
+══════════════════════════════════════════ */
 .connector {
   position: relative;
   height: 40px;
@@ -358,68 +405,113 @@ function getPositionInitials(title: string) {
 
 .conn-line {
   position: absolute;
-  width: 2px;
-  background: #D8CFAF;
+  width: 1px;
+  background: linear-gradient(to bottom, rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.25));
   transform: translateX(-50%);
+  box-shadow: 0 0 4px rgba(201, 162, 75, 0.2);
 }
 
 .conn-bar {
   position: absolute;
-  height: 2px;
-  background: #D8CFAF;
+  height: 1px;
+  background: linear-gradient(to right, rgba(201, 162, 75, 0.25), rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.25));
   transform: translateY(-50%);
+  box-shadow: 0 0 4px rgba(201, 162, 75, 0.15);
 }
 
-/* ---- Portrait Node Cards ---- */
+/* ══════════════════════════════════════════
+   BASE NODE CARD
+══════════════════════════════════════════ */
 .node-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   border-radius: 1rem;
-  padding: 1.5rem 1rem;
-  border: 2px solid #142850;
-  background: #fff;
+  padding: 1.5rem 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   text-align: center;
   white-space: nowrap;
   width: 180px;
-  height: 240px;
-  box-shadow: 0 4px 6px -1px rgba(20, 40, 80, 0.04), 0 2px 4px -1px rgba(20, 40, 80, 0.02);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 220px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s ease;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
+}
+
+.node-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(201, 162, 75, 0.3), transparent);
+  border-radius: 1rem 1rem 0 0;
 }
 
 .node-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 20px -5px rgba(20, 40, 80, 0.1), 0 8px 8px -5px rgba(20, 40, 80, 0.04);
+  transform: translateY(-5px) scale(1.01);
+  border-color: rgba(201, 162, 75, 0.3);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(201, 162, 75, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Avatar bubble design */
+/* ── Avatar wrapper with glow ring ── */
+.card-avatar-wrap {
+  position: relative;
+  margin-bottom: 0.875rem;
+  flex-shrink: 0;
+}
+
+.card-avatar-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 75, 0.2);
+  pointer-events: none;
+}
+
 .card-avatar {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 9999px;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-serif, serif);
-  font-weight: 700;
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-  flex-shrink: 0;
-  transition: transform 0.25s ease;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(201, 162, 75, 0.8);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .node-card:hover .card-avatar {
-  transform: scale(1.05);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(201, 162, 75, 0.25);
 }
 
+/* ── Typography ── */
 .card-name {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  color: #142850;
-  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
   text-align: center;
   max-width: 100%;
   overflow: hidden;
@@ -427,159 +519,241 @@ function getPositionInitials(title: string) {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  white-space: normal;
+  letter-spacing: -0.01em;
 }
 
-.card-position {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #8A6D2F;
-  margin-top: 0.375rem;
+/* ── Badge pills ── */
+.card-badge {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
+.badge-inst {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.badge-gold {
+  background: rgba(201, 162, 75, 0.12);
+  border: 1px solid rgba(201, 162, 75, 0.3);
+  color: rgba(228, 205, 142, 0.9);
+}
+
+.badge-gold-dark {
+  background: rgba(20, 40, 80, 0.35);
+  border: 1px solid rgba(20, 40, 80, 0.2);
+  color: rgba(20, 40, 80, 0.8);
+}
+
+.badge-navy {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.badge-teal {
+  background: rgba(45, 188, 168, 0.1);
+  border: 1px solid rgba(45, 188, 168, 0.3);
+  color: rgba(80, 220, 200, 0.9);
+}
+
+.badge-teal-soft {
+  background: rgba(45, 188, 168, 0.08);
+  border: 1px solid rgba(45, 188, 168, 0.2);
+  color: rgba(80, 220, 200, 0.7);
+}
+
+/* ── Email chip ── */
 .card-email {
   display: none;
   align-items: center;
-  gap: 0.375rem;
-  margin-top: 1rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  background: rgba(20, 40, 80, 0.04);
-  border: 1px solid #DCD6C8;
-  font-size: 0.6875rem;
-  font-family: var(--font-mono, monospace);
-  color: #5C6773;
+  gap: 0.3rem;
+  margin-top: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 255, 255, 0.3);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (min-width: 768px) {
-  .card-email {
-    display: inline-flex;
-  }
+  .card-email { display: inline-flex; }
 }
 
-/* Node card visual variants */
+/* ══════════════════════════════════════════
+   CARD VARIANTS
+══════════════════════════════════════════ */
+
+/* Institutional nodes */
 .node-inst {
-  border-color: rgba(20, 40, 80, 0.2);
-  background: #ffffff;
+  border-color: rgba(255, 255, 255, 0.07);
 }
 
 .node-inst .card-avatar {
-  background: rgba(20, 40, 80, 0.05);
-  border: 2px solid rgba(20, 40, 80, 0.15);
-  color: #142850;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(200, 210, 230, 0.7);
 }
 
-.node-inst .card-position {
-  color: #5C6773;
-  font-size: 0.6875rem;
-}
-
+/* Campus AD — deep navy highlight */
 .node-campus-ad {
-  background: #142850;
-  border-color: #142850;
+  background: linear-gradient(135deg, rgba(20, 40, 80, 0.8), rgba(14, 28, 60, 0.9));
+  border-color: rgba(201, 162, 75, 0.35);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(201, 162, 75, 0.12),
+    inset 0 1px 0 rgba(201, 162, 75, 0.1);
+}
+
+.node-campus-ad::before {
+  background: linear-gradient(to right, transparent, rgba(201, 162, 75, 0.6), transparent);
 }
 
 .node-campus-ad .card-avatar {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: #E4CD8E;
+  background: rgba(201, 162, 75, 0.15);
+  border-color: rgba(201, 162, 75, 0.4);
+  color: #e4cd8e;
 }
 
 .node-campus-ad .card-name {
   color: #ffffff;
 }
 
-.node-campus-ad .card-position {
-  color: #E4CD8E;
+/* Placeholder */
+.placeholder-node {
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.04);
 }
 
-.placeholder-node {
-  border: 2px dashed #dc2626;
-  background: #ffffff;
+.placeholder-node::before {
+  background: linear-gradient(to right, transparent, rgba(239, 68, 68, 0.3), transparent);
 }
 
 .placeholder-node .card-avatar {
-  background: rgba(220, 38, 38, 0.05);
-  border: 2px dashed rgba(220, 38, 38, 0.3);
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.3);
+  color: rgba(239, 68, 68, 0.8);
 }
 
 .placeholder-node .card-name {
-  color: #dc2626;
+  color: rgba(239, 68, 68, 0.85);
   font-style: italic;
 }
 
-.placeholder-node .card-position {
-  color: #5C6773;
-  font-size: 0.6875rem;
-}
+.text-danger { color: rgba(239, 68, 68, 0.85); }
 
+/* Gold executive cards (President / VP) */
 .node-gold {
-  background: linear-gradient(135deg, #C9A24B, #E4CD8E);
-  border-color: #C9A24B;
+  background: linear-gradient(140deg, #b8882d 0%, #d4a840 30%, #e8c96a 60%, #c9a24b 100%);
+  border-color: rgba(201, 162, 75, 0.6);
+  box-shadow:
+    0 8px 32px rgba(201, 162, 75, 0.2),
+    0 0 0 1px rgba(201, 162, 75, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.node-gold.node-large {
-  padding: 1.75rem 1rem 1.25rem;
+.node-gold::before {
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.node-gold:hover {
+  box-shadow:
+    0 16px 48px rgba(201, 162, 75, 0.35),
+    0 0 0 1px rgba(201, 162, 75, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.node-gold .card-avatar-wrap::after {
+  border-color: rgba(20, 40, 80, 0.25);
 }
 
 .node-gold .card-avatar {
-  background: #142850;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  color: #E4CD8E;
+  background: rgba(14, 28, 60, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f0d880;
 }
 
 .node-gold .card-name {
   color: #142850;
+  font-size: 0.875rem;
 }
 
-.node-gold .card-position {
-  color: #142850;
-  opacity: 0.85;
+.node-gold.node-large {
+  padding: 1.75rem 1.25rem 1.5rem;
+  min-height: 230px;
 }
 
+/* Committee head cards */
 .node-committee {
-  border-color: rgba(20, 40, 80, 0.25);
-  background: #ffffff;
+  border-color: rgba(100, 140, 210, 0.2);
+  background: rgba(20, 40, 80, 0.2);
+}
+
+.node-committee::before {
+  background: linear-gradient(to right, transparent, rgba(100, 140, 210, 0.3), transparent);
+}
+
+.node-committee:hover {
+  border-color: rgba(100, 140, 210, 0.4);
 }
 
 .node-committee .card-avatar {
-  background: rgba(20, 40, 80, 0.04);
-  border: 2px solid rgba(20, 40, 80, 0.1);
-  color: #142850;
+  background: rgba(40, 70, 140, 0.25);
+  border-color: rgba(100, 140, 210, 0.25);
+  color: rgba(160, 190, 240, 0.9);
 }
 
+/* Senate President */
 .node-senate-pres {
-  border-color: #C9A24B;
-  background: linear-gradient(135deg, #fdfbfa, #fdf6e3);
+  background: rgba(20, 60, 55, 0.35);
+  border-color: rgba(45, 188, 168, 0.3);
+  box-shadow:
+    0 4px 16px rgba(45, 188, 168, 0.08),
+    inset 0 1px 0 rgba(45, 188, 168, 0.1);
+}
+
+.node-senate-pres::before {
+  background: linear-gradient(to right, transparent, rgba(45, 188, 168, 0.5), transparent);
+}
+
+.node-senate-pres:hover {
+  border-color: rgba(45, 188, 168, 0.5);
+  box-shadow:
+    0 12px 32px rgba(45, 188, 168, 0.15),
+    0 0 0 1px rgba(45, 188, 168, 0.2);
 }
 
 .node-senate-pres .card-avatar {
-  background: rgba(201, 162, 75, 0.1);
-  border: 2px solid rgba(201, 162, 75, 0.3);
-  color: #8A6D2F;
+  background: rgba(45, 188, 168, 0.12);
+  border-color: rgba(45, 188, 168, 0.3);
+  color: rgba(80, 220, 200, 0.9);
 }
 
-.node-senate-pres .card-name {
-  color: #142850;
-}
-
-.node-senate-pres .card-position {
-  color: #8A6D2F;
-}
-
-/* ---- Tier label ---- */
+/* ══════════════════════════════════════════
+   TIER LABELS
+══════════════════════════════════════════ */
 .tier-label {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  padding: 2.5rem 0 1.75rem;
+  padding: 2.25rem 0 1.5rem;
   position: relative;
   white-space: nowrap;
 }
@@ -590,16 +764,24 @@ function getPositionInitials(title: string) {
   flex: 1;
   height: 1px;
   max-width: 200px;
-  background: #D8CFAF;
+  background: linear-gradient(to right, transparent, rgba(201, 162, 75, 0.3));
+}
+
+.tier-label::after {
+  background: linear-gradient(to left, transparent, rgba(201, 162, 75, 0.3));
 }
 
 .tier-label span {
-  font-size: 0.75rem;
-  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #8A6D2F;
-  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: rgba(201, 162, 75, 0.55);
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid rgba(201, 162, 75, 0.2);
+  border-radius: 999px;
+  background: rgba(201, 162, 75, 0.06);
 }
 
 .senate-tier-label {
@@ -611,11 +793,14 @@ function getPositionInitials(title: string) {
 .senate-tier-label span {
   position: relative;
   z-index: 10;
-  background: #F7F5F0;
-  padding: 0 1rem;
+  background: rgba(20, 60, 55, 0.25);
+  border-color: rgba(45, 188, 168, 0.25);
+  color: rgba(80, 220, 200, 0.7);
 }
 
-/* ---- Senators ---- */
+/* ══════════════════════════════════════════
+   SENATORS ROW
+══════════════════════════════════════════ */
 .senators-row-container {
   width: 100%;
   display: flex;
@@ -635,168 +820,195 @@ function getPositionInitials(title: string) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 6px 10px;
+  padding: 24px 5px 10px;
   flex: 1;
   min-width: 130px;
 }
 
+/* Horizontal bus line */
 .senator-node-container::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: #D8CFAF;
+  height: 1px;
+  background: linear-gradient(to right, rgba(45, 188, 168, 0.15), rgba(45, 188, 168, 0.5), rgba(45, 188, 168, 0.15));
 }
 
-.senator-node-container:first-child::before {
-  left: 50%;
-}
+.senator-node-container:first-child::before { left: 50%; }
+.senator-node-container:last-child::before  { right: 50%; }
 
-.senator-node-container:last-child::before {
-  right: 50%;
-}
-
+/* Vertical drop line */
 .senator-node-container::after {
   content: '';
   position: absolute;
   top: 0;
   left: 50%;
   height: 24px;
-  width: 2px;
-  background: #D8CFAF;
+  width: 1px;
+  background: rgba(45, 188, 168, 0.4);
   transform: translateX(-50%);
+  box-shadow: 0 0 4px rgba(45, 188, 168, 0.2);
 }
 
+/* Senator card */
 .senator-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 1.25rem 0.75rem;
-  border: 1px solid #DCD6C8;
-  border-radius: 0.75rem;
-  background: #fff;
+  padding: 1.1rem 0.6rem 0.9rem;
+  border: 1px solid rgba(45, 188, 168, 0.18);
+  border-radius: 0.875rem;
+  background: rgba(20, 60, 55, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   text-align: center;
   width: 100%;
   max-width: 130px;
-  height: 190px;
-  transition: all 0.25s ease-in-out;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  min-height: 180px;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(45, 188, 168, 0.05);
+  position: relative;
   overflow: hidden;
   box-sizing: border-box;
 }
 
+.senator-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(45, 188, 168, 0.4), transparent);
+}
+
 .senator-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(20, 40, 80, 0.06);
+  transform: translateY(-4px);
+  border-color: rgba(45, 188, 168, 0.4);
+  box-shadow:
+    0 8px 20px rgba(45, 188, 168, 0.1),
+    0 0 0 1px rgba(45, 188, 168, 0.15),
+    inset 0 1px 0 rgba(45, 188, 168, 0.08);
 }
 
-.senator-card .card-avatar {
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 9999px;
-  background: rgba(20, 40, 80, 0.06);
-  border: 1px solid #DCD6C8;
-  color: #142850;
-  font-size: 0.95rem;
-  margin-bottom: 0.75rem;
+/* Senator avatar */
+.senator-avatar-wrap {
+  position: relative;
+  margin-bottom: 0.7rem;
+  flex-shrink: 0;
 }
 
-.senator-card .card-name {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #142850;
+.senator-avatar-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid rgba(45, 188, 168, 0.18);
+  pointer-events: none;
 }
 
-.senator-card .card-position {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #8A6D2F;
-  margin-top: 0.25rem;
+.senator-avatar {
+  width: 3rem;
+  height: 3rem;
+  font-size: 0.9rem;
+  background: rgba(45, 188, 168, 0.1);
+  border: 1px solid rgba(45, 188, 168, 0.2);
+  color: rgba(80, 220, 200, 0.85);
 }
 
-/* ====== MOBILE SCALING ====== */
+.senator-name {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.senator-card:hover .senator-avatar {
+  box-shadow: 0 0 10px rgba(45, 188, 168, 0.2);
+}
+
+/* ══════════════════════════════════════════
+   MOBILE — fits everything into viewport
+══════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .org-chart-inner {
-    min-width: 900px; /* Make it more compact on mobile to limit horizontal scroll scope */
-  }
 
   .tier-row {
-    gap: 8rem;
-    padding: 0.5rem 0;
+    gap: 1rem;
+    padding: 0.375rem 0;
   }
+  .tier-row.two-up { gap: 0.75rem; }
 
-  .tier-row.two-up {
-    gap: 8rem;
-  }
+  .connector { height: 20px; }
+  .connector-to-senate { height: 12px; }
 
-  .connector {
-    height: 30px;
-  }
-
-  .connector-to-senate {
-    height: 20px;
-  }
-
-  /* Compact portrait cards on mobile */
   .node-card {
-    width: 120px;
-    height: 165px;
-    padding: 1rem 0.5rem;
-    border-radius: 0.75rem;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.75rem 0.5rem;
+    border-radius: 0.625rem;
+    border-width: 1px;
+    white-space: normal;
   }
+
+  .card-avatar-wrap { margin-bottom: 0.5rem; }
+  .card-avatar-wrap::after { display: none; }
 
   .card-avatar {
-    width: 3rem;
-    height: 3rem;
-    font-size: 0.95rem;
-    margin-bottom: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.7rem;
   }
 
   .card-name {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
+    -webkit-line-clamp: 2;
   }
 
-  .card-position {
-    font-size: 0.625rem;
+  .card-badge {
+    font-size: 0.45rem;
+    padding: 0.1rem 0.35rem;
     margin-top: 0.25rem;
   }
 
-  .node-gold.node-large {
-    padding: 1.25rem 0.5rem 1rem;
+  .card-email { display: none !important; }
+
+  .node-gold.node-large { padding: 0.75rem 0.5rem; min-height: 0; }
+
+  /* Senator row: wrap */
+  .senators-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
-  /* Compact senator cards on mobile */
   .senator-node-container {
-    padding: 16px 4px 6px;
-    min-width: 90px;
+    padding: 14px 4px 6px;
+    min-width: 0;
+    flex: 0 1 auto;
+    width: calc(33.33% - 0.5rem);
+    max-width: 110px;
   }
 
-  .senator-node-container::after {
-    height: 16px;
-  }
+  .senator-node-container::after { height: 14px; }
 
   .senator-card {
-    padding: 0.875rem 0.375rem;
-    max-width: 90px;
-    height: 140px;
+    padding: 0.65rem 0.3rem;
+    max-width: 100%;
+    min-height: 0;
+    border-radius: 0.5rem;
   }
 
-  .senator-card .card-avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 0.8125rem;
-    margin-bottom: 0.5rem;
+  .senator-avatar-wrap { margin-bottom: 0.4rem; }
+  .senator-avatar-wrap::after { display: none; }
+
+  .senator-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.6rem;
   }
 
-  .senator-card .card-name {
-    font-size: 0.6875rem;
-  }
-
-  .senator-card .card-position {
-    font-size: 0.5625rem;
-  }
+  .senator-name { font-size: 0.55rem; }
+  .badge-teal-soft { font-size: 0.4rem; padding: 0.08rem 0.25rem; }
 }
 </style>
