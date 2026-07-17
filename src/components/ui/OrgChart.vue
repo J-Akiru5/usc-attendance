@@ -11,13 +11,10 @@ const president = computed(() => props.officers.find(o => o.position === 'Presid
 const vicePresident = computed(() => props.officers.find(o => o.position === 'Vice President'))
 const senatePresident = computed(() => props.officers.find(o => o.position === 'Senate President'))
 const senators = computed(() => props.officers.filter(o => o.role === 'senate'))
-
-const officersUnderVP = computed(() => {
-  const order = ['Secretary', 'Auditor', 'Senate President', 'Treasurer', 'Spokesperson']
-  return order
-    .map(pos => props.officers.find(o => o.position === pos))
-    .filter((o): o is Officer => !!o)
-})
+const secretary = computed(() => props.officers.find(o => o.position === 'Secretary'))
+const auditor = computed(() => props.officers.find(o => o.position === 'Auditor'))
+const treasurer = computed(() => props.officers.find(o => o.position === 'Treasurer'))
+const spokesperson = computed(() => props.officers.find(o => o.position === 'Spokesperson'))
 
 function getInitials(name?: string) {
   if (!name) return '?'
@@ -197,7 +194,7 @@ function getPositionInitials(title: string) {
       <!-- ====== EXECUTIVE SECTION ====== -->
       <div class="exec-grid">
         <!-- Row 1: President -->
-        <div class="flex justify-center pb-2" style="grid-column: 1 / 6">
+        <div class="pres-node-wrap flex justify-center pb-2">
           <div class="node-card node-gold node-large">
             <div class="card-avatar-wrap">
               <div class="card-avatar">{{ getInitials(president?.name) }}</div>
@@ -214,12 +211,12 @@ function getPositionInitials(title: string) {
         </div>
 
         <!-- Row 2: Connector down to VP -->
-        <div class="connector" style="grid-column: 1 / 6">
+        <div class="conn-to-vp connector">
           <div class="conn-line" style="top:0; left:50%; height:100%"></div>
         </div>
 
         <!-- Row 3: Vice President -->
-        <div class="flex justify-center pb-2" style="grid-column: 1 / 6">
+        <div class="vp-node-wrap flex justify-center pb-2">
           <div class="node-card node-gold node-large">
             <div class="card-avatar-wrap">
               <div class="card-avatar">{{ getInitials(vicePresident?.name) }}</div>
@@ -235,10 +232,10 @@ function getPositionInitials(title: string) {
           </div>
         </div>
 
-        <!-- Row 4: 1-to-5 Branch-down Connector -->
-        <div class="connector" style="grid-column: 1 / 6; --tl: 50%; --bar-l: 10%; --bar-w: 80%">
-          <div class="conn-line" style="top:0; left:var(--tl); height:50%"></div>
-          <div class="conn-bar" style="top:50%; left:var(--bar-l); width:var(--bar-w)"></div>
+        <!-- Desktop 1-to-5 Branch-down Connector (Desktop only) -->
+        <div class="desk-conn-branch connector">
+          <div class="conn-line" style="top:0; left:50%; height:50%"></div>
+          <div class="conn-bar" style="top:50%; left:10%; width:80%"></div>
           <div class="conn-line" style="top:50%; left:10%; height:50%"></div>
           <div class="conn-line" style="top:50%; left:30%; height:50%"></div>
           <div class="conn-line" style="top:50%; left:50%; height:50%"></div>
@@ -246,37 +243,113 @@ function getPositionInitials(title: string) {
           <div class="conn-line" style="top:50%; left:90%; height:50%"></div>
         </div>
 
-        <!-- Row 5: 5 Officers under VP -->
-        <div v-for="officer in officersUnderVP" :key="officer.position" class="flex justify-center">
-          <div
-            :class="[
-              'node-card',
-              officer.position === 'Senate President' ? 'node-senate-pres' : 'node-committee'
-            ]"
-          >
+        <!-- Mobile Connector: VP to Senate Pres (Mobile only) -->
+        <div class="mob-conn-to-sp connector">
+          <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        </div>
+
+        <!-- Senate President Card (Elevated on mobile) -->
+        <div class="sp-node-wrap flex justify-center">
+          <div class="node-card node-senate-pres" v-if="senatePresident">
             <div class="card-avatar-wrap">
-              <div class="card-avatar">{{ getInitials(officer.name) }}</div>
+              <div class="card-avatar">{{ getInitials(senatePresident.name) }}</div>
             </div>
-            <span class="card-name">{{ officer.name }}</span>
-            <span
-              :class="[
-                'card-badge',
-                officer.position === 'Senate President' ? 'badge-teal' : 'badge-navy'
-              ]"
-            >
-              {{ officer.position }}
-            </span>
-            <div class="card-email" v-if="officer.email">
+            <span class="card-name">{{ senatePresident.name }}</span>
+            <span class="card-badge badge-teal">{{ senatePresident.position }}</span>
+            <div class="card-email" v-if="senatePresident.email">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
-              {{ officer.email }}
+              {{ senatePresident.email }}
             </div>
           </div>
         </div>
 
-        <!-- Row 6: Connector below Senate President (col 3) -->
-        <div class="connector" style="grid-column: 3 / 4">
+        <!-- Mobile 1-to-4 Branch-down Connector (Mobile only) -->
+        <div class="mob-conn-branch-from-sp connector">
+          <div class="conn-line" style="top:0; left:50%; height:50%"></div>
+          <div class="conn-bar" style="top:50%; left:12.5%; width:75%"></div>
+          <div class="conn-line" style="top:50%; left:12.5%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:37.5%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:62.5%; height:50%"></div>
+          <div class="conn-line" style="top:50%; left:87.5%; height:50%"></div>
+        </div>
+
+        <!-- Secretary Card -->
+        <div class="sec-node-wrap flex justify-center" v-if="secretary">
+          <div class="node-card node-committee">
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(secretary.name) }}</div>
+            </div>
+            <span class="card-name">{{ secretary.name }}</span>
+            <span class="card-badge badge-navy">{{ secretary.position }}</span>
+            <div class="card-email" v-if="secretary.email">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              {{ secretary.email }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Auditor Card -->
+        <div class="aud-node-wrap flex justify-center" v-if="auditor">
+          <div class="node-card node-committee">
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(auditor.name) }}</div>
+            </div>
+            <span class="card-name">{{ auditor.name }}</span>
+            <span class="card-badge badge-navy">{{ auditor.position }}</span>
+            <div class="card-email" v-if="auditor.email">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              {{ auditor.email }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Treasurer Card -->
+        <div class="tre-node-wrap flex justify-center" v-if="treasurer">
+          <div class="node-card node-committee">
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(treasurer.name) }}</div>
+            </div>
+            <span class="card-name">{{ treasurer.name }}</span>
+            <span class="card-badge badge-navy">{{ treasurer.position }}</span>
+            <div class="card-email" v-if="treasurer.email">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              {{ treasurer.email }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Spokesperson Card -->
+        <div class="spo-node-wrap flex justify-center" v-if="spokesperson">
+          <div class="node-card node-committee">
+            <div class="card-avatar-wrap">
+              <div class="card-avatar">{{ getInitials(spokesperson.name) }}</div>
+            </div>
+            <span class="card-name">{{ spokesperson.name }}</span>
+            <span class="card-badge badge-navy">{{ spokesperson.position }}</span>
+            <div class="card-email" v-if="spokesperson.email">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              {{ spokesperson.email }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Connector below Senate President (col 3) -->
+        <div class="conn-to-senate-desk connector">
+          <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        </div>
+
+        <!-- Mobile Connector below the 4 cards -->
+        <div class="conn-to-senate-mob connector">
           <div class="conn-line" style="top:0; left:50%; height:100%"></div>
         </div>
       </div>
@@ -385,6 +458,23 @@ function getPositionInitials(title: string) {
   width: 100%;
   gap: 0;
 }
+
+.pres-node-wrap { grid-column: 1 / 6; grid-row: 1; }
+.conn-to-vp { grid-column: 1 / 6; grid-row: 2; }
+.vp-node-wrap { grid-column: 1 / 6; grid-row: 3; }
+.desk-conn-branch { grid-column: 1 / 6; grid-row: 4; display: block; }
+
+.mob-conn-to-sp { display: none; }
+.mob-conn-branch-from-sp { display: none; }
+.conn-to-senate-mob { display: none; }
+
+.sec-node-wrap { grid-column: 1; grid-row: 5; }
+.aud-node-wrap { grid-column: 2; grid-row: 5; }
+.sp-node-wrap { grid-column: 3; grid-row: 5; }
+.tre-node-wrap { grid-column: 4; grid-row: 5; }
+.spo-node-wrap { grid-column: 5; grid-row: 5; }
+
+.conn-to-senate-desk { grid-column: 3; grid-row: 6; display: block; }
 
 /* ══════════════════════════════════════════
    CONNECTORS — gold glow style
@@ -930,6 +1020,26 @@ function getPositionInitials(title: string) {
    MOBILE — fits everything into viewport
 ══════════════════════════════════════════ */
 @media (max-width: 768px) {
+  .exec-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .pres-node-wrap { grid-column: 1 / 5; grid-row: 1; }
+  .conn-to-vp { grid-column: 1 / 5; grid-row: 2; }
+  .vp-node-wrap { grid-column: 1 / 5; grid-row: 3; }
+  
+  .mob-conn-to-sp { grid-column: 1 / 5; grid-row: 4; display: block; }
+  .sp-node-wrap { grid-column: 1 / 5; grid-row: 5; }
+  .mob-conn-branch-from-sp { grid-column: 1 / 5; grid-row: 6; display: block; }
+  
+  .sec-node-wrap { grid-column: 1; grid-row: 7; }
+  .aud-node-wrap { grid-column: 2; grid-row: 7; }
+  .tre-node-wrap { grid-column: 3; grid-row: 7; }
+  .spo-node-wrap { grid-column: 4; grid-row: 7; }
+  
+  .desk-conn-branch { display: none; }
+  .conn-to-senate-desk { display: none; }
+  .conn-to-senate-mob { grid-column: 1 / 5; grid-row: 8; display: block; }
 
   .tier-row {
     gap: 1rem;
