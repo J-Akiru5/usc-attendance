@@ -29,7 +29,7 @@ function closeMobileMenu() {
   <div class="min-h-screen bg-paper flex flex-col">
     <!-- Navbar -->
     <header class="sticky top-0 z-50 bg-navy border-b border-white/10 shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
+      <div class="px-4 md:px-12 h-16 flex items-center justify-between gap-4">
         <!-- Logo Group -->
         <div class="flex items-center gap-3 cursor-pointer shrink-0" @click="router.push('/')">
           <!-- ISUFST Logo -->
@@ -137,8 +137,8 @@ function closeMobileMenu() {
     </main>
 
     <!-- Footer -->
-    <footer class="bg-navy-deep text-white/60 border-t border-white/10">
-      <div class="max-w-7xl mx-auto px-4 md:px-6 py-12">
+    <footer class="bg-navy-deep text-white/60 border-t border-white/10 relative overflow-hidden">
+      <div class="px-4 md:px-12 py-12 relative z-10">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <!-- Brand -->
           <div class="sm:col-span-2 lg:col-span-1">
@@ -238,6 +238,14 @@ function closeMobileMenu() {
             </a>
           </div>
         </div>
+      </div>
+
+      <!-- Sleek Modern Watermark -->
+      <div class="absolute bottom-0 left-0 w-full overflow-hidden select-none pointer-events-none z-0 translate-y-[30%]">
+        <h2 class="text-center font-black tracking-[0.15em] leading-none text-transparent text-[13vw] uppercase select-none font-sans"
+             style="-webkit-text-stroke: 1.5px rgba(201, 162, 75, 0.08); text-shadow: 0 0 60px rgba(201, 162, 75, 0.03);">
+          USC DINGLE
+        </h2>
       </div>
     </footer>
   </div>

@@ -49,7 +49,7 @@ const services = [
         style="background: linear-gradient(to top, rgba(12,27,54,0.85) 0%, transparent 100%);"
       />
 
-      <div class="relative max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 w-full">
+      <div class="relative px-4 md:px-12 py-20 md:py-28 w-full">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <!-- Left Column -->
           <div class="lg:col-span-7">
@@ -154,7 +154,7 @@ const services = [
 
     <!-- Services -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-5xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="text-center mb-12">
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Digital Services</div>
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Available Services</h2>
@@ -204,7 +204,7 @@ const services = [
 
     <!-- CTA -->
     <section class="py-16 md:py-20 bg-navy text-white">
-      <div class="max-w-3xl mx-auto px-4 md:px-6 text-center">
+      <div class="px-4 md:px-12 text-center">
         <h2 class="text-2xl md:text-3xl font-bold font-serif text-white mb-4">
           Ready to get started?
         </h2>

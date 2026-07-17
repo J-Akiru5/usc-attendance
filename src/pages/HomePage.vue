@@ -10,7 +10,8 @@ const executiveOfficers = officers.filter(o => o.role === 'executive').slice(0, 
 const previewProjects = projects.slice(0, 3)
 const previewEvents = publicEvents.slice(0, 3)
 
-function getInitials(name: string) {
+function getInitials(name?: string) {
+  if (!name) return '?'
   return name
     .split(' ')
     .filter(p => !p.endsWith('.'))
@@ -57,7 +58,7 @@ const logos = [
         style="background: linear-gradient(to bottom, rgba(12,27,54,0.6) 0%, transparent 100%);"
       />
 
-      <div class="relative max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-7">
           <div
             v-motion
@@ -138,7 +139,7 @@ const logos = [
 
     <!-- ========== LOGO CAROUSEL ========== -->
     <section class="py-8 bg-navy-deep border-y border-white/5 overflow-hidden relative">
-      <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="relative w-full overflow-hidden whitespace-nowrap [mask-image:_linear-gradient(to_right,_transparent_0,_black_15%,_black_85%,_transparent_100%)]">
           <div class="inline-flex gap-16 md:gap-24 animate-marquee py-2">
             <!-- First set -->
@@ -156,7 +157,7 @@ const logos = [
 
     <!-- ========== ABOUT PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-[#F0EDE6]">
-      <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div
             v-motion
@@ -235,7 +236,7 @@ const logos = [
 
     <!-- ========== OFFICERS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div
           v-motion
           :initial="{ opacity: 0, y: 30 }"
@@ -280,7 +281,7 @@ const logos = [
 
     <!-- ========== PROJECTS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-[#F0EDE6]">
-      <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div
           v-motion
           :initial="{ opacity: 0, y: 30 }"
@@ -324,7 +325,7 @@ const logos = [
 
     <!-- ========== EVENTS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-7xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div
           v-motion
           :initial="{ opacity: 0, y: 30 }"
@@ -374,7 +375,7 @@ const logos = [
         v-motion
         :initial="{ opacity: 0, y: 30 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
-        class="max-w-3xl mx-auto px-4 md:px-6 text-center"
+        class="px-4 md:px-12 text-center"
       >
         <h2 class="text-2xl md:text-3xl font-bold font-serif text-white mb-4">
           USC Officer?

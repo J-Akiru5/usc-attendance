@@ -46,7 +46,7 @@ const features = [
           background-size: 40px 40px;
         "
       />
-      <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center">
+      <div class="relative px-4 md:px-12 text-center">
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Features</div>
         <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">
           Powerful features built for<br>modern attendance management.
@@ -59,7 +59,7 @@ const features = [
 
     <!-- ========== FEATURE GRID ========== -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-6xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
             v-for="feature in features"

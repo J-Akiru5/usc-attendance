@@ -1,10 +1,30 @@
 export interface Officer {
-  name: string
+  name?: string
   position: string
   committee: string
-  email: string
+  email?: string
   role: 'executive' | 'senate'
 }
+
+export interface OversightNode {
+  id: string
+  label: string
+  name?: string
+  isPlaceholder?: boolean
+  tier: 'root' | 'fusc-branch' | 'fusc-president' | 'campus-ad' | 'ssc-chain'
+}
+
+export const oversight: OversightNode[] = [
+  { id: 'suc-president', label: 'SUC President', tier: 'root' },
+  { id: 'fusc-adviser', label: 'FUSC Adviser', tier: 'fusc-branch' },
+  { id: 'placeholder', label: 'Name to confirm', isPlaceholder: true, tier: 'fusc-branch' },
+  { id: 'fusc-president', label: 'FUSC President', tier: 'fusc-president' },
+  { id: 'campus-ad', label: 'Campus AD', tier: 'campus-ad' },
+  { id: 'ssc-chair', label: 'SSC Chair', tier: 'ssc-chain' },
+  { id: 'vice-chair', label: 'Vice Chair', tier: 'ssc-chain' },
+  { id: 'usc-adviser', label: 'USC Adviser', tier: 'ssc-chain' },
+  { id: 'usc-co-adviser', label: 'USC Co-Adviser', tier: 'ssc-chain' },
+]
 
 export const officers: Officer[] = [
   {
@@ -30,7 +50,7 @@ export const officers: Officer[] = [
   },
   {
     name: 'Dein Andrey D. Daguro',
-    position: 'Senate Press',
+    position: 'Senate President',
     committee: 'Executive',
     email: 'ddaguro@isufst.edu.ph',
     role: 'executive',

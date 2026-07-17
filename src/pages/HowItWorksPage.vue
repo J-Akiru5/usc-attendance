@@ -49,7 +49,7 @@ const flows = [
           background-size: 40px 40px;
         "
       />
-      <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center">
+      <div class="relative px-4 md:px-12 text-center">
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Process</div>
         <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">How Attendance Works</h1>
         <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
@@ -60,7 +60,7 @@ const flows = [
 
     <!-- ========== FLOW DIAGRAMS ========== -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-5xl mx-auto px-4 md:px-6 space-y-16">
+      <div class="px-4 md:px-12 space-y-16">
 
         <div v-for="(flow, fi) in flows" :key="flow.id">
           <div class="mb-8">

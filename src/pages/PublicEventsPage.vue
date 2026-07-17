@@ -15,7 +15,7 @@ import { publicEvents } from '@/data/events'
           background-size: 40px 40px;
         "
       />
-      <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center">
+      <div class="relative px-4 md:px-12 text-center">
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Get Involved</div>
         <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Events</h1>
         <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
@@ -26,7 +26,7 @@ import { publicEvents } from '@/data/events'
 
     <!-- Events List -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-4xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="space-y-5">
           <div
             v-for="event in publicEvents"

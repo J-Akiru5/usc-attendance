@@ -15,7 +15,7 @@ import { projects } from '@/data/projects'
           background-size: 40px 40px;
         "
       />
-      <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center">
+      <div class="relative px-4 md:px-12 text-center">
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">What We Do</div>
         <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Projects & Programs</h1>
         <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">

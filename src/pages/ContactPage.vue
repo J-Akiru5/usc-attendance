@@ -34,7 +34,7 @@ async function handleSubmit() {
           background-size: 40px 40px;
         "
       />
-      <div class="relative max-w-4xl mx-auto px-4 md:px-6 text-center">
+      <div class="relative px-4 md:px-12 text-center">
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Contact</div>
         <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Contact Us</h1>
         <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
@@ -45,7 +45,7 @@ async function handleSubmit() {
 
     <!-- ========== CONTACT CONTENT ========== -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-5xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Left: Contact Info -->
           <div>
@@ -178,7 +178,7 @@ async function handleSubmit() {
 
     <!-- ========== MAP ========== -->
     <section class="bg-[#F0EDE6]">
-      <div class="max-w-5xl mx-auto px-4 md:px-6 py-12">
+      <div class="px-4 md:px-12 py-12">
         <div class="text-center mb-6">
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-2">Find Us</div>
           <h2 class="text-xl font-bold font-serif text-navy">ISUFST Dingle Campus Location</h2>

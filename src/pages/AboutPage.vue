@@ -19,7 +19,7 @@ const values = [
       <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(12,27,54,0.95) 0%, rgba(12,27,54,0.70) 60%, rgba(12,27,54,0.40) 100%);" />
       <div class="absolute inset-x-0 bottom-0 h-24" style="background: linear-gradient(to top, rgba(12,27,54,0.8) 0%, transparent 100%);" />
 
-      <div class="relative max-w-7xl mx-auto px-4 md:px-6">
+      <div class="relative px-4 md:px-12">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">About</div>
@@ -46,7 +46,7 @@ const values = [
 
     <!-- Mission -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-3xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="rounded-2xl border border-line bg-paper-panel p-8 md:p-12 shadow-sm text-center">
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-4">Mission</div>
           <p class="text-xl md:text-2xl font-serif text-navy leading-relaxed">
@@ -61,7 +61,7 @@ const values = [
 
     <!-- About Content -->
     <section class="py-16 md:py-20 bg-[#F0EDE6]">
-      <div class="max-w-5xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Our Role</div>
@@ -100,7 +100,7 @@ const values = [
 
     <!-- Values -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-5xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="text-center mb-12">
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Guiding Principles</div>
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Our Values</h2>
@@ -122,7 +122,7 @@ const values = [
 
     <!-- Digital Services -->
     <section class="py-16 md:py-20 bg-[#F0EDE6]">
-      <div class="max-w-3xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="text-center mb-8">
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Digital Presence</div>
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Going Digital</h2>

@@ -64,7 +64,7 @@ const faqs = [
           background-size: 40px 40px;
         "
       />
-      <div class="relative max-w-7xl mx-auto px-4 md:px-6">
+      <div class="relative px-4 md:px-12">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">FAQ</div>
@@ -91,7 +91,7 @@ const faqs = [
 
     <!-- ========== FAQ ACCORDION ========== -->
     <section class="py-16 md:py-20 bg-paper">
-      <div class="max-w-3xl mx-auto px-4 md:px-6">
+      <div class="px-4 md:px-12">
         <div class="space-y-2">
           <div
             v-for="(faq, i) in faqs"
