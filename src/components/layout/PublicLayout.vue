@@ -275,12 +275,12 @@ function closeMobileMenu() {
         <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-gold/[0.04] to-transparent blur-2xl" />
 
         <!-- Tagline -->
-        <div class="relative z-10 flex items-center justify-center gap-4 mb-4 pt-6">
-          <div class="h-px w-16 bg-gradient-to-r from-transparent to-gold/30" />
-          <span class="text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.5em] text-gold/30 font-semibold">
+        <div class="relative z-10 flex items-center justify-center gap-2 sm:gap-4 mb-4 pt-6">
+          <div class="hidden xs:block h-px w-8 sm:w-16 bg-gradient-to-r from-transparent to-gold/30" />
+          <span class="text-[8px] sm:text-[10px] font-mono uppercase tracking-[0.25em] sm:tracking-[0.5em] text-gold/30 font-semibold text-center px-2">
             Leadership &nbsp;•&nbsp; Service &nbsp;•&nbsp; Collaboration
           </span>
-          <div class="h-px w-16 bg-gradient-to-l from-transparent to-gold/30" />
+          <div class="hidden xs:block h-px w-8 sm:w-16 bg-gradient-to-l from-transparent to-gold/30" />
         </div>
 
         <!-- SVG stroke watermark text — sharp, modern outline -->
@@ -310,10 +310,7 @@ function closeMobileMenu() {
               x="50%" y="100%"
               text-anchor="middle"
               dominant-baseline="auto"
-              font-family="'Inter','SF Pro Display',system-ui,sans-serif"
-              font-weight="900"
-              font-size="148"
-              letter-spacing="24"
+              class="watermark-text watermark-fill"
               fill="url(#wmGoldFill)"
             >USC DINGLE</text>
             <!-- Stroke outline layer -->
@@ -321,10 +318,7 @@ function closeMobileMenu() {
               x="50%" y="100%"
               text-anchor="middle"
               dominant-baseline="auto"
-              font-family="'Inter','SF Pro Display',system-ui,sans-serif"
-              font-weight="900"
-              font-size="148"
-              letter-spacing="24"
+              class="watermark-text watermark-stroke"
               fill="none"
               stroke="url(#wmGold)"
               stroke-width="0.75"
@@ -430,5 +424,19 @@ a.footer-contact-item:hover .footer-icon-ring {
 .footer-watermark-section {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   background: linear-gradient(to bottom, rgba(201, 168, 76, 0.015), transparent);
+}
+
+.watermark-text {
+  font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 110px;
+  letter-spacing: 12px;
+}
+
+@media (min-width: 640px) {
+  .watermark-text {
+    font-size: 148px;
+    letter-spacing: 24px;
+  }
 }
 </style>
