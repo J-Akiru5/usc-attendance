@@ -346,7 +346,7 @@ function getPositionInitials(title: string) {
    WRAPPER & CANVAS
    ══════════════════════════════════════════ */
 .org-chart-wrapper {
-  overflow-x: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 3rem;
   width: 100%;
@@ -375,7 +375,7 @@ function getPositionInitials(title: string) {
 
 .org-chart-inner {
   width: 100%;
-  min-width: 1300px; /* fixed chart min-width so tree shape never changes */
+  min-width: auto; /* auto adjusts to screen/parent container width */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -532,7 +532,7 @@ function getPositionInitials(title: string) {
   align-items: center;
   padding: 24px 5px 10px;
   flex: 1;
-  min-width: 155px;
+  min-width: 120px;
 }
 
 /* Horizontal bus line */

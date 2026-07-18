@@ -182,7 +182,8 @@ const variantClass = computed(() => {
 
 /* Tier 1: Institutional Oversight */
 .card-institutional {
-  width: 230px;
+  width: 100%;
+  max-width: 230px;
   background: rgba(12, 27, 54, 0.4);
   border-color: rgba(30, 74, 158, 0.3);
   --avatar-size: 44px;
@@ -207,7 +208,8 @@ const variantClass = computed(() => {
 
 /* Tier 2: Pivot Points (Solid Navy Fill) */
 .card-pivot {
-  width: 230px;
+  width: 100%;
+  max-width: 230px;
   background: #142850;
   border-color: rgba(201, 162, 75, 0.35);
   --avatar-size: 44px;
@@ -233,7 +235,8 @@ const variantClass = computed(() => {
 
 /* Tier 3: USC President & Vice President (Gold Gradient) */
 .card-executive {
-  width: 290px;
+  width: 100%;
+  max-width: 290px;
   background: linear-gradient(135deg, #c9a24b 0%, #e4cd8e 50%, #8a6d2f 100%);
   border-color: rgba(255, 255, 255, 0.25);
   --avatar-size: 56px;
@@ -267,7 +270,8 @@ const variantClass = computed(() => {
 
 /* Tier 4: Committee Heads (White background, navy border) */
 .card-committee {
-  width: 250px;
+  width: 100%;
+  max-width: 250px;
   background: #ffffff;
   border-color: #142850;
   --avatar-size: 48px;
@@ -298,7 +302,8 @@ const variantClass = computed(() => {
 
 /* Tier 5: Student Senate (Smallest variant) */
 .card-senate {
-  width: 155px;
+  width: 100%;
+  max-width: 155px;
   background: rgba(20, 60, 55, 0.2);
   border-color: rgba(45, 188, 168, 0.2);
   padding: 0.625rem 0.75rem;
