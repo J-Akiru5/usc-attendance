@@ -532,7 +532,7 @@ function getPositionInitials(title: string) {
   align-items: center;
   padding: 24px 5px 10px;
   flex: 1;
-  min-width: 120px;
+  min-width: 190px;
 }
 
 /* Horizontal bus line */

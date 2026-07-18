@@ -139,10 +139,9 @@ const variantClass = computed(() => {
   font-size: 0.875rem;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .info-designation {
@@ -180,57 +179,88 @@ const variantClass = computed(() => {
    VARIANT STYLES
    ══════════════════════════════════════════ */
 
-/* Tier 1: Institutional Oversight */
+/* Tier 1: Institutional Oversight — Visually SUPERIOR to USC exec tier */
 .card-institutional {
   width: 100%;
-  max-width: 230px;
-  background: rgba(12, 27, 54, 0.4);
-  border-color: rgba(30, 74, 158, 0.3);
-  --avatar-size: 44px;
-  --avatar-font-size: 0.95rem;
-  --avatar-bg: rgba(255, 255, 255, 0.05);
-  --avatar-color: rgba(200, 210, 230, 0.75);
+  max-width: 260px;
+  background: rgba(8, 20, 48, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: rgba(201, 162, 75, 0.4);
+  border-width: 1px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(201, 162, 75, 0.12),
+    inset 0 1px 0 rgba(201, 162, 75, 0.15);
+  --avatar-size: 52px;
+  --avatar-font-size: 1.05rem;
+  --avatar-bg: rgba(201, 162, 75, 0.18);
+  --avatar-color: #e4cd8e;
 }
 
 .card-institutional .info-name {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.8125rem;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .card-institutional .info-designation {
-  color: rgba(201, 162, 75, 0.75);
+  color: rgba(201, 162, 75, 0.8);
   font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .card-institutional:hover {
-  border-color: rgba(30, 74, 158, 0.6);
+  border-color: rgba(201, 162, 75, 0.65);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(201, 162, 75, 0.25),
+    inset 0 1px 0 rgba(201, 162, 75, 0.2);
 }
 
-/* Tier 2: Pivot Points (Solid Navy Fill) */
+/* Tier 2: Pivot Points (Campus AD / SSC links) — Prominent accent */
 .card-pivot {
   width: 100%;
-  max-width: 230px;
-  background: #142850;
-  border-color: rgba(201, 162, 75, 0.35);
-  --avatar-size: 44px;
-  --avatar-font-size: 0.95rem;
-  --avatar-bg: rgba(201, 162, 75, 0.15);
+  max-width: 260px;
+  background: linear-gradient(135deg, #142850 0%, #0e2040 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(201, 162, 75, 0.5);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(201, 162, 75, 0.15),
+    inset 0 1px 0 rgba(201, 162, 75, 0.12);
+  --avatar-size: 52px;
+  --avatar-font-size: 1.05rem;
+  --avatar-bg: rgba(201, 162, 75, 0.2);
   --avatar-color: #e4cd8e;
 }
 
 .card-pivot .info-name {
   color: #ffffff;
-  font-size: 0.8125rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .card-pivot .info-designation {
-  color: #e4cd8e;
+  color: rgba(201, 162, 75, 0.85);
   font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .card-pivot:hover {
-  border-color: rgba(201, 162, 75, 0.6);
-  background: #193163;
+  border-color: rgba(201, 162, 75, 0.75);
+  background: linear-gradient(135deg, #193163 0%, #142850 100%);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(201, 162, 75, 0.3),
+    inset 0 1px 0 rgba(201, 162, 75, 0.18);
 }
 
 /* Tier 3: USC President & Vice President (Gold Gradient) */
@@ -268,54 +298,70 @@ const variantClass = computed(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* Tier 4: Committee Heads (White background, navy border) */
+/* Tier 4: Committee Heads — Glassmorphism frosted navy glass */
 .card-committee {
   width: 100%;
   max-width: 250px;
-  background: #ffffff;
-  border-color: #142850;
+  background: rgba(15, 30, 70, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-color: rgba(100, 140, 220, 0.35);
+  border-width: 1px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
   --avatar-size: 48px;
   --avatar-font-size: 1.05rem;
-  --avatar-bg: rgba(20, 40, 80, 0.1);
-  --avatar-color: #142850;
+  --avatar-bg: rgba(100, 140, 220, 0.18);
+  --avatar-color: rgba(180, 210, 255, 0.9);
 }
 
 .card-committee .info-name {
-  color: #1b1b1d;
+  color: rgba(255, 255, 255, 0.95);
   font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .card-committee .info-designation {
-  color: #1e4a9e;
+  color: rgba(130, 180, 255, 0.85);
   font-size: 0.725rem;
   font-weight: 700;
 }
 
 .card-committee .info-email {
-  color: #5c6773;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .card-committee:hover {
-  background: #f7f5f0;
-  border-color: #1e4a9e;
+  background: rgba(20, 40, 90, 0.65);
+  border-color: rgba(100, 160, 255, 0.55);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(100, 160, 255, 0.2);
 }
 
 /* Tier 5: Student Senate (Smallest variant) */
 .card-senate {
   width: 100%;
-  max-width: 155px;
-  background: rgba(20, 60, 55, 0.2);
-  border-color: rgba(45, 188, 168, 0.2);
+  max-width: 190px;
+  background: rgba(20, 60, 55, 0.25);
+  border-color: rgba(45, 188, 168, 0.22);
   padding: 0.625rem 0.75rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   --avatar-size: 36px;
   --avatar-font-size: 0.8rem;
-  --avatar-bg: rgba(45, 188, 168, 0.1);
+  --avatar-bg: rgba(45, 188, 168, 0.12);
   --avatar-color: rgba(80, 220, 200, 0.85);
 }
 
 .card-senate .info-name {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.78rem;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .card-senate .info-designation {
@@ -325,7 +371,7 @@ const variantClass = computed(() => {
 
 .card-senate:hover {
   border-color: rgba(45, 188, 168, 0.45);
-  background: rgba(20, 60, 55, 0.35);
+  background: rgba(20, 60, 55, 0.38);
 }
 
 /* ══════════════════════════════════════════
