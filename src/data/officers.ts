@@ -4,6 +4,7 @@ export interface Officer {
   committee: string
   email?: string
   role: 'executive' | 'senate'
+  photo?: string
 }
 
 export interface OversightNode {
@@ -12,6 +13,7 @@ export interface OversightNode {
   name?: string
   isPlaceholder?: boolean
   tier: 'root' | 'fusc-branch' | 'fusc-president' | 'campus-ad' | 'ssc-chain'
+  photo?: string
 }
 
 export const oversight: OversightNode[] = [

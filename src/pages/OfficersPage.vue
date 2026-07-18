@@ -34,7 +34,32 @@ import { officers, oversight } from '@/data/officers'
     <section class="py-14 md:py-20 bg-navy-deep">
       <div class="w-full px-4 md:px-8">
         <OrgChart :oversight="oversight" :officers="officers" />
+        <div class="scroll-hint">← Scroll to view full chart →</div>
       </div>
     </section>
   </div>
 </template>
+
+<style scoped>
+.scroll-hint {
+  display: block;
+  text-align: center;
+  color: rgba(201, 162, 75, 0.6);
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 1.25rem;
+  animation: pulse 2.5s infinite ease-in-out;
+  letter-spacing: 0.05em;
+}
+
+@media (min-width: 900px) {
+  .scroll-hint {
+    display: none;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+</style>
