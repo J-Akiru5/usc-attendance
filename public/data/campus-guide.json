@@ -1,0 +1,148 @@
+{
+  "categories": [
+    {
+      "id": "fees",
+      "title": "Fees & Financial Info",
+      "icon": "💰",
+      "color": "teal",
+      "entries": [
+        {
+          "question": "Why do we pay ₱50 per semester if tuition is free?",
+          "answer": "Under Republic Act 10931 (Universal Access to Quality Tertiary Education Act), tuition is covered by the government. However, the ₱50 departmental fee covers essential services not included in the free tuition policy, such as: student ID processing, personal accident insurance, and USC-organized student activities. This fee is authorized by the university administration."
+        },
+        {
+          "question": "Are there any other fees besides the ₱50 departmental fee?",
+          "answer": "Yes. Depending on your program, you may encounter laboratory fees, library card fees, or miscellaneous school fees set by the university. The USC does not impose additional charges beyond the ₱50 departmental fee. Always check the official assessment slip from the registrar for a complete breakdown."
+        },
+        {
+          "question": "What payment methods are accepted?",
+          "answer": "Departmental fees are typically paid through the university cashier or designated payment centers during enrollment. Some semesters may offer online payment options through the university portal. Announcements about payment schedules and methods are posted on the official ISUFST Facebook page and through your department's communication channels."
+        },
+        {
+          "question": "Can I get a refund if I withdraw after paying?",
+          "answer": "Refund policies follow the university's official guidelines. Generally, refunds are possible within the first week of classes if you formally withdraw. Contact the Registrar's Office and present your official receipt to process any refund request."
+        }
+      ]
+    },
+    {
+      "id": "enrollment",
+      "title": "Enrollment & Registration",
+      "icon": "📋",
+      "color": "blue",
+      "entries": [
+        {
+          "question": "What are the steps for enrolling each semester?",
+          "answer": "1) Check the university's enrollment schedule posted on the ISUFST website or Facebook page. 2) Clear any outstanding balances or academic holds. 3) Visit the Registrar's Office or use the online enrollment system (if available). 4) Select your subjects with guidance from your program's curriculum checklist. 5) Pay the departmental fee and obtain your official assessment. 6) Present your assessment to your department for final encoding."
+        },
+        {
+          "question": "What documents do I need during enrollment?",
+          "answer": "Bring your previous semester's report card or transcript of records, your student ID, any required clearance forms, and a valid government-issued ID. Freshmen should bring their Notice of Admission, high school diploma or Form 137, and birth certificate. Check with your department for program-specific requirements."
+        },
+        {
+          "question": "What happens if I enroll late?",
+          "answer": "Late enrollment is allowed within the university's designated late enrollment period, usually the first week of classes. However, you may have limited subject choices as some slots may already be filled. Enrolling after the late enrollment period requires a special petition to the Dean and may not be approved. It is strongly recommended to enroll on time."
+        },
+        {
+          "question": "Can I shift to a different program?",
+          "answer": "Yes, program shifting is allowed subject to the university's shifting policy. Requirements typically include a minimum GPA, no failing grades in major subjects, and approval from both your current and receiving departments. Visit the Registrar's Office for the official shifting form and deadlines."
+        }
+      ]
+    },
+    {
+      "id": "facilities",
+      "title": "Campus Facilities & Services",
+      "icon": "🏫",
+      "color": "purple",
+      "entries": [
+        {
+          "question": "What library resources are available?",
+          "answer": "The ISUFST Dingle Campus library provides access to textbooks, reference materials, and digital resources through the university's online databases. The library also offers study spaces, computer terminals, and printing services. Library hours are typically 8:00 AM to 5:00 PM on weekdays. Check the library's bulletin board for updated schedules during examination periods."
+        },
+        {
+          "question": "Is there WiFi available on campus?",
+          "answer": "Yes, the campus provides free WiFi access in designated areas including the library, computer labs, and main buildings. Connect to the ISUFST campus network and log in using your university credentials. Coverage may vary across buildings. If you experience connectivity issues, contact the ICT office for assistance."
+        },
+        {
+          "question": "Are there computer labs I can use?",
+          "answer": "Yes, the university maintains computer laboratories equipped with internet access and necessary software for academic work. These labs are available during class hours and open lab schedules. Students must present a valid ID and follow the lab's usage guidelines. Printing services may be available for a minimal fee."
+        },
+        {
+          "question": "What should I do if I feel unwell on campus?",
+          "answer": "Visit the campus clinic, which provides basic medical services and first aid. For emergencies, contact the campus security desk or call local emergency numbers. The clinic can also assist with referrals to nearby hospitals or health centers. Keep the campus emergency contact number saved on your phone."
+        }
+      ]
+    },
+    {
+      "id": "organizations",
+      "title": "Student Organizations",
+      "icon": "🤝",
+      "color": "orange",
+      "entries": [
+        {
+          "question": "How do I join a student organization?",
+          "answer": "During the first weeks of the semester, recognized student organizations hold recruitment drives and orientations. You can visit their booths during org week or contact them through their official social media pages. Most organizations require a simple registration form and a small membership fee. Joining is a great way to develop leadership skills and build networks."
+        },
+        {
+          "question": "What student organizations are recognized by the university?",
+          "answer": "ISUFST recognizes various academic, civic, cultural, and special interest organizations. A complete list is available at the Office of Student Affairs (OSA). The USC maintains a directory of all recognized organizations on the campus. Organizations must renew their recognition annually to remain active."
+        },
+        {
+          "question": "What is the role of the USC in student organizations?",
+          "answer": "The University Student Council (USC) serves as the umbrella organization for all recognized student organizations. The USC coordinates inter-organizational activities, allocates student activity funds, and serves as the voice of the student body in university governance. The USC also helps organizations comply with university policies and standards."
+        },
+        {
+          "question": "Can I create my own student organization?",
+          "answer": "Yes. To form a new organization, you need at least 15 founding members, a constitution and bylaws, a faculty adviser, and approval from the Office of Student Affairs. Submit your application to the OSA and coordinate with the USC for recognition. The process typically takes two to three weeks."
+        }
+      ]
+    },
+    {
+      "id": "calendar",
+      "title": "Academic Calendar",
+      "icon": "📅",
+      "color": "green",
+      "entries": [
+        {
+          "question": "When does each semester start and end?",
+          "answer": "The first semester typically runs from August to December, while the second semester runs from January to May. A summer session may also be offered from June to July for specific programs. Exact dates are announced by the university at the start of each academic year. Always refer to the official ISUFST academic calendar for precise schedules."
+        },
+        {
+          "question": "When are the examination periods?",
+          "answer": "Midterm examinations are usually held in October (first semester) and March (second semester). Final examinations are held in December and May respectively. The exact examination schedule is posted by the Registrar's Office at least two weeks before the exam period. Prepare by reviewing your syllabus and consulting your instructors for review materials."
+        },
+        {
+          "question": "What are the recognized holidays and breaks?",
+          "answer": "The university follows national holidays as declared by the Philippine government, including regular holidays and special non-working days. Semester breaks include a mid-semester break (usually one week) and semester-end breaks between terms. Suspended classes due to typhoons or emergencies are announced through official university channels."
+        },
+        {
+          "question": "How can I check for class suspensions?",
+          "answer": "Class suspensions are announced through the ISUFST official Facebook page, the university website, and SMS notifications if you are enrolled in the university's alert system. Suspensions may be local (campus-specific) or general (city/provincial level). When in doubt, check the official ISUFST social media pages before heading to campus."
+        }
+      ]
+    },
+    {
+      "id": "rules",
+      "title": "Campus Rules & Regulations",
+      "icon": "📜",
+      "color": "red",
+      "entries": [
+        {
+          "question": "Is there a dress code on campus?",
+          "answer": "ISUFST follows a smart casual dress code policy. Students are expected to dress appropriately for an academic setting. Wearing of shorts above the knee, sleeveless tops, slippers, and clothing with offensive prints is not allowed inside classrooms and administrative offices. Specific departments (e.g., laboratory courses) may have additional dress requirements."
+        },
+        {
+          "question": "Do I need to bring my student ID at all times?",
+          "answer": "Yes. Your ISUFST student ID is required for library access, laboratory entry, examination verification, and other campus services. Always carry your ID when on campus. Lost IDs can be replaced at the Registrar's Office for a small fee. Present a valid government-issued ID and a written request for replacement."
+        },
+        {
+          "question": "What are the campus operating hours?",
+          "answer": "The campus is generally open from 6:00 AM to 8:00 PM on weekdays and 7:00 AM to 5:00 PM on Saturdays. Buildings may have different schedules depending on their use. Security personnel are on duty 24 hours. Students are encouraged to leave the campus before dark for safety reasons."
+        },
+        {
+          "question": "What are the consequences of violating campus rules?",
+          "answer": "Violations are handled through the university's disciplinary process. Minor offenses may result in verbal or written warnings. Repeated or serious violations may lead to community service, suspension, or dismissal depending on the Student Handbook guidelines. The USC advocates for fair and transparent implementation of disciplinary procedures."
+        }
+      ]
+    }
+  ]
+}
