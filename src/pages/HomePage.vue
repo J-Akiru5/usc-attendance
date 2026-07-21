@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { officers } from '@/data/officers'
 import { projects } from '@/data/projects'
 import { useEvents } from '@/composables/useEvents'
+import EventsCarousel from '@/components/ui/EventsCarousel.vue'
 
 const router = useRouter()
 const { events, featuredEvent } = useEvents()
@@ -408,6 +409,23 @@ const logos = [
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ========== EVENTS CAROUSEL ========== -->
+    <section class="py-16 md:py-20 bg-paper">
+      <div class="px-4 md:px-12">
+        <div
+          v-motion
+          :initial="{ opacity: 0, y: 30 }"
+          :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
+          class="text-center mb-12"
+        >
+          <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Recent & Upcoming</div>
+          <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Events</h2>
+        </div>
+
+        <EventsCarousel :events="events" />
       </div>
     </section>
 
