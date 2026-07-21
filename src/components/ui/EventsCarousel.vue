@@ -3,7 +3,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { USCEvent } from '@/types/event'
 
-const props = defineProps<{ events: USCEvent[] }>()
+const props = withDefaults(
+  defineProps<{ events: USCEvent[]; loading?: boolean; error?: string | null }>(),
+  { loading: false, error: null }
+)
 const router = useRouter()
 
 const scrollRef = ref<HTMLDivElement | null>(null)
@@ -100,36 +103,72 @@ onUnmounted(() => {
 
 <template>
   <div class="relative" @mouseenter="onHoverEnter" @mouseleave="onHoverLeave" @touchstart="onHoverEnter" @touchend="onHoverLeave">
-    <!-- Arrow buttons (desktop) -->
-    <button
-      @click="scrollPrev"
-      class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-white border border-line shadow-md items-center justify-center text-navy hover:bg-navy hover:text-white hover:border-navy transition-all"
-    >
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    <!-- Error state -->
+    <div v-if="error && !loading" class="text-center py-12">
+      <svg class="w-10 h-10 text-slate/30 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
       </svg>
-    </button>
-    <button
-      @click="scrollNext"
-      class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-white border border-line shadow-md items-center justify-center text-navy hover:bg-navy hover:text-white hover:border-navy transition-all"
-    >
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-      </svg>
-    </button>
+      <p class="text-sm text-slate mb-2">{{ error }}</p>
+      <button @click="() => window.location.reload()" class="text-xs font-semibold text-navy hover:text-gold-dark transition-colors">
+        Retry
+      </button>
+    </div>
 
-    <!-- Scrollable track -->
-    <div
-      ref="scrollRef"
-      @scroll="onScroll"
-      class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 scrollbar-hide"
-      style="scrollbar-width: none; -ms-overflow-style: none;"
-    >
+    <!-- Skeleton loader -->
+    <div v-else-if="loading" class="flex gap-5 overflow-hidden pb-4">
       <div
-        v-for="event in events"
-        :key="event.id"
-        class="snap-start shrink-0 w-[300px] md:w-[340px] rounded-xl border border-line bg-white shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden flex flex-col"
+        v-for="n in 3"
+        :key="n"
+        class="shrink-0 w-[300px] md:w-[340px] rounded-xl border border-line bg-white overflow-hidden"
       >
+        <div class="h-40 bg-navy/5 animate-pulse" />
+        <div class="p-5 space-y-3">
+          <div class="h-4 bg-navy/5 rounded animate-pulse w-3/4" />
+          <div class="space-y-2">
+            <div class="h-3 bg-navy/5 rounded animate-pulse w-1/2" />
+            <div class="h-3 bg-navy/5 rounded animate-pulse w-2/3" />
+          </div>
+          <div class="space-y-1.5">
+            <div class="h-3 bg-navy/5 rounded animate-pulse w-full" />
+            <div class="h-3 bg-navy/5 rounded animate-pulse w-4/5" />
+          </div>
+          <div class="h-3 bg-navy/5 rounded animate-pulse w-1/3 mt-4" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Carousel content -->
+    <template v-else-if="events.length > 0">
+      <!-- Arrow buttons (desktop) -->
+      <button
+        @click="scrollPrev"
+        class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-white border border-line shadow-md items-center justify-center text-navy hover:bg-navy hover:text-white hover:border-navy transition-all"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <button
+        @click="scrollNext"
+        class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-white border border-line shadow-md items-center justify-center text-navy hover:bg-navy hover:text-white hover:border-navy transition-all"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+      <!-- Scrollable track -->
+      <div
+        ref="scrollRef"
+        @scroll="onScroll"
+        class="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 scrollbar-hide"
+        style="scrollbar-width: none; -ms-overflow-style: none;"
+      >
+        <div
+          v-for="event in events"
+          :key="event.id"
+          class="snap-start shrink-0 w-[280px] sm:w-[300px] md:w-[340px] rounded-xl border border-line bg-white shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden flex flex-col"
+        >
         <!-- Cover / placeholder -->
         <div class="relative h-40 overflow-hidden">
           <img
@@ -214,7 +253,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Dot indicators -->
-    <div v-if="slideCount > 1" class="flex justify-center gap-2 mt-4">
+    <div v-if="!loading && !error && slideCount > 1" class="flex justify-center gap-2 mt-4">
       <button
         v-for="(_, i) in events"
         :key="i"

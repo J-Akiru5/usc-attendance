@@ -2,7 +2,7 @@
 import { ref, nextTick } from 'vue'
 import { useCampusGuide } from '@/composables/useCampusGuide'
 
-const { categories, loading, searchQuery, filteredCategories } = useCampusGuide()
+const { categories, loading, error, searchQuery, filteredCategories } = useCampusGuide()
 
 const openItems = ref<Set<string>>(new Set())
 const categoryRefs = ref<Record<string, HTMLElement | null>>({})
@@ -132,14 +132,36 @@ function getColors(color: string) {
     <section class="pb-16 md:pb-20 bg-paper">
       <div class="px-4 md:px-12">
         <!-- Loading -->
-        <div v-if="loading" class="text-center py-12">
-          <div class="inline-flex items-center gap-2 text-sm text-slate">
-            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            Loading guide...
+        <div v-if="loading" class="space-y-6">
+          <div v-for="n in 3" :key="n" class="space-y-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-navy/5 animate-pulse" />
+              <div class="h-5 bg-navy/5 rounded animate-pulse w-48" />
+            </div>
+            <div class="space-y-2">
+              <div
+                v-for="m in 3"
+                :key="m"
+                class="rounded-xl border border-line bg-white p-5"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="h-4 bg-navy/5 rounded animate-pulse w-3/4" />
+                  <div class="w-6 h-6 rounded-full bg-navy/5 animate-pulse" />
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <!-- Error state -->
+        <div v-else-if="error" class="text-center py-12">
+          <svg class="w-12 h-12 text-slate/30 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+          <p class="text-sm text-slate mb-2">{{ error }}</p>
+          <button @click="() => window.location.reload()" class="text-xs font-semibold text-navy hover:text-gold-dark transition-colors">
+            Retry
+          </button>
         </div>
 
         <!-- No results -->
