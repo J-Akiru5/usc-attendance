@@ -2,13 +2,22 @@
 import { useRouter } from 'vue-router'
 import { officers } from '@/data/officers'
 import { projects } from '@/data/projects'
-import { publicEvents } from '@/data/events'
+import { useEvents } from '@/composables/useEvents'
 
 const router = useRouter()
+const { events } = useEvents()
 
 const executiveOfficers = officers.filter(o => o.role === 'executive').slice(0, 4)
 const previewProjects = projects.slice(0, 3)
-const previewEvents = publicEvents.slice(0, 3)
+const previewEvents = events.slice(0, 3)
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
 
 function getInitials(name?: string) {
   if (!name) return '?'
@@ -348,7 +357,7 @@ const logos = [
           >
             <div class="flex items-center gap-3 mb-3">
               <span class="text-xl">{{ event.icon }}</span>
-              <div class="text-[10px] font-mono uppercase tracking-wider text-gold-dark">{{ event.date }}</div>
+              <div class="text-[10px] font-mono uppercase tracking-wider text-gold-dark">{{ formatDate(event.date) }}</div>
             </div>
             <h3 class="text-sm font-bold text-navy mb-2">{{ event.title }}</h3>
             <p class="text-xs text-slate leading-relaxed">{{ event.description }}</p>
