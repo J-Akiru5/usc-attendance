@@ -50,6 +50,10 @@ function scrollPrev() {
   scrollTo(i)
 }
 
+function reload() {
+  location.reload()
+}
+
 function scrollNext() {
   const i = currentIndex.value < slideCount.value - 1 ? currentIndex.value + 1 : 0
   scrollTo(i)
@@ -116,7 +120,7 @@ onUnmounted(() => {
       </svg>
       <p class="text-sm text-slate mb-2">{{ error }}</p>
       <button
-        @click="() => window.location.reload()"
+        @click="reload"
         class="text-xs font-semibold text-navy hover:text-gold-dark transition-colors"
       >
         Retry

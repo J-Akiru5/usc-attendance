@@ -53,7 +53,7 @@ onUnmounted(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
-const executiveOfficers = officers.filter(o => o.role === 'executive').slice(0, 4)
+const executiveOfficers = officers.filter(o => o.tier === 'usc_executive').slice(0, 4)
 const previewProjects = projects.slice(0, 3)
 const previewEvents = computed(() => (events.value || []).slice(0, 3))
 

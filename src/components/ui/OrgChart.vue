@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import type { Officer, OversightNode } from '@/data/officers'
+import type { Officer } from '@/data/officers'
 import { computed } from 'vue'
 import OfficerCard from './OfficerCard.vue'
 
 const props = defineProps<{
-  oversight: OversightNode[]
   officers: Officer[]
 }>()
 
 const president = computed(() => props.officers.find(o => o.position === 'President'))
 const vicePresident = computed(() => props.officers.find(o => o.position === 'Vice President'))
 const senatePresident = computed(() => props.officers.find(o => o.position === 'Senate President'))
-const senators = computed(() => props.officers.filter(o => o.role === 'senate'))
+const senators = computed(() => props.officers.filter(o => o.tier === 'student_senate'))
 const secretary = computed(() => props.officers.find(o => o.position === 'Secretary'))
 const auditor = computed(() => props.officers.find(o => o.position === 'Auditor'))
 const treasurer = computed(() => props.officers.find(o => o.position === 'Treasurer'))
