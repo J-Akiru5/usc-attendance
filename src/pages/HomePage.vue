@@ -1,14 +1,69 @@
 <script setup lang="ts">
+import { ref, computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { officers } from '@/data/officers'
 import { projects } from '@/data/projects'
-import { publicEvents } from '@/data/events'
+import { useEvents } from '@/composables/useEvents'
+import EventsCarousel from '@/components/ui/EventsCarousel.vue'
 
 const router = useRouter()
+const { events, featuredEvent } = useEvents()
+
+const showSpotlight = computed(() => {
+  return featuredEvent.value && featuredEvent.value.status === 'upcoming'
+})
+
+const countdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+const eventStarted = ref(false)
+
+function computeCountdown() {
+  if (!featuredEvent.value) return
+  const now = new Date()
+  const target = new Date(featuredEvent.value.date)
+  const diff = target.getTime() - now.getTime()
+
+  if (diff <= 0) {
+    eventStarted.value = true
+    countdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+
+  eventStarted.value = false
+  countdown.value = {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  }
+}
+
+let intervalId: ReturnType<typeof setInterval> | null = null
+
+watch(showSpotlight, (active) => {
+  if (active) {
+    computeCountdown()
+    intervalId = setInterval(computeCountdown, 1000)
+  } else if (intervalId) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
+}, { immediate: true })
+
+onUnmounted(() => {
+  if (intervalId) clearInterval(intervalId)
+})
 
 const executiveOfficers = officers.filter(o => o.role === 'executive').slice(0, 4)
 const previewProjects = projects.slice(0, 3)
-const previewEvents = publicEvents.slice(0, 3)
+const previewEvents = events.slice(0, 3)
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
 
 function getInitials(name?: string) {
   if (!name) return '?'
@@ -20,7 +75,6 @@ function getInitials(name?: string) {
     .slice(0, 2)
     .toUpperCase()
 }
-
 
 const logos = [
   '/webp/isufst_logo.webp',
@@ -40,9 +94,10 @@ const logos = [
   <div>
     <!-- ========== HERO ========== -->
     <section class="relative text-white overflow-hidden min-h-[580px] flex items-center">
+      <!-- Background -->
       <div
-        class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style="background-image: url('/isufst.jpg');"
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transition-all duration-1000"
+        :style="`background-image: url('${showSpotlight && featuredEvent?.coverImage ? featuredEvent.coverImage : '/isufst.jpg'}');`"
       />
       <div class="absolute inset-0 bg-navy/60" />
       <div
@@ -58,7 +113,11 @@ const logos = [
         style="background: linear-gradient(to bottom, rgba(12,27,54,0.6) 0%, transparent 100%);"
       />
 
-      <div class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <!-- Default Hero -->
+      <div
+        v-if="!showSpotlight"
+        class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
+      >
         <div class="lg:col-span-7">
           <div
             v-motion
@@ -117,6 +176,125 @@ const logos = [
               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg border border-white/40 bg-white/5 backdrop-blur-sm text-white font-medium text-sm hover:bg-white/15 hover:border-white/60 transition-all"
             >
               Learn More
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex justify-center lg:justify-end">
+          <div class="relative group">
+            <div class="absolute inset-4 rounded-full bg-gold/15 blur-3xl group-hover:bg-gold/25 transition duration-1000"></div>
+            <img
+              v-motion
+              :initial="{ opacity: 0, scale: 0.8 }"
+              :enter="{ opacity: 1, scale: 1, transition: { duration: 0.7, delay: 300 } }"
+              src="/gif/usc%20logo%20animation.gif"
+              alt="USC Logo Animation"
+              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] hover:scale-105 transition-transform duration-500 animate-float"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Spotlight Hero -->
+      <div
+        v-else
+        class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
+      >
+        <div class="lg:col-span-7">
+          <div
+            v-motion
+            :initial="{ opacity: 0, x: -40 }"
+            :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
+            class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-4 py-1.5 mb-6"
+          >
+            <span class="relative flex h-2 w-2">
+              <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            <span class="text-xs font-mono uppercase tracking-wider text-orange-300">Featured Event</span>
+          </div>
+
+          <h1
+            v-motion
+            :initial="{ opacity: 0, y: 40 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.6, delay: 200 } }"
+            class="text-4xl md:text-5xl lg:text-[3.75rem] font-bold font-serif leading-tight mb-4 drop-shadow-lg"
+          >
+            {{ featuredEvent!.title }}
+          </h1>
+
+          <div
+            v-motion
+            :initial="{ opacity: 0 }"
+            :enter="{ opacity: 1, transition: { duration: 0.5, delay: 300 } }"
+            class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-mono uppercase tracking-wider text-white/50 mb-6"
+          >
+            <span>{{ formatDate(featuredEvent!.date) }}</span>
+            <span class="flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              {{ featuredEvent!.location }}
+            </span>
+          </div>
+
+          <!-- Countdown -->
+          <div
+            v-motion
+            :initial="{ opacity: 0, y: 20 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 400 } }"
+            class="mb-8"
+          >
+            <div v-if="!eventStarted" class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.days).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Days</div>
+                </div>
+                <span class="text-white/30 font-bold text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.hours).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Hrs</div>
+                </div>
+                <span class="text-white/30 font-bold text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.minutes).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Min</div>
+                </div>
+                <span class="text-white/30 font-bold text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.seconds).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Sec</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm font-mono uppercase tracking-wider text-orange-300">
+              Event Started
+            </div>
+          </div>
+
+          <div
+            v-motion
+            :initial="{ opacity: 0, y: 20 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 500 } }"
+            class="flex flex-wrap gap-3"
+          >
+            <button
+              @click="router.push('/events')"
+              class="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg bg-gold text-navy font-bold text-sm shadow-xl shadow-black/30 hover:brightness-110 transition-all"
+            >
+              View Details
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+              </svg>
+            </button>
+            <button
+              v-if="featuredEvent!.trailerUrl"
+              @click="router.push('/events')"
+              class="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg border border-white/40 bg-white/5 backdrop-blur-sm text-white font-medium text-sm hover:bg-white/15 hover:border-white/60 transition-all"
+            >
+              Watch Trailer ▶
             </button>
           </div>
         </div>
@@ -234,6 +412,23 @@ const logos = [
       </div>
     </section>
 
+    <!-- ========== EVENTS CAROUSEL ========== -->
+    <section class="py-16 md:py-20 bg-paper">
+      <div class="px-4 md:px-12">
+        <div
+          v-motion
+          :initial="{ opacity: 0, y: 30 }"
+          :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
+          class="text-center mb-12"
+        >
+          <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Recent & Upcoming</div>
+          <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Events</h2>
+        </div>
+
+        <EventsCarousel :events="events" />
+      </div>
+    </section>
+
     <!-- ========== OFFICERS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-paper">
       <div class="px-4 md:px-12">
@@ -348,7 +543,7 @@ const logos = [
           >
             <div class="flex items-center gap-3 mb-3">
               <span class="text-xl">{{ event.icon }}</span>
-              <div class="text-[10px] font-mono uppercase tracking-wider text-gold-dark">{{ event.date }}</div>
+              <div class="text-[10px] font-mono uppercase tracking-wider text-gold-dark">{{ formatDate(event.date) }}</div>
             </div>
             <h3 class="text-sm font-bold text-navy mb-2">{{ event.title }}</h3>
             <p class="text-xs text-slate leading-relaxed">{{ event.description }}</p>

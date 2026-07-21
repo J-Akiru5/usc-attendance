@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { publicEvents } from '@/data/events'
+import { useEvents } from '@/composables/useEvents'
+
+const { events } = useEvents()
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
 </script>
 
 <template>
@@ -29,15 +39,15 @@ import { publicEvents } from '@/data/events'
       <div class="px-4 md:px-12">
         <div class="space-y-5">
           <div
-            v-for="event in publicEvents"
-            :key="event.title"
+            v-for="event in events"
+            :key="event.id"
             class="rounded-2xl border border-line bg-paper-panel p-6 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-5"
           >
             <div class="w-14 h-14 rounded-xl bg-navy/5 border border-line flex items-center justify-center shrink-0">
               <span class="text-2xl">{{ event.icon }}</span>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-1">{{ event.date }}</div>
+              <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-1">{{ formatDate(event.date) }}</div>
               <h3 class="text-lg font-bold text-navy mb-2">{{ event.title }}</h3>
               <p class="text-sm text-slate leading-relaxed mb-3">{{ event.description }}</p>
               <div class="flex items-center gap-1.5 text-xs text-slate">

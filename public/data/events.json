@@ -1,0 +1,54 @@
+[
+  {
+    "id": "general-assembly-2026",
+    "title": "General Assembly",
+    "date": "2026-07-25T08:00:00+08:00",
+    "endDate": "2026-07-25T17:00:00+08:00",
+    "description": "Quarterly gathering of all USC officers to discuss council business, review accomplishments, and plan upcoming initiatives.",
+    "location": "ISUFST Dingle Campus",
+    "venue": "Main Auditorium",
+    "status": "upcoming",
+    "featured": true,
+    "icon": "🏛️",
+    "tags": ["academic", "general"]
+  },
+  {
+    "id": "freshmen-orientation-2026",
+    "title": "Freshmen Orientation",
+    "date": "2026-08-15T08:00:00+08:00",
+    "endDate": "2026-08-16T17:00:00+08:00",
+    "description": "Welcome program for incoming freshmen students introducing them to campus life, student organizations, and university resources.",
+    "location": "ISUFST Dingle Campus",
+    "venue": "Gymnasium",
+    "status": "upcoming",
+    "featured": false,
+    "icon": "🎒",
+    "tags": ["orientation", "student-life"]
+  },
+  {
+    "id": "tree-planting-activity-2026",
+    "title": "Tree Planting Activity",
+    "date": "2026-09-20T07:00:00+08:00",
+    "endDate": "2026-09-20T12:00:00+08:00",
+    "description": "Community tree planting drive in partnership with local government units as part of the USC environmental advocacy program.",
+    "location": "Dingle, Iloilo",
+    "venue": "Municipal Park Area",
+    "status": "upcoming",
+    "featured": false,
+    "icon": "🌳",
+    "tags": ["environment", "community"]
+  },
+  {
+    "id": "leadership-seminar-2026",
+    "title": "Leadership Seminar",
+    "date": "2026-10-10T08:00:00+08:00",
+    "endDate": "2026-10-10T17:00:00+08:00",
+    "description": "Annual leadership development seminar for student officers featuring guest speakers, workshops, and team-building activities.",
+    "location": "ISUFST Dingle Campus",
+    "venue": "Conference Hall",
+    "status": "upcoming",
+    "featured": false,
+    "icon": "🎤",
+    "tags": ["leadership", "development"]
+  }
+]
