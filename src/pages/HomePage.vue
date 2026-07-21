@@ -7,7 +7,7 @@ import { useEvents } from '@/composables/useEvents'
 import EventsCarousel from '@/components/ui/EventsCarousel.vue'
 
 const router = useRouter()
-const { events, featuredEvent } = useEvents()
+const { events, loading: eventsLoading, error: eventsError, featuredEvent } = useEvents()
 
 const showSpotlight = computed(() => {
   return featuredEvent.value && featuredEvent.value.status === 'upcoming'
@@ -55,7 +55,7 @@ onUnmounted(() => {
 
 const executiveOfficers = officers.filter(o => o.role === 'executive').slice(0, 4)
 const previewProjects = projects.slice(0, 3)
-const previewEvents = events.slice(0, 3)
+const previewEvents = computed(() => (events.value || []).slice(0, 3))
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -246,26 +246,26 @@ const logos = [
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 400 } }"
             class="mb-8"
           >
-            <div v-if="!eventStarted" class="flex items-center gap-3">
-              <div class="flex items-center gap-2">
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
-                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.days).padStart(2, '0') }}</div>
-                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Days</div>
+            <div v-if="!eventStarted" class="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
+                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.days).padStart(2, '0') }}</div>
+                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Days</div>
                 </div>
-                <span class="text-white/30 font-bold text-lg">:</span>
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
-                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.hours).padStart(2, '0') }}</div>
-                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Hrs</div>
+                <span class="text-white/30 font-bold text-sm sm:text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
+                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.hours).padStart(2, '0') }}</div>
+                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Hrs</div>
                 </div>
-                <span class="text-white/30 font-bold text-lg">:</span>
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
-                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.minutes).padStart(2, '0') }}</div>
-                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Min</div>
+                <span class="text-white/30 font-bold text-sm sm:text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
+                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.minutes).padStart(2, '0') }}</div>
+                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Min</div>
                 </div>
-                <span class="text-white/30 font-bold text-lg">:</span>
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-center min-w-[3.5rem]">
-                  <div class="text-xl font-bold font-mono text-gold">{{ String(countdown.seconds).padStart(2, '0') }}</div>
-                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Sec</div>
+                <span class="text-white/30 font-bold text-sm sm:text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
+                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.seconds).padStart(2, '0') }}</div>
+                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Sec</div>
                 </div>
               </div>
             </div>
@@ -425,7 +425,7 @@ const logos = [
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Events</h2>
         </div>
 
-        <EventsCarousel :events="events" />
+        <EventsCarousel :events="events" :loading="eventsLoading" :error="eventsError" />
       </div>
     </section>
 

@@ -36,6 +36,12 @@ const router = createRouter({
       meta: { layout: 'public' },
     },
     {
+      path: '/campus-guide',
+      name: 'campus-guide',
+      component: () => import('@/pages/CampusGuidePage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
       path: '/contact',
       name: 'contact',
       component: () => import('@/pages/ContactPage.vue'),
