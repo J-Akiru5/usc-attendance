@@ -94,10 +94,9 @@ const logos = [
   <div>
     <!-- ========== HERO ========== -->
     <section class="relative text-white overflow-hidden min-h-[580px] flex items-center">
-      <!-- Background -->
       <div
-        class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transition-all duration-1000"
-        :style="`background-image: url('${showSpotlight && featuredEvent?.coverImage ? featuredEvent.coverImage : '/isufst.jpg'}');`"
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+        style="background-image: url('/isufst.jpg');"
       />
       <div class="absolute inset-0 bg-navy/60" />
       <div
@@ -113,11 +112,7 @@ const logos = [
         style="background: linear-gradient(to bottom, rgba(12,27,54,0.6) 0%, transparent 100%);"
       />
 
-      <!-- Default Hero -->
-      <div
-        v-if="!showSpotlight"
-        class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
-      >
+      <div class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-7">
           <div
             v-motion
@@ -194,125 +189,6 @@ const logos = [
           </div>
         </div>
       </div>
-
-      <!-- Spotlight Hero -->
-      <div
-        v-else
-        class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
-      >
-        <div class="lg:col-span-7">
-          <div
-            v-motion
-            :initial="{ opacity: 0, x: -40 }"
-            :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
-            class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-4 py-1.5 mb-6"
-          >
-            <span class="relative flex h-2 w-2">
-              <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-            </span>
-            <span class="text-xs font-mono uppercase tracking-wider text-orange-300">Featured Event</span>
-          </div>
-
-          <h1
-            v-motion
-            :initial="{ opacity: 0, y: 40 }"
-            :enter="{ opacity: 1, y: 0, transition: { duration: 0.6, delay: 200 } }"
-            class="text-4xl md:text-5xl lg:text-[3.75rem] font-bold font-serif leading-tight mb-4 drop-shadow-lg"
-          >
-            {{ featuredEvent!.title }}
-          </h1>
-
-          <div
-            v-motion
-            :initial="{ opacity: 0 }"
-            :enter="{ opacity: 1, transition: { duration: 0.5, delay: 300 } }"
-            class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-mono uppercase tracking-wider text-white/50 mb-6"
-          >
-            <span>{{ formatDate(featuredEvent!.date) }}</span>
-            <span class="flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              {{ featuredEvent!.location }}
-            </span>
-          </div>
-
-          <!-- Countdown -->
-          <div
-            v-motion
-            :initial="{ opacity: 0, y: 20 }"
-            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 400 } }"
-            class="mb-8"
-          >
-            <div v-if="!eventStarted" class="flex items-center gap-2 sm:gap-3 flex-wrap">
-              <div class="flex items-center gap-1.5 sm:gap-2">
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
-                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.days).padStart(2, '0') }}</div>
-                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Days</div>
-                </div>
-                <span class="text-white/30 font-bold text-sm sm:text-lg">:</span>
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
-                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.hours).padStart(2, '0') }}</div>
-                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Hrs</div>
-                </div>
-                <span class="text-white/30 font-bold text-sm sm:text-lg">:</span>
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
-                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.minutes).padStart(2, '0') }}</div>
-                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Min</div>
-                </div>
-                <span class="text-white/30 font-bold text-sm sm:text-lg">:</span>
-                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-center min-w-[2.75rem] sm:min-w-[3.5rem]">
-                  <div class="text-base sm:text-xl font-bold font-mono text-gold">{{ String(countdown.seconds).padStart(2, '0') }}</div>
-                  <div class="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider text-white/40">Sec</div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-sm font-mono uppercase tracking-wider text-orange-300">
-              Event Started
-            </div>
-          </div>
-
-          <div
-            v-motion
-            :initial="{ opacity: 0, y: 20 }"
-            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 500 } }"
-            class="flex flex-wrap gap-3"
-          >
-            <button
-              @click="router.push('/events')"
-              class="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg bg-gold text-navy font-bold text-sm shadow-xl shadow-black/30 hover:brightness-110 transition-all"
-            >
-              View Details
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-              </svg>
-            </button>
-            <button
-              v-if="featuredEvent!.trailerUrl"
-              @click="router.push('/events')"
-              class="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg border border-white/40 bg-white/5 backdrop-blur-sm text-white font-medium text-sm hover:bg-white/15 hover:border-white/60 transition-all"
-            >
-              Watch Trailer ▶
-            </button>
-          </div>
-        </div>
-
-        <div class="lg:col-span-5 flex justify-center lg:justify-end">
-          <div class="relative group">
-            <div class="absolute inset-4 rounded-full bg-gold/15 blur-3xl group-hover:bg-gold/25 transition duration-1000"></div>
-            <img
-              v-motion
-              :initial="{ opacity: 0, scale: 0.8 }"
-              :enter="{ opacity: 1, scale: 1, transition: { duration: 0.7, delay: 300 } }"
-              src="/gif/usc%20logo%20animation.gif"
-              alt="USC Logo Animation"
-              class="relative w-80 h-80 sm:w-[26rem] sm:h-[26rem] lg:w-[32rem] lg:h-[32rem] object-contain select-none pointer-events-none drop-shadow-[0_0_35px_rgba(201,162,75,0.2)] hover:scale-105 transition-transform duration-500 animate-float"
-            />
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- ========== LOGO CAROUSEL ========== -->
@@ -320,11 +196,9 @@ const logos = [
       <div class="px-4 md:px-12">
         <div class="relative w-full overflow-hidden whitespace-nowrap [mask-image:_linear-gradient(to_right,_transparent_0,_black_15%,_black_85%,_transparent_100%)]">
           <div class="inline-flex gap-16 md:gap-24 animate-marquee py-2">
-            <!-- First set -->
             <div v-for="logo in logos" :key="logo" class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 shrink-0 bg-white/5 backdrop-blur-sm rounded-xl p-2 border border-white/10 hover:border-gold/30 hover:bg-white/10 transition-all duration-300 shadow-lg">
               <img :src="logo" alt="Logo" class="max-h-full max-w-full object-contain filter brightness-90 hover:brightness-110 hover:scale-105 transition-all duration-300 select-none pointer-events-none" />
             </div>
-            <!-- Duplicated set for seamless loop -->
             <div v-for="logo in logos" :key="logo + '-dup'" class="flex items-center justify-center h-16 w-16 md:h-20 md:w-20 shrink-0 bg-white/5 backdrop-blur-sm rounded-xl p-2 border border-white/10 hover:border-gold/30 hover:bg-white/10 transition-all duration-300 shadow-lg">
               <img :src="logo" alt="Logo" class="max-h-full max-w-full object-contain filter brightness-90 hover:brightness-110 hover:scale-105 transition-all duration-300 select-none pointer-events-none" />
             </div>
@@ -407,6 +281,99 @@ const logos = [
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FEATURED EVENT (Countdown Banner) ========== -->
+    <section
+      v-if="showSpotlight && featuredEvent"
+      class="relative py-12 md:py-14 overflow-hidden"
+    >
+      <!-- Background -->
+      <div
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        :style="`background-image: url('${featuredEvent.coverImage || '/isufst.jpg'}');`"
+      />
+      <div class="absolute inset-0 bg-navy/85" />
+
+      <div class="relative px-4 md:px-12">
+        <div class="max-w-4xl mx-auto text-center">
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-4 py-1.5 mb-5">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            <span class="text-xs font-mono uppercase tracking-wider text-orange-300">Featured Event</span>
+          </div>
+
+          <!-- Title -->
+          <h2 class="text-2xl md:text-3xl font-bold font-serif text-white mb-3 drop-shadow-lg">
+            {{ featuredEvent.title }}
+          </h2>
+
+          <!-- Date & Location -->
+          <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-mono uppercase tracking-wider text-white/50 mb-6">
+            <span>{{ formatDate(featuredEvent.date) }}</span>
+            <span class="flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              {{ featuredEvent.location }}
+            </span>
+          </div>
+
+          <!-- Countdown -->
+          <div class="mb-6">
+            <div v-if="!eventStarted" class="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 sm:px-4 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl sm:text-2xl font-bold font-mono text-gold">{{ String(countdown.days).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Days</div>
+                </div>
+                <span class="text-white/30 font-bold text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 sm:px-4 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl sm:text-2xl font-bold font-mono text-gold">{{ String(countdown.hours).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Hrs</div>
+                </div>
+                <span class="text-white/30 font-bold text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 sm:px-4 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl sm:text-2xl font-bold font-mono text-gold">{{ String(countdown.minutes).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Min</div>
+                </div>
+                <span class="text-white/30 font-bold text-lg">:</span>
+                <div class="bg-navy/80 backdrop-blur-sm border border-white/10 rounded-lg px-3 sm:px-4 py-2 text-center min-w-[3.5rem]">
+                  <div class="text-xl sm:text-2xl font-bold font-mono text-gold">{{ String(countdown.seconds).padStart(2, '0') }}</div>
+                  <div class="text-[9px] font-mono uppercase tracking-wider text-white/40">Sec</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm font-mono uppercase tracking-wider text-orange-300">
+              Event Started
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="flex flex-wrap justify-center gap-3">
+            <button
+              @click="router.push('/events')"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gold text-navy font-bold text-sm shadow-xl shadow-black/30 hover:brightness-110 transition-all"
+            >
+              View Details
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+              </svg>
+            </button>
+            <button
+              v-if="featuredEvent.trailerUrl"
+              @click="router.push('/events')"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-white/40 bg-white/5 backdrop-blur-sm text-white font-medium text-sm hover:bg-white/15 hover:border-white/60 transition-all"
+            >
+              Watch Trailer
+            </button>
           </div>
         </div>
       </div>
