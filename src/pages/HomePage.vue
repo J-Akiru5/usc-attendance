@@ -55,7 +55,7 @@ onUnmounted(() => {
 
 const executiveOfficers = officers.filter(o => o.role === 'executive').slice(0, 4)
 const previewProjects = projects.slice(0, 3)
-const previewEvents = events.slice(0, 3)
+const previewEvents = computed(() => (events.value || []).slice(0, 3))
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
