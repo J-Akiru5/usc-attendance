@@ -250,7 +250,7 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-    </div>
+    </template>
 
     <!-- Dot indicators -->
     <div v-if="!loading && !error && slideCount > 1" class="flex justify-center gap-2 mt-4">
