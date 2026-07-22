@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Officer } from '@/data/officers'
+import type { Officer, OfficerTier } from '@/data/officers'
 import { computed } from 'vue'
 import OfficerCard from './OfficerCard.vue'
 
@@ -7,15 +7,36 @@ const props = defineProps<{
   officers: Officer[]
 }>()
 
-const president = computed(() => props.officers.find(o => o.position === 'President'))
-const vicePresident = computed(() => props.officers.find(o => o.position === 'Vice President'))
-const senatePresident = computed(() => props.officers.find(o => o.position === 'Senate President'))
-const senators = computed(() => props.officers.filter(o => o.tier === 'student_senate'))
-const secretary = computed(() => props.officers.find(o => o.position === 'Secretary'))
-const auditor = computed(() => props.officers.find(o => o.position === 'Auditor'))
-const treasurer = computed(() => props.officers.find(o => o.position === 'Treasurer'))
-const spokesperson = computed(() => props.officers.find(o => o.position === 'Spokesperson'))
+// ── Group officers by tier ──
+function byTier(tier: OfficerTier) {
+  return computed(() => props.officers.filter(o => o.tier === tier))
+}
 
+const administration = byTier('administration')
+const federatedUsc = byTier('federated_usc')
+const uscAdvisers = byTier('usc_advisers')
+const uscExecutive = byTier('usc_executive')
+const studentSenate = byTier('student_senate')
+
+// ── Administration subgroups ──
+const universityPresident = computed(() => administration.value.find(o => o.position === 'University President'))
+const vicePresidentAA = computed(() => administration.value.find(o => o.position === 'Vice President for Academic Affairs'))
+const campusAdmin = computed(() => administration.value.find(o => o.position === 'Campus Administrator'))
+const sscChairperson = computed(() => administration.value.find(o => o.position.includes('OIC Chairperson')))
+const adminSupport = computed(() => administration.value.filter(o =>
+  o.position.includes('Administrative Support') || o.position.includes('Coordinator') || o.position.includes('Psychometrician')
+))
+
+// ── USC Executive subgroups ──
+const uscPresident = computed(() => uscExecutive.value.find(o => o.position === 'President'))
+const uscVicePresident = computed(() => uscExecutive.value.find(o => o.position === 'Vice President'))
+const uscSecretary = computed(() => uscExecutive.value.find(o => o.position === 'Secretary'))
+const uscAuditor = computed(() => uscExecutive.value.find(o => o.position === 'Auditor'))
+const uscTreasurer = computed(() => uscExecutive.value.find(o => o.position === 'Treasurer'))
+const uscSpokesperson = computed(() => uscExecutive.value.find(o => o.position === 'Spokesperson'))
+const uscSenatePresident = computed(() => uscExecutive.value.find(o => o.position === 'Senate President'))
+
+// ── Initials helpers ──
 function getInitials(name?: string) {
   if (!name) return '?'
   return name
@@ -27,20 +48,17 @@ function getInitials(name?: string) {
     .toUpperCase()
 }
 
-function getPositionInitials(title: string) {
-  if (title === 'Name to confirm') return '?'
-  const mappings: Record<string, string> = {
-    'SUC President': 'SP',
-    'FUSC Adviser': 'FA',
-    'FUSC President': 'FP',
-    'Campus AD': 'AD',
-    'SSC Chair': 'SC',
-    'Vice Chair': 'VC',
-    'USC Adviser': 'UA',
-    'USC Co-Adviser': 'CA',
-    'Senate President': 'SP'
-  }
-  return mappings[title] || title.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
+function getShortTitle(position: string) {
+  if (position.includes('University President')) return 'Univ. Pres.'
+  if (position.includes('Vice President for Academic')) return 'VP Academic'
+  if (position.includes('Campus Administrator')) return 'Campus Admin'
+  if (position.includes('OIC Chairperson')) return 'SSC Chair'
+  if (position.includes('Federated') && position.includes('Adviser')) return 'FUSC Adviser'
+  if (position.includes('Federated') && position.includes('President')) return 'FUSC Pres.'
+  if (position.includes('Adviser, University')) return 'USC Adviser'
+  if (position.includes('Co-Adviser, University')) return 'USC Co-Adv.'
+  if (position.includes('Senate President')) return 'Senate Pres.'
+  return position
 }
 </script>
 
@@ -48,287 +66,270 @@ function getPositionInitials(title: string) {
   <div class="org-chart-wrapper">
     <div class="org-chart-inner">
 
-      <!-- ====== OVERSIGHT SECTION ====== -->
+      <!-- ══════════════════════════════════════════════════
+           TIER 1: UNIVERSITY ADMINISTRATION
+           ══════════════════════════════════════════════════ -->
 
-      <!-- Tier 1: SUC President -->
-      <div class="tier-row">
+      <!-- Tier 1a: University President -->
+      <div class="tier-label">
+        <span>University Administration</span>
+      </div>
+
+      <div class="tier-row" v-if="universityPresident">
         <OfficerCard
-          name="SUC President"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('SUC President')"
+          :name="universityPresident.name"
+          designation="University President"
+          :initials="getInitials(universityPresident.name)"
           variant="institutional"
         />
       </div>
 
-      <!-- Connector: branch-down 1→2 -->
-      <div class="connector" style="--tl: 50%; --bl: 25%,75%; --bar-l: 25%; --bar-w: 50%">
-        <div class="conn-line" style="top:0; left:var(--tl); height:50%"></div>
-        <div class="conn-bar" style="top:50%; left:var(--bar-l); width:var(--bar-w)"></div>
-        <div class="conn-line" style="top:50%; left:25%; height:50%"></div>
-        <div class="conn-line" style="top:50%; left:75%; height:50%"></div>
+      <!-- Connector: 1 → 2 (branch down) -->
+      <div class="connector">
+        <div class="conn-line" style="top: 0; left: 50%; height: 50%"></div>
+        <div class="conn-bar" style="top: 50%; left: 25%; width: 50%"></div>
+        <div class="conn-line" style="top: 50%; left: 25%; height: 50%"></div>
+        <div class="conn-line" style="top: 50%; left: 75%; height: 50%"></div>
       </div>
 
-      <!-- Tier 2: FUSC Adviser + Placeholder -->
+      <!-- Tier 1b: VP Academic + Campus Administrator (2-up) -->
       <div class="tier-row two-up">
         <OfficerCard
-          name="FUSC Adviser"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('FUSC Adviser')"
+          v-if="vicePresidentAA"
+          :name="vicePresidentAA.name"
+          designation="VP Academic Affairs"
+          :initials="getInitials(vicePresidentAA.name)"
           variant="institutional"
         />
         <OfficerCard
-          designation="Institutional Oversight"
-          initials="?"
-          variant="institutional"
-          :flagged="true"
-        />
-      </div>
-
-      <!-- Connector: branch-merge 2→1 -->
-      <div class="connector" style="--tl: 25%,75%; --bl: 50%; --bar-l: 25%; --bar-w: 50%">
-        <div class="conn-line" style="top:0; left:25%; height:50%"></div>
-        <div class="conn-line" style="top:0; left:75%; height:50%"></div>
-        <div class="conn-bar" style="top:50%; left:var(--bar-l); width:var(--bar-w)"></div>
-        <div class="conn-line" style="top:50%; left:var(--bl); height:50%"></div>
-      </div>
-
-      <!-- Tier 3: FUSC President -->
-      <div class="tier-row">
-        <OfficerCard
-          name="FUSC President"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('FUSC President')"
-          variant="institutional"
-        />
-      </div>
-
-      <!-- Connector: line-single -->
-      <div class="connector">
-        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
-      </div>
-
-      <!-- Tier 4: Campus AD -->
-      <div class="tier-row">
-        <OfficerCard
-          name="Campus AD"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('Campus AD')"
+          v-if="campusAdmin"
+          :name="campusAdmin.name"
+          designation="Campus Administrator"
+          :initials="getInitials(campusAdmin.name)"
           variant="pivot"
         />
       </div>
 
-      <!-- Connector: line-single -->
+      <!-- Connector: 2 → 1 (merge down to SSC Chair) -->
       <div class="connector">
-        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        <div class="conn-line" style="top: 0; left: 25%; height: 50%"></div>
+        <div class="conn-line" style="top: 0; left: 75%; height: 50%"></div>
+        <div class="conn-bar" style="top: 50%; left: 25%; width: 50%"></div>
+        <div class="conn-line" style="top: 50%; left: 50%; height: 50%"></div>
       </div>
 
-      <!-- Tier 5: SSC Chair -->
-      <div class="tier-row">
+      <!-- Tier 1c: SSC Chairperson -->
+      <div class="tier-row" v-if="sscChairperson">
         <OfficerCard
-          name="SSC Chair"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('SSC Chair')"
+          :name="sscChairperson.name"
+          designation="OIC Chairperson, SSC"
+          :initials="getInitials(sscChairperson.name)"
           variant="institutional"
         />
       </div>
 
-      <!-- Connector: line-single -->
+      <!-- Connector: down to coordinators -->
       <div class="connector">
-        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        <div class="conn-line" style="top: 0; left: 50%; height: 100%"></div>
       </div>
 
-      <!-- Tier 6: Vice Chair -->
-      <div class="tier-row">
-        <OfficerCard
-          name="Vice Chair"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('Vice Chair')"
-          variant="pivot"
-        />
+      <!-- Tier 1d: Coordinators row -->
+      <div class="coordinators-row">
+        <div
+          v-for="coord in adminSupport"
+          :key="coord.name"
+          class="coordinator-node"
+        >
+          <OfficerCard
+            :name="coord.name"
+            :designation="getShortTitle(coord.position)"
+            :initials="getInitials(coord.name)"
+            variant="institutional"
+          />
+        </div>
       </div>
 
-      <!-- Connector: line-single -->
+      <!-- ══════════════════════════════════════════════════
+           TIER 2: FEDERATED USC
+           ══════════════════════════════════════════════════ -->
+
+      <div class="tier-label">
+        <span>Federated University Student Council</span>
+      </div>
+
+      <!-- Connector from admin down to federated -->
       <div class="connector">
-        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        <div class="conn-line" style="top: 0; left: 50%; height: 50%"></div>
+        <div class="conn-bar" style="top: 50%; left: 25%; width: 50%"></div>
+        <div class="conn-line" style="top: 50%; left: 25%; height: 50%"></div>
+        <div class="conn-line" style="top: 50%; left: 75%; height: 50%"></div>
       </div>
 
-      <!-- Tier 6b: USC Adviser -->
-      <div class="tier-row">
-        <OfficerCard
-          name="USC Adviser"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('USC Adviser')"
-          variant="institutional"
-        />
+      <div class="tier-row two-up">
+        <div v-for="officer in federatedUsc" :key="officer.name">
+          <OfficerCard
+            :name="officer.name"
+            :designation="getShortTitle(officer.position)"
+            :initials="getInitials(officer.name)"
+            :variant="officer.position.includes('Adviser') ? 'institutional' : 'pivot'"
+          />
+        </div>
       </div>
 
-      <!-- Connector: line-single -->
+      <!-- ══════════════════════════════════════════════════
+           TIER 3: USC ADVISERS
+           ══════════════════════════════════════════════════ -->
+
+      <div class="tier-label">
+        <span>USC Advisers</span>
+      </div>
+
       <div class="connector">
-        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        <div class="conn-line" style="top: 0; left: 50%; height: 100%"></div>
       </div>
 
-      <!-- Tier 6c: USC Co-Adviser -->
-      <div class="tier-row">
-        <OfficerCard
-          name="USC Co-Adviser"
-          designation="Institutional Oversight"
-          :initials="getPositionInitials('USC Co-Adviser')"
-          variant="institutional"
-        />
+      <div class="tier-row two-up">
+        <div v-for="officer in uscAdvisers" :key="officer.name">
+          <OfficerCard
+            :name="officer.name"
+            :designation="getShortTitle(officer.position)"
+            :initials="getInitials(officer.name)"
+            variant="institutional"
+          />
+        </div>
       </div>
 
-      <!-- ====== TIER LABEL ====== -->
+      <!-- ══════════════════════════════════════════════════
+           TIER 4: USC EXECUTIVE OFFICERS
+           ══════════════════════════════════════════════════ -->
+
       <div class="tier-label">
         <span>USC Executive Officers</span>
       </div>
 
-      <!-- ====== EXECUTIVE SECTION ====== -->
+      <div class="connector">
+        <div class="conn-line" style="top: 0; left: 50%; height: 100%"></div>
+      </div>
+
+      <!-- Executive tree grid -->
       <div class="exec-grid">
         <!-- Row 1: President -->
-        <div class="pres-node-wrap flex justify-center pb-2">
+        <div class="exec-pres">
           <OfficerCard
-            v-if="president"
-            :name="president.name"
-            :designation="president.position"
-            :email="president.email"
-            :initials="getInitials(president.name)"
+            v-if="uscPresident"
+            :name="uscPresident.name"
+            designation="USC President"
+            :email="uscPresident.email"
+            :initials="getInitials(uscPresident.name)"
             variant="executive"
           />
         </div>
 
         <!-- Row 2: Connector down to VP -->
-        <div class="conn-to-vp connector">
-          <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        <div class="exec-conn-vp connector">
+          <div class="conn-line" style="top: 0; left: 50%; height: 100%"></div>
         </div>
 
         <!-- Row 3: Vice President -->
-        <div class="vp-node-wrap flex justify-center pb-2">
+        <div class="exec-vp">
           <OfficerCard
-            v-if="vicePresident"
-            :name="vicePresident.name"
-            :designation="vicePresident.position"
-            :email="vicePresident.email"
-            :initials="getInitials(vicePresident.name)"
+            v-if="uscVicePresident"
+            :name="uscVicePresident.name"
+            designation="USC Vice President"
+            :email="uscVicePresident.email"
+            :initials="getInitials(uscVicePresident.name)"
             variant="executive"
           />
         </div>
 
-        <!-- Desktop 1-to-5 Branch-down Connector (Desktop only) -->
-        <div class="desk-conn-branch connector">
-          <div class="conn-line" style="top:0; left:50%; height:50%"></div>
-          <div class="conn-bar" style="top:50%; left:10%; width:80%"></div>
-          <div class="conn-line" style="top:50%; left:10%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:30%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:50%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:70%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:90%; height:50%"></div>
+        <!-- Row 4: Branch connector (1 → 4) -->
+        <div class="exec-branch connector">
+          <div class="conn-line" style="top: 0; left: 50%; height: 50%"></div>
+          <div class="conn-bar" style="top: 50%; left: 12.5%; width: 75%"></div>
+          <div class="conn-line" style="top: 50%; left: 12.5%; height: 50%"></div>
+          <div class="conn-line" style="top: 50%; left: 37.5%; height: 50%"></div>
+          <div class="conn-line" style="top: 50%; left: 62.5%; height: 50%"></div>
+          <div class="conn-line" style="top: 50%; left: 87.5%; height: 50%"></div>
         </div>
 
-        <!-- Mobile Connector: VP to Senate Pres (Mobile only) -->
-        <div class="mob-conn-to-sp connector">
-          <div class="conn-line" style="top:0; left:50%; height:100%"></div>
+        <!-- Row 5: 4 officer cards -->
+        <div class="exec-officers">
+          <div v-if="uscSecretary" class="exec-officer-cell">
+            <OfficerCard
+              :name="uscSecretary.name"
+              designation="Secretary"
+              :email="uscSecretary.email"
+              :initials="getInitials(uscSecretary.name)"
+              variant="committee"
+            />
+          </div>
+          <div v-if="uscSenatePresident" class="exec-officer-cell">
+            <OfficerCard
+              :name="uscSenatePresident.name"
+              designation="Senate President"
+              :email="uscSenatePresident.email"
+              :initials="getInitials(uscSenatePresident.name)"
+              variant="committee"
+            />
+          </div>
+          <div v-if="uscAuditor" class="exec-officer-cell">
+            <OfficerCard
+              :name="uscAuditor.name"
+              designation="Auditor"
+              :email="uscAuditor.email"
+              :initials="getInitials(uscAuditor.name)"
+              variant="committee"
+            />
+          </div>
+          <div v-if="uscTreasurer" class="exec-officer-cell">
+            <OfficerCard
+              :name="uscTreasurer.name"
+              designation="Treasurer"
+              :email="uscTreasurer.email"
+              :initials="getInitials(uscTreasurer.name)"
+              variant="committee"
+            />
+          </div>
         </div>
 
-        <!-- Senate President Card (Elevated on mobile) -->
-        <div class="sp-node-wrap flex justify-center">
+        <!-- Row 6: Spokesperson (centered below) -->
+        <div class="exec-spokes connector">
+          <div class="conn-line" style="top: 0; left: 50%; height: 50%"></div>
+          <div class="conn-bar" style="top: 50%; left: 37.5%; width: 25%"></div>
+          <div class="conn-line" style="top: 50%; left: 50%; height: 50%"></div>
+        </div>
+
+        <div class="exec-spokesperson">
           <OfficerCard
-            v-if="senatePresident"
-            :name="senatePresident.name"
-            :designation="senatePresident.position"
-            :email="senatePresident.email"
-            :initials="getInitials(senatePresident.name)"
+            v-if="uscSpokesperson"
+            :name="uscSpokesperson.name"
+            designation="Spokesperson"
+            :email="uscSpokesperson.email"
+            :initials="getInitials(uscSpokesperson.name)"
             variant="committee"
           />
-        </div>
-
-        <!-- Mobile 1-to-4 Branch-down Connector (Mobile only) -->
-        <div class="mob-conn-branch-from-sp connector">
-          <div class="conn-line" style="top:0; left:50%; height:50%"></div>
-          <div class="conn-bar" style="top:50%; left:12.5%; width:75%"></div>
-          <div class="conn-line" style="top:50%; left:12.5%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:37.5%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:62.5%; height:50%"></div>
-          <div class="conn-line" style="top:50%; left:87.5%; height:50%"></div>
-        </div>
-
-        <!-- Secretary Card -->
-        <div class="sec-node-wrap flex justify-center" v-if="secretary">
-          <OfficerCard
-            :name="secretary.name"
-            :designation="secretary.position"
-            :email="secretary.email"
-            :initials="getInitials(secretary.name)"
-            variant="committee"
-          />
-        </div>
-
-        <!-- Auditor Card -->
-        <div class="aud-node-wrap flex justify-center" v-if="auditor">
-          <OfficerCard
-            :name="auditor.name"
-            :designation="auditor.position"
-            :email="auditor.email"
-            :initials="getInitials(auditor.name)"
-            variant="committee"
-          />
-        </div>
-
-        <!-- Treasurer Card -->
-        <div class="tre-node-wrap flex justify-center" v-if="treasurer">
-          <OfficerCard
-            :name="treasurer.name"
-            :designation="treasurer.position"
-            :email="treasurer.email"
-            :initials="getInitials(treasurer.name)"
-            variant="committee"
-          />
-        </div>
-
-        <!-- Spokesperson Card -->
-        <div class="spo-node-wrap flex justify-center" v-if="spokesperson">
-          <OfficerCard
-            :name="spokesperson.name"
-            :designation="spokesperson.position"
-            :email="spokesperson.email"
-            :initials="getInitials(spokesperson.name)"
-            variant="committee"
-          />
-        </div>
-
-        <!-- Desktop Connector below Senate President (col 3) -->
-        <div class="conn-to-senate-desk connector">
-          <div class="conn-line" style="top:0; left:50%; height:100%"></div>
-        </div>
-
-        <!-- Mobile Connector below the 4 cards -->
-        <div class="conn-to-senate-mob connector">
-          <div class="conn-line" style="top:0; left:50%; height:100%"></div>
         </div>
       </div>
 
-      <!-- Connector line from Senate President down to Senate Label -->
-      <div class="connector-to-senate">
-        <div class="conn-line" style="top:0; left:50%; height:100%"></div>
-      </div>
+      <!-- ══════════════════════════════════════════════════
+           TIER 5: STUDENT SENATE
+           ══════════════════════════════════════════════════ -->
 
-      <!-- ====== TIER LABEL WITH PASS-THROUGH CONNECTOR ====== -->
       <div class="tier-label senate-tier-label">
-        <div class="conn-line" style="top:-30px; bottom:0; left:50%; height:calc(100% + 30px); z-index: 1;"></div>
-        <span>Legislative Body &mdash; Student Senate</span>
+        <div class="conn-line" style="top: -30px; bottom: 0; left: 50%; height: calc(100% + 30px); z-index: 1"></div>
+        <span>Student Senate</span>
       </div>
 
-      <!-- ====== SENATORS SECTION ====== -->
       <div class="senators-row-container">
         <div class="senators-row">
           <div
-            v-for="senator in senators"
-            :key="senator.email ?? senator.position"
+            v-for="senator in studentSenate"
+            :key="senator.name"
             class="senator-node-container"
           >
             <OfficerCard
               :name="senator.name"
-              :designation="senator.position"
-              :email="senator.email"
+              designation="Senator"
               :initials="getInitials(senator.name)"
               variant="senate"
             />
@@ -359,7 +360,6 @@ function getPositionInitials(title: string) {
   position: relative;
 }
 
-/* Subtle ambient glow blobs */
 .org-chart-wrapper::before {
   content: '';
   position: absolute;
@@ -374,7 +374,6 @@ function getPositionInitials(title: string) {
 
 .org-chart-inner {
   width: 100%;
-  min-width: auto; /* auto adjusts to screen/parent container width */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -397,42 +396,27 @@ function getPositionInitials(title: string) {
 }
 
 /* ══════════════════════════════════════════
-   EXECUTIVE GRID
+   COORDINATORS ROW
    ══════════════════════════════════════════ */
-.exec-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+.coordinators-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
   width: 100%;
-  gap: 0;
 }
 
-.pres-node-wrap { grid-column: 1 / 6; grid-row: 1; }
-.conn-to-vp { grid-column: 1 / 6; grid-row: 2; }
-.vp-node-wrap { grid-column: 1 / 6; grid-row: 3; }
-.desk-conn-branch { grid-column: 1 / 6; grid-row: 4; display: block; }
+.coordinator-node {
+  flex: 0 1 auto;
+}
 
-.mob-conn-to-sp { display: none; }
-.mob-conn-branch-from-sp { display: none; }
-.conn-to-senate-mob { display: none; }
-
-.sec-node-wrap { grid-column: 1; grid-row: 5; }
-.aud-node-wrap { grid-column: 2; grid-row: 5; }
-.sp-node-wrap { grid-column: 3; grid-row: 5; }
-.tre-node-wrap { grid-column: 4; grid-row: 5; }
-.spo-node-wrap { grid-column: 5; grid-row: 5; }
-
-.conn-to-senate-desk { grid-column: 3; grid-row: 6; display: block; }
-
+/* ══════════════════════════════════════════
+   CONNECTORS
+   ══════════════════════════════════════════ */
 .connector {
   position: relative;
   height: 40px;
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.connector-to-senate {
-  position: relative;
-  height: 30px;
   width: 100%;
   flex-shrink: 0;
 }
@@ -508,6 +492,44 @@ function getPositionInitials(title: string) {
 }
 
 /* ══════════════════════════════════════════
+   EXECUTIVE GRID
+   ══════════════════════════════════════════ */
+.exec-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+}
+
+.exec-pres,
+.exec-vp,
+.exec-spokesperson {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem 0;
+}
+
+.exec-conn-vp,
+.exec-branch,
+.exec-spokes {
+  width: 100%;
+}
+
+.exec-officers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.exec-officer-cell {
+  display: flex;
+  justify-content: center;
+}
+
+/* ══════════════════════════════════════════
    SENATORS ROW
    ══════════════════════════════════════════ */
 .senators-row-container {
@@ -534,7 +556,6 @@ function getPositionInitials(title: string) {
   min-width: 190px;
 }
 
-/* Horizontal bus line */
 .senator-node-container::before {
   content: '';
   position: absolute;
@@ -548,7 +569,6 @@ function getPositionInitials(title: string) {
 .senator-node-container:first-child::before { left: 50%; }
 .senator-node-container:last-child::before  { right: 50%; }
 
-/* Vertical drop line */
 .senator-node-container::after {
   content: '';
   position: absolute;
@@ -562,44 +582,27 @@ function getPositionInitials(title: string) {
 }
 
 /* ══════════════════════════════════════════
-   MOBILE — fits everything into viewport
-══════════════════════════════════════════ */
+   MOBILE
+   ══════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .org-chart-inner {
-    min-width: auto; /* reset desktop min-width */
-  }
-
-  .exec-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .pres-node-wrap { grid-column: 1 / 5; grid-row: 1; }
-  .conn-to-vp { grid-column: 1 / 5; grid-row: 2; }
-  .vp-node-wrap { grid-column: 1 / 5; grid-row: 3; }
-  
-  .mob-conn-to-sp { grid-column: 1 / 5; grid-row: 4; display: block; }
-  .sp-node-wrap { grid-column: 1 / 5; grid-row: 5; }
-  .mob-conn-branch-from-sp { grid-column: 1 / 5; grid-row: 6; display: block; }
-  
-  .sec-node-wrap { grid-column: 1; grid-row: 7; }
-  .aud-node-wrap { grid-column: 2; grid-row: 7; }
-  .tre-node-wrap { grid-column: 3; grid-row: 7; }
-  .spo-node-wrap { grid-column: 4; grid-row: 7; }
-  
-  .desk-conn-branch { display: none; }
-  .conn-to-senate-desk { display: none; }
-  .conn-to-senate-mob { grid-column: 1 / 5; grid-row: 8; display: block; }
-
   .tier-row {
     gap: 1rem;
     padding: 0.375rem 0;
   }
+
   .tier-row.two-up { gap: 0.75rem; }
 
   .connector { height: 20px; }
-  .connector-to-senate { height: 12px; }
 
-  /* Senator row: wrap */
+  .exec-officers {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .coordinators-row {
+    gap: 0.5rem;
+  }
+
   .senators-row {
     flex-wrap: wrap;
     justify-content: center;
