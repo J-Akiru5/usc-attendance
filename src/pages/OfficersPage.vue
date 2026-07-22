@@ -1,6 +1,36 @@
 <script setup lang="ts">
-import OrgChart from '@/components/ui/OrgChart.vue'
-import { officers, oversight } from '@/data/officers'
+import { computed } from 'vue'
+import { officers, tierLabels, type OfficerTier } from '@/data/officers'
+import OfficerCard from '@/components/ui/OfficerCard.vue'
+
+type CardVariant = 'institutional' | 'pivot' | 'executive' | 'committee' | 'senate'
+
+const tiers: OfficerTier[] = ['administration', 'federated_usc', 'usc_advisers', 'usc_executive', 'student_senate']
+
+function officersIn(tier: OfficerTier) {
+  return computed(() => officers.filter(o => o.tier === tier))
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(p => !p.endsWith('.'))
+    .map(p => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function variantFor(tier: OfficerTier): CardVariant {
+  const map: Record<OfficerTier, CardVariant> = {
+    administration: 'institutional',
+    federated_usc: 'institutional',
+    usc_advisers: 'pivot',
+    usc_executive: 'executive',
+    student_senate: 'senate',
+  }
+  return map[tier]
+}
 </script>
 
 <template>
@@ -16,25 +46,65 @@ import { officers, oversight } from '@/data/officers'
           background-size: 40px 40px;
         "
       />
-      <!-- Ambient gold glow -->
-      <div class="absolute inset-0 bg-gradient-radial from-gold/5 via-transparent to-transparent opacity-60 pointer-events-none" />
       <div class="relative px-4 md:px-12 text-center">
-        <div class="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full border border-gold/20 bg-gold/5">
-          <div class="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-          <span class="text-xs font-mono uppercase tracking-wider text-gold/70">University Student Council</span>
-        </div>
-        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4 text-white">USC Organizational Chart</h1>
-        <p class="text-white/60 max-w-2xl mx-auto leading-relaxed text-sm md:text-base">
-          Meet the officers serving the student body of ISUFST Dingle Campus for the current academic year.
+        <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Leadership</div>
+        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">USC Officers</h1>
+        <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
+          Meet the officers and administrators serving the student body of ISUFST Dingle Campus.
         </p>
       </div>
     </section>
 
-    <!-- Org Chart -->
-    <section class="py-14 md:py-20 bg-navy-deep">
-      <div class="w-full px-4 md:px-8">
-        <OrgChart :oversight="oversight" :officers="officers" />
-      </div>
-    </section>
+    <!-- Tier Sections -->
+    <div class="bg-paper">
+      <section
+        v-for="(tier, tIdx) in tiers"
+        :key="tier"
+        class="py-12 md:py-16"
+        :class="tIdx % 2 === 0 ? 'bg-paper' : 'bg-[#F0EDE6]'"
+      >
+        <div class="px-4 md:px-12">
+          <!-- Section Header -->
+          <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-8 h-1 rounded-full bg-gold" />
+              <span class="text-[10px] font-mono uppercase tracking-wider text-gold-dark">
+                Tier {{ tIdx + 1 }}
+              </span>
+            </div>
+            <h2 class="text-xl md:text-2xl font-bold font-serif text-navy">
+              {{ tierLabels[tier].label }}
+            </h2>
+            <p class="text-sm text-slate mt-1">
+              {{ tierLabels[tier].sublabel }}
+            </p>
+          </div>
+
+          <!-- Officers Grid -->
+          <div
+            :class="[
+              tier === 'student_senate'
+                ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3'
+                : tier === 'administration'
+                  ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'
+                  : 'grid grid-cols-1 sm:grid-cols-2 gap-4'
+            ]"
+          >
+            <div
+              v-for="officer in officersIn(tier).value"
+              :key="officer.name"
+              class="flex justify-center"
+            >
+              <OfficerCard
+                :name="officer.name"
+                :designation="officer.position"
+                :initials="getInitials(officer.name)"
+                :variant="variantFor(tier)"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
