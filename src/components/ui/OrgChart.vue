@@ -7,30 +7,25 @@ const props = defineProps<{
   officers: Officer[]
 }>()
 
-// ── Lookups by name for precise placement ──
+// ── Lookups by name ──
 function find(namePart: string) {
   return computed(() => props.officers.find(o => o.name.includes(namePart)))
 }
 
-function findAll(tier: string) {
-  return computed(() => props.officers.filter(o => o.tier === tier))
-}
-
-// Administration
 const president = find('Siason')
 const vpAcademic = find('Jinon')
 const campusAdmin = find('Balbona')
 const sscChair = find('Ilisan-Sales')
 const adminSupport = find('Baling')
 
-// Coordinators (left column)
+// Coordinators — left column
 const coordSubang = find('Subang')
 const coordVerdeflorCoord = find('Verdeflor')
 const coordAlada = find('Alada')
 const coordEsmeralda = find('Esmeralda')
 const coordDeslate = find('Deslate')
 
-// Coordinators (right column)
+// Coordinators — right column
 const coordDaguro = find('Daguro')
 const coordBracamonte = find('Bracamonte')
 const coordTanquerido = find('Tanquerido')
@@ -41,7 +36,9 @@ const fedAdviser = find('Katalbas')
 const fedPresident = find('Depositario')
 
 // USC Advisers
-const uscAdviser = computed(() => props.officers.find(o => o.name.includes('Verdeflor') && o.tier === 'usc_advisers'))
+const uscAdviser = computed(() =>
+  props.officers.find(o => o.name.includes('Verdeflor') && o.tier === 'usc_advisers')
+)
 const uscCoAdviser = find('Borcelo')
 
 // USC Executive
@@ -49,12 +46,14 @@ const execPresident = find('Demonteverde')
 const execVp = find('Bicodo')
 const execSecretary = find('Danugrao')
 const execAuditor = find('Parcia')
-const execSenatePres = find('Daguro')
+const execSenatePres = computed(() =>
+  props.officers.find(o => o.name.includes('Daguro') && o.tier === 'usc_executive')
+)
 const execTreasurer = find('Manderico')
 const execSpokesperson = find('Aqui')
 
 // Student Senate
-const senators = findAll('student_senate')
+const senators = computed(() => props.officers.filter(o => o.tier === 'student_senate'))
 
 function getInitials(name?: string) {
   if (!name) return '?'
@@ -69,86 +68,99 @@ function getInitials(name?: string) {
 </script>
 
 <template>
-  <div class="org-chart-wrapper">
-    <div class="org-chart-inner">
+  <div class="chart-wrapper">
+    <div class="chart-canvas">
 
-      <!-- ════════════════════════════════════════════════════════════
+      <!-- ═══════════════════════════════════════════════════════
            SECTION 1: TOP VERTICAL CHAIN (Main Admin)
-           ════════════════════════════════════════════════════════════ -->
+           ═══════════════════════════════════════════════════════ -->
+      <div class="admin-chain">
 
-      <!-- University President -->
-      <div class="chain-card" v-if="president">
-        <OfficerCard
-          :name="president.name"
-          designation="University President"
-          :initials="getInitials(president.name)"
-          variant="institutional"
-        />
-      </div>
-
-      <!-- Connector -->
-      <div class="v-connector"><div class="v-line"></div></div>
-
-      <!-- VP Academic Affairs -->
-      <div class="chain-card" v-if="vpAcademic">
-        <OfficerCard
-          :name="vpAcademic.name"
-          designation="Vice President for Academic Affairs"
-          :initials="getInitials(vpAcademic.name)"
-          variant="institutional"
-        />
-      </div>
-
-      <!-- Connector -->
-      <div class="v-connector"><div class="v-line"></div></div>
-
-      <!-- Campus Administrator -->
-      <div class="chain-card" v-if="campusAdmin">
-        <OfficerCard
-          :name="campusAdmin.name"
-          designation="Campus Administrator"
-          :initials="getInitials(campusAdmin.name)"
-          variant="pivot"
-        />
-      </div>
-
-      <!-- Connector -->
-      <div class="v-connector"><div class="v-line"></div></div>
-
-      <!-- OIC Chairperson -->
-      <div class="chain-card" v-if="sscChair">
-        <OfficerCard
-          :name="sscChair.name"
-          designation="OIC Chairperson, Student Support Center"
-          :initials="getInitials(sscChair.name)"
-          variant="institutional"
-        />
-      </div>
-
-      <!-- ════════════════════════════════════════════════════════════
-           SECTION 2: SIDE BRANCH + COORDINATORS
-           ════════════════════════════════════════════════════════════ -->
-
-      <!-- Connector with side branch -->
-      <div class="side-branch-area">
-        <!-- Main vertical line -->
-        <div class="v-connector side-main-line"><div class="v-line"></div></div>
-
-        <!-- Side branch to the right -->
-        <div class="side-branch" v-if="adminSupport">
-          <div class="h-connector"><div class="h-line"></div></div>
-          <div class="side-card">
+        <!-- Row 1: University President -->
+        <div class="chain-row">
+          <div class="chain-card" v-if="president">
             <OfficerCard
-              :name="adminSupport.name"
-              designation="Administrative Support Staff"
-              :initials="getInitials(adminSupport.name)"
+              :name="president.name"
+              designation="University President"
+              :initials="getInitials(president.name)"
               variant="institutional"
             />
           </div>
         </div>
+
+        <!-- Vertical line -->
+        <div class="v-line-segment"></div>
+
+        <!-- Row 2: VP Academic Affairs -->
+        <div class="chain-row">
+          <div class="chain-card" v-if="vpAcademic">
+            <OfficerCard
+              :name="vpAcademic.name"
+              designation="Vice President for Academic Affairs"
+              :initials="getInitials(vpAcademic.name)"
+              variant="institutional"
+            />
+          </div>
+        </div>
+
+        <!-- Vertical line -->
+        <div class="v-line-segment"></div>
+
+        <!-- Row 3: Campus Administrator -->
+        <div class="chain-row">
+          <div class="chain-card" v-if="campusAdmin">
+            <OfficerCard
+              :name="campusAdmin.name"
+              designation="Campus Administrator"
+              :initials="getInitials(campusAdmin.name)"
+              variant="pivot"
+            />
+          </div>
+        </div>
+
+        <!-- Vertical line -->
+        <div class="v-line-segment"></div>
+
+        <!-- Row 4: OIC Chairperson + Side Branch -->
+        <div class="chain-row row-with-branch">
+          <!-- Main card -->
+          <div class="chain-card" v-if="sscChair">
+            <OfficerCard
+              :name="sscChair.name"
+              designation="OIC Chairperson, Student Support Center"
+              :initials="getInitials(sscChair.name)"
+              variant="institutional"
+            />
+          </div>
+
+          <!-- Side branch to the right -->
+          <div class="side-branch" v-if="adminSupport">
+            <div class="h-line-connector"></div>
+            <div class="branch-card">
+              <OfficerCard
+                :name="adminSupport.name"
+                designation="Administrative Support Staff, SSC"
+                :initials="getInitials(adminSupport.name)"
+                variant="institutional"
+              />
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- SSC Coordinators Block (2 columns) -->
+      <!-- ═══════════════════════════════════════════════════════
+           SECTION 2: VERTICAL LINE DOWN TO COORDINATORS
+           ═══════════════════════════════════════════════════════ -->
+      <div class="v-line-segment line-to-coords"></div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           SECTION 3: SSC COORDINATORS (2-column grid)
+           ═══════════════════════════════════════════════════════ -->
+      <div class="section-label">
+        <span class="label-badge label-gold">SSC Coordinators</span>
+      </div>
+
       <div class="coordinators-grid">
         <!-- Left Column -->
         <div class="coord-col">
@@ -231,17 +243,18 @@ function getInitials(name?: string) {
         </div>
       </div>
 
-      <!-- ════════════════════════════════════════════════════════════
-           SECTION 3: MIDDLE HORIZONTAL LAYER (3 Sections)
-           ════════════════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════════
+           SECTION 4: MIDDLE LAYER (3 sections side-by-side)
+           ═══════════════════════════════════════════════════════ -->
+      <div class="v-line-segment"></div>
 
       <div class="middle-layer">
         <!-- Section A: Federated USC -->
         <div class="layer-section">
-          <div class="section-header">
-            <span class="section-badge badge-gold">Federated University Student Council</span>
+          <div class="section-label">
+            <span class="label-badge label-gold">Federated University Student Council</span>
           </div>
-          <div class="section-stack">
+          <div class="stacked-cards">
             <div class="stack-card" v-if="fedAdviser">
               <OfficerCard
                 :name="fedAdviser.name"
@@ -250,7 +263,7 @@ function getInitials(name?: string) {
                 variant="institutional"
               />
             </div>
-            <div class="v-connector-sm"><div class="v-line"></div></div>
+            <div class="v-line-short"></div>
             <div class="stack-card" v-if="fedPresident">
               <OfficerCard
                 :name="fedPresident.name"
@@ -264,10 +277,10 @@ function getInitials(name?: string) {
 
         <!-- Section B: USC Advisers -->
         <div class="layer-section">
-          <div class="section-header">
-            <span class="section-badge badge-blue">University Student Council Advisers</span>
+          <div class="section-label">
+            <span class="label-badge label-blue">USC Advisers</span>
           </div>
-          <div class="section-stack">
+          <div class="stacked-cards">
             <div class="stack-card" v-if="uscAdviser">
               <OfficerCard
                 :name="uscAdviser.name"
@@ -276,7 +289,7 @@ function getInitials(name?: string) {
                 variant="institutional"
               />
             </div>
-            <div class="v-connector-sm"><div class="v-line"></div></div>
+            <div class="v-line-short"></div>
             <div class="stack-card" v-if="uscCoAdviser">
               <OfficerCard
                 :name="uscCoAdviser.name"
@@ -290,12 +303,12 @@ function getInitials(name?: string) {
 
         <!-- Section C: USC Executive Officers -->
         <div class="layer-section section-wide">
-          <div class="section-header">
-            <span class="section-badge badge-gold">University Student Council - Executive Officers</span>
+          <div class="section-label">
+            <span class="label-badge label-gold">USC Executive Officers</span>
           </div>
           <div class="exec-tree">
             <!-- President -->
-            <div class="exec-pres" v-if="execPresident">
+            <div class="exec-row" v-if="execPresident">
               <OfficerCard
                 :name="execPresident.name"
                 designation="President"
@@ -304,12 +317,9 @@ function getInitials(name?: string) {
                 variant="executive"
               />
             </div>
-
-            <!-- Connector to VP -->
-            <div class="v-connector-sm"><div class="v-line"></div></div>
-
-            <!-- Vice President -->
-            <div class="exec-pres" v-if="execVp">
+            <div class="v-line-short"></div>
+            <!-- VP -->
+            <div class="exec-row" v-if="execVp">
               <OfficerCard
                 :name="execVp.name"
                 designation="Vice President"
@@ -318,20 +328,17 @@ function getInitials(name?: string) {
                 variant="executive"
               />
             </div>
-
-            <!-- Branch connector (1 → 4) -->
-            <div class="branch-connector">
-              <div class="branch-line"></div>
-              <div class="branch-drops">
-                <div class="branch-drop"></div>
-                <div class="branch-drop"></div>
-                <div class="branch-drop"></div>
-                <div class="branch-drop"></div>
+            <!-- Branch to 4 officers -->
+            <div class="branch-split">
+              <div class="branch-horizontal"></div>
+              <div class="branch-stems">
+                <div class="branch-stem"></div>
+                <div class="branch-stem"></div>
+                <div class="branch-stem"></div>
+                <div class="branch-stem"></div>
               </div>
             </div>
-
-            <!-- 4 Officers row -->
-            <div class="exec-row">
+            <div class="exec-row-four">
               <div class="exec-cell" v-if="execSecretary">
                 <OfficerCard
                   :name="execSecretary.name"
@@ -369,17 +376,14 @@ function getInitials(name?: string) {
                 />
               </div>
             </div>
-
-            <!-- Connector to Spokesperson -->
-            <div class="branch-connector branch-small">
-              <div class="branch-line"></div>
-              <div class="branch-drops">
-                <div class="branch-drop"></div>
+            <!-- Spokesperson centered below -->
+            <div class="branch-split branch-split-small">
+              <div class="branch-horizontal branch-horizontal-short"></div>
+              <div class="branch-stems">
+                <div class="branch-stem"></div>
               </div>
             </div>
-
-            <!-- Spokesperson -->
-            <div class="exec-pres" v-if="execSpokesperson">
+            <div class="exec-row" v-if="execSpokesperson">
               <OfficerCard
                 :name="execSpokesperson.name"
                 designation="Spokesperson"
@@ -392,32 +396,27 @@ function getInitials(name?: string) {
         </div>
       </div>
 
-      <!-- ════════════════════════════════════════════════════════════
-           SECTION 4: STUDENT SENATE (below Section C)
-           ════════════════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════════
+           SECTION 5: STUDENT SENATE
+           ═══════════════════════════════════════════════════════ -->
+      <div class="v-line-segment line-teal"></div>
 
-      <!-- Connector from exec tree down to senate -->
-      <div class="senate-connector">
-        <div class="v-connector-sm"><div class="v-line line-teal"></div></div>
+      <div class="section-label">
+        <span class="label-badge label-teal">Student Senate</span>
       </div>
 
-      <div class="senate-banner">
-        <div class="banner-header">
-          <span class="section-badge badge-teal">Student Senate</span>
-        </div>
-        <div class="senators-row">
-          <div
-            v-for="senator in senators"
-            :key="senator.name"
-            class="senator-node"
-          >
-            <OfficerCard
-              :name="senator.name"
-              designation="Senator"
-              :initials="getInitials(senator.name)"
-              variant="senate"
-            />
-          </div>
+      <div class="senate-row">
+        <div
+          v-for="senator in senators"
+          :key="senator.name"
+          class="senate-cell"
+        >
+          <OfficerCard
+            :name="senator.name"
+            designation="Senator"
+            :initials="getInitials(senator.name)"
+            variant="senate"
+          />
         </div>
       </div>
 
@@ -429,131 +428,133 @@ function getInitials(name?: string) {
 /* ══════════════════════════════════════════
    WRAPPER
    ══════════════════════════════════════════ */
-.org-chart-wrapper {
+.chart-wrapper {
+  width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 2rem;
-  width: 100%;
-  background: linear-gradient(160deg, #0a1628 0%, #0d1b2a 60%, #0e1f30 100%);
-  border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 2.5rem 1.5rem;
-  box-shadow:
-    0 0 0 1px rgba(201, 162, 75, 0.08),
-    0 32px 80px -16px rgba(0, 0, 0, 0.6);
-  position: relative;
 }
 
-.org-chart-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -80px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 300px;
-  background: radial-gradient(ellipse, rgba(201, 162, 75, 0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.org-chart-inner {
+.chart-canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
   min-width: max-content;
+  padding: 2rem 0 3rem;
 }
 
 /* ══════════════════════════════════════════
-   VERTICAL CHAIN CARDS
+   ADMIN CHAIN (Vertical Flex)
    ══════════════════════════════════════════ */
+.admin-chain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chain-row {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem 0;
+}
+
 .chain-card {
   display: flex;
   justify-content: center;
-  padding: 0.25rem 0;
 }
 
 /* ══════════════════════════════════════════
-   VERTICAL CONNECTOR
+   VERTICAL LINE SEGMENTS
    ══════════════════════════════════════════ */
-.v-connector {
-  position: relative;
-  height: 32px;
+.v-line-segment {
   width: 1px;
-  display: flex;
-  justify-content: center;
+  height: 36px;
+  background: linear-gradient(to bottom, rgba(201, 162, 75, 0.65), rgba(201, 162, 75, 0.25));
+  box-shadow: 0 0 6px rgba(201, 162, 75, 0.2);
+  flex-shrink: 0;
 }
 
-.v-line {
+.v-line-short {
   width: 1px;
-  height: 100%;
+  height: 22px;
   background: linear-gradient(to bottom, rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.25));
-  box-shadow: 0 0 4px rgba(201, 162, 75, 0.2);
-}
-
-.v-connector-sm {
-  position: relative;
-  height: 20px;
-  width: 1px;
-  display: flex;
-  justify-content: center;
-}
-
-.v-connector-sm .v-line {
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(to bottom, rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.25));
-  box-shadow: 0 0 4px rgba(201, 162, 75, 0.2);
+  box-shadow: 0 0 4px rgba(201, 162, 75, 0.15);
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .line-teal {
-  background: linear-gradient(to bottom, rgba(45, 188, 168, 0.6), rgba(45, 188, 168, 0.25)) !important;
-  box-shadow: 0 0 4px rgba(45, 188, 168, 0.2) !important;
+  background: linear-gradient(to bottom, rgba(45, 188, 168, 0.6), rgba(45, 188, 168, 0.25));
+  box-shadow: 0 0 6px rgba(45, 188, 168, 0.2);
+}
+
+.line-to-coords {
+  height: 28px;
 }
 
 /* ══════════════════════════════════════════
-   SIDE BRANCH AREA
+   SIDE BRANCH (Row 4)
    ══════════════════════════════════════════ */
-.side-branch-area {
+.row-with-branch {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  position: relative;
-  padding: 0.25rem 0;
-}
-
-.side-main-line {
+  gap: 0;
   position: relative;
 }
 
 .side-branch {
   display: flex;
   align-items: center;
-  gap: 0;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(0%, -50%);
-  margin-left: 140px;
+  margin-left: 24px;
 }
 
-.h-connector {
-  position: relative;
-  width: 60px;
+.h-line-connector {
+  width: 48px;
   height: 1px;
-  display: flex;
-  align-items: center;
-}
-
-.h-line {
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(to right, rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.3));
+  background: linear-gradient(to right, rgba(201, 162, 75, 0.65), rgba(201, 162, 75, 0.35));
   box-shadow: 0 0 4px rgba(201, 162, 75, 0.15);
+  flex-shrink: 0;
 }
 
-.side-card {
+.branch-card {
   flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   SECTION LABELS
+   ══════════════════════════════════════════ */
+.section-label {
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.label-badge {
+  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.label-gold {
+  color: rgba(201, 162, 75, 0.7);
+  border: 1px solid rgba(201, 162, 75, 0.25);
+  background: rgba(201, 162, 75, 0.08);
+}
+
+.label-blue {
+  color: rgba(130, 180, 255, 0.8);
+  border: 1px solid rgba(100, 140, 220, 0.25);
+  background: rgba(100, 140, 220, 0.08);
+}
+
+.label-teal {
+  color: rgba(80, 220, 200, 0.7);
+  border: 1px solid rgba(45, 188, 168, 0.25);
+  background: rgba(45, 188, 168, 0.08);
 }
 
 /* ══════════════════════════════════════════
@@ -562,9 +563,8 @@ function getInitials(name?: string) {
 .coordinators-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem 2rem;
-  padding: 0.5rem 0 1.5rem;
-  max-width: 600px;
+  gap: 0.5rem 2.5rem;
+  max-width: 620px;
   width: 100%;
 }
 
@@ -580,65 +580,29 @@ function getInitials(name?: string) {
 }
 
 /* ══════════════════════════════════════════
-   MIDDLE HORIZONTAL LAYER (3 sections)
+   MIDDLE LAYER (3 sections)
    ══════════════════════════════════════════ */
 .middle-layer {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   align-items: flex-start;
-  padding: 1rem 0 1.5rem;
-  width: 100%;
   justify-content: center;
+  padding: 0.5rem 0;
 }
 
 .layer-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   min-width: 240px;
 }
 
 .section-wide {
-  min-width: 340px;
+  min-width: 360px;
 }
 
-.section-header {
-  text-align: center;
-  margin-bottom: 0.25rem;
-}
-
-.section-badge {
-  font-size: 0.6rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.badge-gold {
-  color: rgba(201, 162, 75, 0.7);
-  border: 1px solid rgba(201, 162, 75, 0.25);
-  background: rgba(201, 162, 75, 0.08);
-}
-
-.badge-blue {
-  color: rgba(130, 180, 255, 0.8);
-  border: 1px solid rgba(100, 140, 220, 0.25);
-  background: rgba(100, 140, 220, 0.08);
-}
-
-.badge-teal {
-  color: rgba(80, 220, 200, 0.7);
-  border: 1px solid rgba(45, 188, 168, 0.25);
-  background: rgba(45, 188, 168, 0.08);
-}
-
-.section-stack {
+.stacked-cards {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -651,7 +615,7 @@ function getInitials(name?: string) {
 }
 
 /* ══════════════════════════════════════════
-   EXECUTIVE TREE (inside Section C)
+   EXECUTIVE TREE
    ══════════════════════════════════════════ */
 .exec-tree {
   display: flex;
@@ -660,67 +624,65 @@ function getInitials(name?: string) {
   gap: 0;
 }
 
-.exec-pres {
+.exec-row {
   display: flex;
   justify-content: center;
-  padding: 0.25rem 0;
+  padding: 0.2rem 0;
 }
 
-.branch-connector {
+/* Branch split connector */
+.branch-split {
   position: relative;
-  height: 30px;
   width: 100%;
+  height: 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.branch-small {
+.branch-split-small {
   height: 20px;
 }
 
-.branch-line {
-  width: 1px;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.4));
-  box-shadow: 0 0 4px rgba(201, 162, 75, 0.2);
-}
-
-.branch-drops {
-  display: flex;
-  gap: 2rem;
-  width: 100%;
-  justify-content: center;
-  position: relative;
-}
-
-.branch-drops::before {
-  content: '';
+.branch-horizontal {
   position: absolute;
   top: 0;
-  left: calc(50% - 3rem);
-  width: 6rem;
+  left: 15%;
+  right: 15%;
   height: 1px;
   background: linear-gradient(to right, rgba(201, 162, 75, 0.25), rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.25));
   box-shadow: 0 0 4px rgba(201, 162, 75, 0.15);
 }
 
-.branch-drop {
+.branch-horizontal-short {
+  left: 40%;
+  right: 40%;
+}
+
+.branch-stems {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 15%;
+}
+
+.branch-split-small .branch-stems {
+  padding: 0 40%;
+  justify-content: center;
+}
+
+.branch-stem {
   width: 1px;
-  height: 12px;
+  height: 100%;
   background: linear-gradient(to bottom, rgba(201, 162, 75, 0.6), rgba(201, 162, 75, 0.25));
   box-shadow: 0 0 3px rgba(201, 162, 75, 0.15);
 }
 
-.branch-small .branch-drops {
-  gap: 0;
-}
-
-.branch-small .branch-drops::before {
-  display: none;
-}
-
-.exec-row {
+.exec-row-four {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
@@ -733,27 +695,9 @@ function getInitials(name?: string) {
 }
 
 /* ══════════════════════════════════════════
-   STUDENT SENATE
+   SENATE ROW
    ══════════════════════════════════════════ */
-.senate-connector {
-  display: flex;
-  justify-content: center;
-  padding: 0.25rem 0;
-}
-
-.senate-banner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.banner-header {
-  text-align: center;
-}
-
-.senators-row {
+.senate-row {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
@@ -761,7 +705,7 @@ function getInitials(name?: string) {
   width: 100%;
 }
 
-.senator-node {
+.senate-cell {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -773,7 +717,7 @@ function getInitials(name?: string) {
 }
 
 /* Horizontal bus line */
-.senator-node::before {
+.senate-cell::before {
   content: '';
   position: absolute;
   top: 0;
@@ -783,16 +727,16 @@ function getInitials(name?: string) {
   background: linear-gradient(to right, rgba(45, 188, 168, 0.15), rgba(45, 188, 168, 0.5), rgba(45, 188, 168, 0.15));
 }
 
-.senator-node:first-child::before { left: 50%; }
-.senator-node:last-child::before  { right: 50%; }
+.senate-cell:first-child::before { left: 50%; }
+.senate-cell:last-child::before  { right: 50%; }
 
-/* Vertical drop line */
-.senator-node::after {
+/* Vertical drop */
+.senate-cell::after {
   content: '';
   position: absolute;
   top: 0;
   left: 50%;
-  height: 20px;
+  height: 18px;
   width: 1px;
   background: rgba(45, 188, 168, 0.4);
   transform: translateX(-50%);
@@ -802,56 +746,24 @@ function getInitials(name?: string) {
 /* ══════════════════════════════════════════
    MOBILE
    ══════════════════════════════════════════ */
-@media (max-width: 900px) {
-  .org-chart-wrapper {
-    padding: 1.5rem 1rem;
-  }
-
-  .org-chart-inner {
+@media (max-width: 768px) {
+  .chart-canvas {
     min-width: 1100px;
   }
 
-  .middle-layer {
-    flex-wrap: wrap;
-    gap: 1.5rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .org-chart-wrapper {
-    padding: 1rem 0.5rem;
-  }
-
-  .org-chart-inner {
-    min-width: 900px;
-  }
-
-  .coordinators-grid {
-    grid-template-columns: 1fr;
-    max-width: 300px;
-  }
-
-  .exec-row {
+  .exec-row-four {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .senators-row {
+  .senate-row {
     flex-wrap: wrap;
     justify-content: center;
   }
 
-  .senator-node {
+  .senate-cell {
     flex: 0 1 auto;
     width: calc(33.33% - 0.5rem);
-    min-width: 100px;
-  }
-
-  .side-branch {
-    margin-left: 100px;
-  }
-
-  .h-connector {
-    width: 40px;
+    min-width: 110px;
   }
 }
 </style>
