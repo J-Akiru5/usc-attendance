@@ -328,26 +328,16 @@ function getInitials(name?: string) {
                 variant="executive"
               />
             </div>
-            <!-- Branch to 4 officers -->
+            <!-- Branch to 3 officers -->
             <div class="branch-split">
               <div class="branch-horizontal"></div>
               <div class="branch-stems">
                 <div class="branch-stem"></div>
                 <div class="branch-stem"></div>
                 <div class="branch-stem"></div>
-                <div class="branch-stem"></div>
               </div>
             </div>
-            <div class="exec-row-four">
-              <div class="exec-cell" v-if="execSecretary">
-                <OfficerCard
-                  :name="execSecretary.name"
-                  designation="Secretary"
-                  :email="execSecretary.email"
-                  :initials="getInitials(execSecretary.name)"
-                  variant="committee"
-                />
-              </div>
+            <div class="exec-row-three">
               <div class="exec-cell" v-if="execSenatePres">
                 <OfficerCard
                   :name="execSenatePres.name"
@@ -357,12 +347,12 @@ function getInitials(name?: string) {
                   variant="committee"
                 />
               </div>
-              <div class="exec-cell" v-if="execAuditor">
+              <div class="exec-cell" v-if="execSecretary">
                 <OfficerCard
-                  :name="execAuditor.name"
-                  designation="Auditor"
-                  :email="execAuditor.email"
-                  :initials="getInitials(execAuditor.name)"
+                  :name="execSecretary.name"
+                  designation="Secretary"
+                  :email="execSecretary.email"
+                  :initials="getInitials(execSecretary.name)"
                   variant="committee"
                 />
               </div>
@@ -376,21 +366,33 @@ function getInitials(name?: string) {
                 />
               </div>
             </div>
-            <!-- Spokesperson centered below -->
+            <!-- Branch to 2 officers (centered) -->
             <div class="branch-split branch-split-small">
               <div class="branch-horizontal branch-horizontal-short"></div>
               <div class="branch-stems">
                 <div class="branch-stem"></div>
+                <div class="branch-stem"></div>
               </div>
             </div>
-            <div class="exec-row" v-if="execSpokesperson">
-              <OfficerCard
-                :name="execSpokesperson.name"
-                designation="Spokesperson"
-                :email="execSpokesperson.email"
-                :initials="getInitials(execSpokesperson.name)"
-                variant="committee"
-              />
+            <div class="exec-row-two">
+              <div class="exec-cell" v-if="execAuditor">
+                <OfficerCard
+                  :name="execAuditor.name"
+                  designation="Auditor"
+                  :email="execAuditor.email"
+                  :initials="getInitials(execAuditor.name)"
+                  variant="committee"
+                />
+              </div>
+              <div class="exec-cell" v-if="execSpokesperson">
+                <OfficerCard
+                  :name="execSpokesperson.name"
+                  designation="Spokesperson"
+                  :email="execSpokesperson.email"
+                  :initials="getInitials(execSpokesperson.name)"
+                  variant="committee"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -689,6 +691,22 @@ function getInitials(name?: string) {
   width: 100%;
 }
 
+.exec-row-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.exec-row-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
 .exec-cell {
   display: flex;
   justify-content: center;
@@ -698,11 +716,11 @@ function getInitials(name?: string) {
    SENATE ROW
    ══════════════════════════════════════════ */
 .senate-row {
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 0.5rem;
   width: 100%;
+  max-width: 1200px;
 }
 
 .senate-cell {
@@ -711,9 +729,6 @@ function getInitials(name?: string) {
   flex-direction: column;
   align-items: center;
   padding: 20px 5px 8px;
-  flex: 1;
-  min-width: 160px;
-  max-width: 200px;
 }
 
 /* Horizontal bus line */
@@ -751,19 +766,16 @@ function getInitials(name?: string) {
     min-width: 1100px;
   }
 
-  .exec-row-four {
+  .exec-row-three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .exec-row-two {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .senate-row {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .senate-cell {
-    flex: 0 1 auto;
-    width: calc(33.33% - 0.5rem);
-    min-width: 110px;
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 </style>
