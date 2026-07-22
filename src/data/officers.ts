@@ -26,7 +26,7 @@ export const tierLabels: Record<OfficerTier, { label: string; sublabel: string }
     sublabel: 'Campus-Level Student Leadership',
   },
   student_senate: {
-    label: 'Student Senate',
+    label: 'USC Senators',
     sublabel: 'Legislative Body',
   },
 }
