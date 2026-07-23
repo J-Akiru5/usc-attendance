@@ -82,15 +82,34 @@ const values = [
             </div>
           </div>
 
-          <div class="rounded-2xl border border-line bg-paper-panel shadow-lg p-8">
-            <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-4">Council Structure</div>
-            <h3 class="text-lg font-bold font-serif text-navy mb-4">Organization</h3>
-            <div class="space-y-3">
-              <div v-for="item in ['Executive Board', 'Student Senate', 'Committees', 'Project Teams']" :key="item" class="flex items-center gap-3">
-                <svg class="w-4 h-4 text-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                <span class="text-sm text-slate">{{ item }}</span>
+          <div class="relative rounded-2xl border border-line bg-navy shadow-xl overflow-hidden group min-h-[340px] flex flex-col justify-between">
+            <div
+              class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+              style="background-image: url('/library.png');"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/70 to-navy/30" />
+
+            <div class="relative z-10 p-5 flex items-center justify-between">
+              <div class="bg-navy/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 flex items-center gap-2 shadow-lg">
+                <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
+                <span class="text-[10px] font-mono text-white/90 uppercase tracking-wider font-semibold">
+                  Knowledge Management Library
+                </span>
+              </div>
+            </div>
+
+            <div class="relative z-10 p-6 pt-12">
+              <div class="bg-navy/85 backdrop-blur-md border border-white/15 rounded-xl p-5 shadow-2xl">
+                <div class="text-xs font-mono uppercase tracking-wider text-gold mb-2">Council Structure</div>
+                <h3 class="text-base font-bold font-serif text-white mb-3">Organization</h3>
+                <div class="grid grid-cols-2 gap-2">
+                  <div v-for="item in ['Executive Board', 'Student Senate', 'Committees', 'Project Teams']" :key="item" class="flex items-center gap-2 text-xs text-white/80 bg-white/5 rounded-lg p-2 border border-white/10">
+                    <svg class="w-3.5 h-3.5 text-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>{{ item }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

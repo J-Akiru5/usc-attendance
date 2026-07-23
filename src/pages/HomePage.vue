@@ -327,43 +327,45 @@ const logos = [
             v-motion
             :initial="{ opacity: 0, x: 40 }"
             :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
-            class="rounded-2xl border border-line bg-paper-panel shadow-lg overflow-hidden"
+            class="relative rounded-2xl border border-line bg-navy shadow-xl overflow-hidden group min-h-[360px] flex flex-col justify-between"
           >
-            <div class="bg-navy px-4 py-3 flex items-center gap-2">
-              <div class="flex gap-1.5">
-                <div class="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
-                <div class="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+            <!-- Background Photo: Knowledge Management Library -->
+            <div
+              class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+              style="background-image: url('/library.png');"
+            />
+            <!-- Dark Gradient Vignette Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/60 to-navy/20" />
+
+            <!-- Top Header Badge -->
+            <div class="relative z-10 p-5 flex items-center justify-between">
+              <div class="bg-navy/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 flex items-center gap-2 shadow-lg">
+                <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
+                <span class="text-[10px] font-mono text-white/90 uppercase tracking-wider font-semibold">
+                  ISUFST Knowledge Management Library
+                </span>
               </div>
-              <div class="ml-2 text-[10px] font-mono text-white/40 uppercase tracking-wider">About the Council</div>
             </div>
-            <div class="p-6">
-              <div class="flex items-center gap-3 mb-5 pb-4 border-b border-line">
-                <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold/40 shrink-0" />
-                <div>
-                  <div class="text-sm font-bold text-navy">University Student Council</div>
-                  <div class="text-[10px] text-slate font-mono">ISUFST Dingle Campus</div>
+
+            <!-- Bottom Content & Quick Stats Overlay -->
+            <div class="relative z-10 p-6 pt-12">
+              <div class="bg-navy/85 backdrop-blur-md border border-white/15 rounded-xl p-4 shadow-2xl">
+                <div class="flex items-center gap-3 mb-3 pb-3 border-b border-white/10">
+                  <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-9 h-9 rounded-full object-cover border border-gold/40 shrink-0" />
+                  <div>
+                    <div class="text-xs font-bold text-white">University Student Council</div>
+                    <div class="text-[10px] text-gold/80 font-mono">ISUFST Dingle Campus</div>
+                  </div>
                 </div>
-              </div>
-              <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="bg-navy/5 rounded-xl p-4 text-center border border-line/50">
-                  <div class="text-2xl font-bold text-navy font-serif">14</div>
-                  <div class="text-xs text-slate mt-1">Officers</div>
-                </div>
-                <div class="bg-navy/5 rounded-xl p-4 text-center border border-line/50">
-                  <div class="text-2xl font-bold text-navy font-serif">6</div>
-                  <div class="text-xs text-slate mt-1">Programs</div>
-                </div>
-              </div>
-              <div class="space-y-2">
-                <div v-for="item in ['Student representation', 'Campus programs', 'Community outreach', 'Leadership development']"
-                  :key="item"
-                  class="flex items-center gap-2 text-sm text-slate"
-                >
-                  <svg class="w-4 h-4 text-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  {{ item }}
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="bg-white/5 rounded-lg p-2.5 text-center border border-white/10">
+                    <div class="text-xl font-bold text-gold font-serif">14</div>
+                    <div class="text-[10px] text-white/60 font-mono uppercase tracking-wider">Officers</div>
+                  </div>
+                  <div class="bg-white/5 rounded-lg p-2.5 text-center border border-white/10">
+                    <div class="text-xl font-bold text-gold font-serif">6</div>
+                    <div class="text-[10px] text-white/60 font-mono uppercase tracking-wider">Programs</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -379,10 +381,10 @@ const logos = [
     >
       <!-- Background -->
       <div
-        class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        :style="`background-image: url('${featuredEvent.coverImage || '/isufst.jpg'}');`"
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+        style="background-image: url('/admin.png');"
       />
-      <div class="absolute inset-0 bg-navy/85" />
+      <div class="absolute inset-0 bg-navy/85 backdrop-blur-[1px]" />
 
       <div class="relative px-4 md:px-12">
         <div class="max-w-4xl mx-auto text-center">
@@ -620,22 +622,35 @@ const logos = [
     </section>
 
     <!-- ========== CTA ========== -->
-    <section class="py-16 md:py-20 bg-navy text-white">
+    <section class="relative py-20 md:py-24 text-white overflow-hidden">
+      <!-- Background Image: Admin Side Angle -->
+      <div
+        class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transition-transform duration-1000 hover:scale-110"
+        style="background-image: url('/admin-side angle.png');"
+      />
+      <!-- Gradient Overlay -->
+      <div class="absolute inset-0 bg-gradient-to-r from-navy-deep/95 via-navy/90 to-navy-deep/95" />
+      <div class="absolute inset-0 bg-navy/50" />
+
       <div
         v-motion
         :initial="{ opacity: 0, y: 30 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
-        class="px-4 md:px-12 text-center"
+        class="relative z-10 px-4 md:px-12 text-center max-w-4xl mx-auto"
       >
-        <h2 class="text-2xl md:text-3xl font-bold font-serif text-white mb-4">
+        <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-full px-4 py-1.5 mb-5 shadow-lg">
+          <span class="w-2 h-2 rounded-full bg-gold animate-pulse" />
+          <span class="text-xs font-mono uppercase tracking-wider text-gold font-semibold">Officer Portal</span>
+        </div>
+        <h2 class="text-3xl md:text-4xl font-bold font-serif text-white mb-4 drop-shadow-md">
           USC Officer?
         </h2>
-        <p class="text-white/70 mb-8 max-w-xl mx-auto leading-relaxed">
-          Access the Officer Portal for attendance management, event tracking, and other digital services.
+        <p class="text-white/80 mb-8 max-w-xl mx-auto leading-relaxed text-sm md:text-base">
+          Access the Officer Portal for attendance management, event tracking, and digital student council services.
         </p>
         <button
           @click="router.push('/portal')"
-          class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gold text-navy font-bold shadow-lg shadow-gold/20 hover:brightness-110 transition-all"
+          class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gold text-navy font-bold text-sm shadow-xl shadow-black/40 hover:brightness-110 active:scale-95 transition-all"
         >
           Visit Officer Portal
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
