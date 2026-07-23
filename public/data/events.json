@@ -8,7 +8,7 @@
     "location": "ISUFST Dingle Campus",
     "venue": "Main Auditorium",
     "status": "upcoming",
-    "featured": true,
+    "featured": false,
     "icon": "🏛️",
     "tags": ["academic", "general"]
   },
@@ -50,5 +50,20 @@
     "featured": false,
     "icon": "🎤",
     "tags": ["leadership", "development"]
+  },
+  {
+    "id": "pag-abi-abi-2026",
+    "title": "Pag Abi Abi 2026",
+    "date": "2026-07-27T09:00:00+08:00",
+    "endDate": "2026-07-27T17:00:00+08:00",
+    "description": "The annual Pag Abi Abi celebration — a day of cultural festivities, student performances, and community gathering. Join the USC in celebrating ISUFST spirit and camaraderie.",
+    "location": "ISUFST Dingle Campus",
+    "venue": "Campus Grounds",
+    "status": "upcoming",
+    "featured": true,
+    "icon": "🎉",
+    "tags": ["celebration", "cultural", "community"],
+    "coverImage": "https://<your-project>.supabase.co/storage/v1/object/public/videos/pag-abi-abi-2026-poster.jpg",
+    "trailerUrl": "https://<your-project>.supabase.co/storage/v1/object/public/videos/pag-abi-abi-2026-trailer.mp4"
   }
 ]
