@@ -49,8 +49,53 @@ watch(showSpotlight, (active) => {
   }
 }, { immediate: true })
 
+const nextEvent = computed(() => {
+  const upcoming = (events.value || []).filter(e => e.status === 'upcoming')
+  if (upcoming.length === 0) return null
+  return [...upcoming].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+})
+
+const nextEventCountdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+const nextEventStarted = ref(false)
+
+function computeNextEventCountdown() {
+  if (!nextEvent.value) return
+  const now = new Date()
+  const target = new Date(nextEvent.value.date)
+  const diff = target.getTime() - now.getTime()
+
+  if (diff <= 0) {
+    nextEventStarted.value = true
+    nextEventCountdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+    return
+  }
+
+  nextEventStarted.value = false
+  nextEventCountdown.value = {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  }
+}
+
+let nextEventIntervalId: ReturnType<typeof setInterval> | null = null
+
+watch(nextEvent, (event) => {
+  if (event) {
+    computeNextEventCountdown()
+    if (!nextEventIntervalId) {
+      nextEventIntervalId = setInterval(computeNextEventCountdown, 1000)
+    }
+  } else if (nextEventIntervalId) {
+    clearInterval(nextEventIntervalId)
+    nextEventIntervalId = null
+  }
+}, { immediate: true })
+
 onUnmounted(() => {
   if (intervalId) clearInterval(intervalId)
+  if (nextEventIntervalId) clearInterval(nextEventIntervalId)
 })
 
 const executiveOfficers = officers.filter(o => o.tier === 'usc_executive').slice(0, 4)
@@ -114,6 +159,45 @@ const logos = [
 
       <div class="relative px-4 md:px-12 py-20 md:py-28 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div class="lg:col-span-7">
+          <!-- Mini Event Countdown Widget -->
+          <div
+            v-if="nextEvent && !nextEventStarted"
+            v-motion
+            :initial="{ opacity: 0, y: -20 }"
+            :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 50 } }"
+            class="inline-flex flex-wrap items-center gap-3.5 p-2.5 px-4 bg-navy/80 backdrop-blur-md border border-white/10 rounded-xl mb-6 shadow-2xl select-none"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl shrink-0">{{ nextEvent.icon || '📅' }}</span>
+              <div>
+                <div class="text-[9px] font-mono text-white/50 uppercase tracking-widest leading-none flex items-center gap-1.5 mb-0.5">
+                  <span class="relative flex h-1.5 w-1.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-gold"></span>
+                  </span>
+                  Next Event
+                </div>
+                <div class="text-xs font-bold text-white truncate max-w-[130px] sm:max-w-[180px]">{{ nextEvent.title }}</div>
+              </div>
+            </div>
+            <div class="hidden sm:block h-6 w-px bg-white/10"></div>
+            <div class="flex items-center gap-3.5">
+              <div class="flex items-center gap-1 font-mono text-xs text-gold">
+                <span class="font-bold">{{ String(nextEventCountdown.days).padStart(2, '0') }}d</span>
+                <span class="text-white/30">:</span>
+                <span class="font-bold">{{ String(nextEventCountdown.hours).padStart(2, '0') }}h</span>
+                <span class="text-white/30">:</span>
+                <span class="font-bold">{{ String(nextEventCountdown.minutes).padStart(2, '0') }}m</span>
+              </div>
+              <button
+                @click="router.push('/events')"
+                class="px-3 py-1 text-[10px] font-bold text-navy bg-gold hover:brightness-110 active:scale-95 transition-all rounded-md"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+
           <div
             v-motion
             :initial="{ opacity: 0, x: -40 }"
