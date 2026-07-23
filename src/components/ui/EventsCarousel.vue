@@ -249,17 +249,19 @@ onUnmounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </button>
-              <button
+              <a
                 v-if="event.trailerUrl"
-                @click="router.push('/events')"
+                :href="event.trailerUrl"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-dark hover:text-navy transition-colors ml-auto"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Watch
-              </button>
+                Watch Trailer
+              </a>
             </div>
           </div>
         </div>

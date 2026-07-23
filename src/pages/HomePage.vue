@@ -451,13 +451,15 @@ const logos = [
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
               </svg>
             </button>
-            <button
+            <a
               v-if="featuredEvent.trailerUrl"
-              @click="router.push('/events')"
+              :href="featuredEvent.trailerUrl"
+              target="_blank"
+              rel="noopener noreferrer"
               class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-white/40 bg-white/5 backdrop-blur-sm text-white font-medium text-sm hover:bg-white/15 hover:border-white/60 transition-all"
             >
               Watch Trailer
-            </button>
+            </a>
           </div>
         </div>
       </div>
