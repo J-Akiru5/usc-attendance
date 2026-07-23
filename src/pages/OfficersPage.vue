@@ -26,10 +26,8 @@ import OrgChart from '@/components/ui/OrgChart.vue'
     </section>
 
     <!-- Org Chart -->
-    <section class="bg-[#0B132B] py-12 md:py-16">
-      <div class="px-4 md:px-8">
-        <OrgChart :officers="officers" />
-      </div>
+    <section class="bg-[#0B132B] py-6 md:py-10 relative overflow-hidden">
+      <OrgChart :officers="officers" />
     </section>
   </div>
 </template>

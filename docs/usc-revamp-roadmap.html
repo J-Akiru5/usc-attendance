@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USC Website Revamp — Developer Roadmap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════
+       DESIGN TOKENS
+       ═══════════════════════════════════════════════════ */
+    :root {
+      --navy: #0c1b36;
+      --navy-deep: #081422;
+      --navy-light: #162d50;
+      --gold: #c9a24b;
+      --gold-dark: #a07c2e;
+      --gold-pale: #f5e6c0;
+      --paper: #F5F2EB;
+      --paper-panel: #FDFCF9;
+      --slate: #5a6677;
+      --line: #e0dcd4;
+      --teal: #2dbca8;
+      --teal-bg: rgba(45, 188, 168, 0.08);
+      --red: #e74c3c;
+      --red-bg: rgba(231, 76, 60, 0.08);
+      --blue: #3498db;
+      --blue-bg: rgba(52, 152, 219, 0.08);
+      --purple: #9b59b6;
+      --purple-bg: rgba(155, 89, 182, 0.08);
+      --orange: #e67e22;
+      --orange-bg: rgba(230, 126, 34, 0.08);
+      --green: #27ae60;
+      --green-bg: rgba(39, 174, 96, 0.08);
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Playfair Display', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       RESET & BASE
+       ═══════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--paper);
+      color: var(--navy);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--gold-dark); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════
+       LAYOUT
+       ═══════════════════════════════════════════════════ */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       HERO
+       ═══════════════════════════════════════════════════ */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 50%, #0a1e3d 100%);
+      color: white;
+      padding: 5rem 0 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(201, 162, 75, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -80px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(45, 188, 168, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero .container { position: relative; z-index: 1; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.9rem;
+      border: 1px solid rgba(201, 162, 75, 0.25);
+      border-radius: 999px;
+      background: rgba(201, 162, 75, 0.08);
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(201, 162, 75, 0.8);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 .gold { color: var(--gold); }
+
+    .hero .subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-family: var(--font-mono);
+    }
+
+    .hero-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .hero-meta .icon {
+      width: 14px; height: 14px;
+      opacity: 0.6;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       TABLE OF CONTENTS
+       ═══════════════════════════════════════════════════ */
+    .toc {
+      background: var(--paper-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin: 2.5rem 0;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toc h2 {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: var(--navy);
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+      font-size: 0.88rem;
+    }
+
+    .toc-item:hover { background: rgba(201, 162, 75, 0.06); }
+
+    .toc-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .toc-item a {
+      color: var(--navy);
+      font-weight: 500;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       SECTIONS
+       ═══════════════════════════════════════════════════ */
+    .section {
+      padding: 3rem 0 2rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .section:first-of-type { border-top: none; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-num {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+      color: white;
+    }
+
+    .section-header h2 {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      line-height: 1.3;
+    }
+
+    .section-header .label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--slate);
+      font-weight: 600;
+    }
+
+    /* Phase colors */
+    .phase-setup .section-num { background: var(--slate); }
+    .phase-1 .section-num { background: var(--teal); }
+    .phase-2 .section-num { background: var(--blue); }
+    .phase-3 .section-num { background: var(--purple); }
+    .phase-4 .section-num { background: var(--orange); }
+    .phase-5 .section-num { background: var(--green); }
+    .phase-polish .section-num { background: var(--gold-dark); }
+
+    /* ═══════════════════════════════════════════════════
+       CARDS
+       ═══════════════════════════════════════════════════ */
+    .card {
+      background: var(--paper-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover { box-shadow: var(--shadow-md); }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card h3 .badge {
+      font-size: 0.6rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .badge-ai {
+      background: var(--teal-bg);
+      color: var(--teal);
+      border: 1px solid rgba(45, 188, 168, 0.2);
+    }
+
+    .badge-manual {
+      background: var(--orange-bg);
+      color: var(--orange);
+      border: 1px solid rgba(230, 126, 34, 0.2);
+    }
+
+    .badge-both {
+      background: var(--purple-bg);
+      color: var(--purple);
+      border: 1px solid rgba(155, 89, 182, 0.2);
+    }
+
+    .card p, .card li {
+      font-size: 0.88rem;
+      color: var(--slate);
+      line-height: 1.7;
+    }
+
+    .card ul {
+      list-style: none;
+      margin: 0.5rem 0;
+    }
+
+    .card ul li {
+      padding: 0.25rem 0;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .card ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       PROMPT BLOCKS
+       ═══════════════════════════════════════════════════ */
+    .prompt-block {
+      background: var(--navy-deep);
+      border: 1px solid rgba(45, 188, 168, 0.2);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .prompt-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--teal), rgba(45, 188, 168, 0.3));
+    }
+
+    .prompt-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--teal);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    .prompt-label svg {
+      width: 14px; height: 14px;
+    }
+
+    .prompt-text {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.85);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .prompt-text .highlight {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .prompt-copy {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.5);
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .prompt-copy:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       MANUAL INSTRUCTION BLOCKS
+       ═══════════════════════════════════════════════════ */
+    .manual-block {
+      background: rgba(230, 126, 34, 0.04);
+      border: 1px solid rgba(230, 126, 34, 0.15);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .manual-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--orange), rgba(230, 126, 34, 0.3));
+    }
+
+    .manual-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--orange);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    .manual-text {
+      font-size: 0.85rem;
+      color: var(--navy);
+      line-height: 1.8;
+    }
+
+    .manual-text code {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(12, 27, 54, 0.06);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--navy);
+    }
+
+    .manual-text ol {
+      padding-left: 1.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .manual-text ol li {
+      padding: 0.2rem 0;
+      color: var(--slate);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       CODE BLOCKS
+       ═══════════════════════════════════════════════════ */
+    .code-block {
+      background: var(--navy-deep);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 0.75rem 0;
+      overflow-x: auto;
+    }
+
+    .code-block code {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.6;
+      white-space: pre;
+    }
+
+    .code-block .comment { color: rgba(255, 255, 255, 0.35); }
+    .code-block .string { color: #a5d6a7; }
+    .code-block .keyword { color: #80cbc4; }
+    .code-block .prop { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════
+       ALERT BOXES
+       ═══════════════════════════════════════════════════ */
+    .alert {
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .alert-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .alert-warning {
+      background: rgba(230, 126, 34, 0.08);
+      border: 1px solid rgba(230, 126, 34, 0.2);
+      color: var(--navy);
+    }
+
+    .alert-info {
+      background: rgba(52, 152, 219, 0.08);
+      border: 1px solid rgba(52, 152, 219, 0.2);
+      color: var(--navy);
+    }
+
+    .alert-success {
+      background: rgba(39, 174, 96, 0.08);
+      border: 1px solid rgba(39, 174, 96, 0.2);
+      color: var(--navy);
+    }
+
+    .alert-tip {
+      background: rgba(155, 89, 182, 0.08);
+      border: 1px solid rgba(155, 89, 182, 0.2);
+      color: var(--navy);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       DATA TABLE (Org Chart Reference)
+       ═══════════════════════════════════════════════════ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin: 1rem 0;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      background: var(--navy);
+      color: var(--gold);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .data-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+    .data-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+
+    .data-table td {
+      padding: 0.55rem 0.8rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--slate);
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+
+    .data-table tbody tr:hover { background: rgba(201, 162, 75, 0.04); }
+
+    .tier-badge {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-family: var(--font-mono);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tier-1 { background: rgba(231, 76, 60, 0.1); color: var(--red); }
+    .tier-2 { background: rgba(230, 126, 34, 0.1); color: var(--orange); }
+    .tier-3 { background: rgba(52, 152, 219, 0.1); color: var(--blue); }
+    .tier-4 { background: rgba(155, 89, 182, 0.1); color: var(--purple); }
+    .tier-5 { background: rgba(45, 188, 168, 0.1); color: var(--teal); }
+
+    /* ═══════════════════════════════════════════════════
+       PROGRESS TRACKER
+       ═══════════════════════════════════════════════════ */
+    .progress-tracker {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 2rem 0;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      white-space: nowrap;
+    }
+
+    .progress-dot {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: white;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .progress-dot .p-label {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 0.4rem;
+      font-size: 0.6rem;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .progress-line {
+      width: 40px;
+      height: 2px;
+      background: var(--line);
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       FILE TREE
+       ═══════════════════════════════════════════════════ */
+    .file-tree {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.8;
+      color: var(--slate);
+      background: rgba(12, 27, 54, 0.03);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 0.75rem 0;
+    }
+
+    .file-tree .folder { color: var(--gold-dark); font-weight: 600; }
+    .file-tree .new-file { color: var(--teal); }
+    .file-tree .mod-file { color: var(--blue); }
+    .file-tree .indent { padding-left: 1.2rem; }
+    .file-tree .indent-2 { padding-left: 2.4rem; }
+
+    /* ═══════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════ */
+    .footer {
+      background: var(--navy);
+      color: rgba(255, 255, 255, 0.4);
+      padding: 2.5rem 0;
+      text-align: center;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+
+    .footer .gold-text { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      .hero { padding: 3rem 0 2.5rem; }
+      .hero h1 { font-size: 1.8rem; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .progress-tracker { flex-wrap: wrap; gap: 0.5rem; }
+      .progress-line { width: 20px; }
+      .data-table { font-size: 0.72rem; }
+      .data-table th, .data-table td { padding: 0.4rem 0.5rem; }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       PRINT STYLES
+       ═══════════════════════════════════════════════════ */
+    @media print {
+      .hero { background: white !important; color: black !important; padding: 1rem 0; }
+      .hero::before, .hero::after { display: none; }
+      .prompt-block { background: #f5f5f5 !important; color: black !important; border-color: #ccc !important; }
+      .prompt-block::before { background: #999 !important; }
+      .prompt-text { color: black !important; }
+      .code-block { background: #f5f5f5 !important; }
+      .code-block code { color: black !important; }
+      .card:hover { box-shadow: var(--shadow-sm); }
+      body { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Developer Roadmap v1.0
+      </div>
+      <h1>USC Website <span class="gold">Revamp</span></h1>
+      <p class="subtitle">
+        A step-by-step developer guide for revamping the University Student Council website at ISUFST Dingle Campus — covering the officers page, events system, landing page spotlight, and public information section.
+      </p>
+      <div class="hero-meta">
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Est. 3–5 days
+        </span>
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          5 Phases
+        </span>
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+          Vue 3 + TailwindCSS + Supabase
+        </span>
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          July 2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ═══════════ TABLE OF CONTENTS ═══════════ -->
+    <nav class="toc">
+      <h2>Roadmap Overview</h2>
+      <div class="toc-grid">
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--slate)">0</span>
+          <a href="#phase-0">Environment Setup &amp; Repo Clone</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--teal)">1</span>
+          <a href="#phase-1">Officers Page — Org Chart Update</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--blue)">2</span>
+          <a href="#phase-2">Events Data Layer — JSON System</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--purple)">3</span>
+          <a href="#phase-3">Landing Page — Spotlight &amp; Carousel</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--orange)">4</span>
+          <a href="#phase-4">Campus Guide — Public Info Section</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--green)">5</span>
+          <a href="#phase-5">Polish, Test &amp; Deploy</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══════════ PROGRESS TRACKER ═══════════ -->
+    <div class="progress-tracker">
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--slate)">0
+          <span class="p-label">Setup</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--teal)">1
+          <span class="p-label">Officers</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--blue)">2
+          <span class="p-label">Events</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--purple)">3
+          <span class="p-label">Landing</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--orange)">4
+          <span class="p-label">Guide</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--green)">5
+          <span class="p-label">Deploy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 0 — SETUP
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-0" class="section phase-setup">
+      <div class="section-header">
+        <div class="section-num">0</div>
+        <div>
+          <span class="label">Phase 0 — Prerequisites</span>
+          <h2>Environment Setup &amp; Repo Clone</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Clone &amp; Install
+          <span class="badge badge-manual">Manual</span>
+        </h3>
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+            Step-by-step Instructions
+          </div>
+          <div class="manual-text">
+            <ol>
+              <li>Make sure you have <strong>Node.js 18+</strong> and <strong>Git</strong> installed.</li>
+              <li>Clone the repository:
+                <div class="code-block"><code>git clone https://github.com/J-Akiru5/usc-attendance.git
+cd usc-attendance</code></div>
+              </li>
+              <li>Install dependencies:
+                <div class="code-block"><code>npm install</code></div>
+              </li>
+              <li>Copy the environment file:
+                <div class="code-block"><code>cp .env.example .env</code></div>
+              </li>
+              <li>Fill in the <code>.env</code> file with the following values (get these from the project owner):
+                <div class="code-block"><code><span class="comment"># Supabase</span>
+<span class="prop">SUPABASE_URL</span>=<span class="string">https://your-project.supabase.co</span>
+<span class="prop">SUPABASE_ANON_KEY</span>=<span class="string">your-anon-key</span>
+<span class="prop">SUPABASE_SERVICE_ROLE_KEY</span>=<span class="string">your-service-role-key</span>
+
+<span class="comment"># Prisma (Supabase session pooler, port 5432)</span>
+<span class="prop">DATABASE_URL</span>=<span class="string">postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres</span>
+
+<span class="comment"># Seed admin password (for seed_auth.ts)</span>
+<span class="prop">SEED_ADMIN_PASSWORD</span>=<span class="string">your-admin-password-here</span></code></div>
+              </li>
+              <li>Generate Prisma client:
+                <div class="code-block"><code>npx prisma generate</code></div>
+              </li>
+              <li>Start the dev server:
+                <div class="code-block"><code>npm run dev</code></div>
+              </li>
+              <li>Open <code>http://localhost:5173</code> — you should see the existing USC site.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div><strong>For AI-assisted developers:</strong> You can paste each phase's prompt into an AI coding agent (like Antigravity, Cursor, etc.) one at a time. Complete each phase and verify it works before moving to the next.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 1 — OFFICERS PAGE
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-1" class="section phase-1">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <div>
+          <span class="label">Phase 1 — Officers</span>
+          <h2>Organizational Chart — Fill in Real Names</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>What Exists Now</h3>
+        <p>
+          The officers page (<code>src/pages/OfficersPage.vue</code>) already has a fully built <code>OrgChart.vue</code> component
+          with an institutional oversight chain and USC executive + senate sections. The oversight nodes use generic labels
+          like "SUC President" and "Campus AD" without actual names. The USC officer names are already filled in correctly.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>What Needs To Change</h3>
+        <p>Update the <code>oversight</code> array in <code>src/data/officers.ts</code> to include the real names from the Student Support Center org chart. Here's the exact data to populate:</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Current Label</th>
+              <th>Real Name</th>
+              <th>Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tier-badge tier-1">Root</span></td>
+              <td>SUC President</td>
+              <td><strong>Dr. Nordy D. Siason, Jr., CESO VI</strong></td>
+              <td>University President</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-2">FUSC</span></td>
+              <td>FUSC Adviser</td>
+              <td><strong>Dr. Stephen Raymund T. Jinon</strong></td>
+              <td>Vice President for Academic Affairs</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-2">FUSC</span></td>
+              <td>Name to confirm</td>
+              <td><em>Still to be confirmed</em></td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-3">Campus</span></td>
+              <td>FUSC President</td>
+              <td><em>To be confirmed — not shown in SSC chart</em></td>
+              <td>FUSC President</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-3">Campus</span></td>
+              <td>Campus AD</td>
+              <td><strong>Dr. Dingras E. Balbona</strong></td>
+              <td>Campus Administrator</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-4">SSC</span></td>
+              <td>SSC Chair</td>
+              <td><strong>Dr. Febe Jane Ilisan-Sales, RGC</strong></td>
+              <td>OIC Chairperson – Student Support Center</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-4">SSC</span></td>
+              <td>Vice Chair</td>
+              <td><strong>Dr. Ledeah R. Baling</strong></td>
+              <td>SSC Administrative Support Staff</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-5">SSC</span></td>
+              <td>USC Adviser</td>
+              <td><strong>Ms. Roussel Justtin B. Esmeralda</strong></td>
+              <td>Coordinator, Student Organization</td>
+            </tr>
+            <tr>
+              <td><span class="tier-badge tier-5">SSC</span></td>
+              <td>USC Co-Adviser</td>
+              <td><em>To be confirmed</em></td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div><strong>Note:</strong> Some positions (FUSC President, USC Co-Adviser) are not shown in the provided org chart image. Keep them as placeholders with <code>isPlaceholder: true</code> until confirmed.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          AI Agent Prompt
+          <span class="badge badge-ai">AI Prompt</span>
+        </h3>
+        <div class="prompt-block">
+          <button class="prompt-copy" onclick="copyPrompt(this)">Copy</button>
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Paste this into your AI coding agent
+          </div>
+          <div class="prompt-text">Update the oversight data in <span class="highlight">src/data/officers.ts</span> to include the real names from the ISUFST Student Support Center organizational chart. Keep the existing structure and tier assignments — only add the `name` field to each oversight node.
+
+Here are the real names to fill in:
+
+- `suc-president` → name: "Dr. Nordy D. Siason, Jr., CESO VI" (University President)
+- `fusc-adviser` → name: "Dr. Stephen Raymund T. Jinon" (VP for Academic Affairs)
+- `placeholder` → keep isPlaceholder: true (still unconfirmed)
+- `fusc-president` → keep without name (not confirmed yet, keep isPlaceholder: true)
+- `campus-ad` → name: "Dr. Dingras E. Balbona" (Campus Administrator)
+- `ssc-chair` → name: "Dr. Febe Jane Ilisan-Sales, RGC" (OIC Chairperson, SSC)
+- `vice-chair` → name: "Dr. Ledeah R. Baling" (SSC Administrative Support Staff)
+- `usc-adviser` → name: "Ms. Roussel Justtin B. Esmeralda" (Coordinator, Student Organization)
+- `usc-co-adviser` → keep isPlaceholder: true (unconfirmed)
+
+Also update the OfficerCard labels in <span class="highlight">OrgChart.vue</span> so that when a node has a `name`, the card displays the name prominently with the label as a subtitle. Currently the card only shows the label (e.g., "SUC President"). After this change, it should show the real name with the position label below it.
+
+Do NOT change the chart layout, connector lines, or overall structure. Only update the data and card rendering.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 2 — EVENTS DATA LAYER
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-2" class="section phase-2">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <div>
+          <span class="label">Phase 2 — Data Layer</span>
+          <h2>Events System — JSON-Based Data</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>What Needs To Happen</h3>
+        <p>
+          Replace the hardcoded <code>events.ts</code> TypeScript file with a JSON-based system so events (including media — photos and videos) can be easily updated by editing a single JSON file. No database or admin UI needed.
+        </p>
+        <ul>
+          <li>Create <code>public/data/events.json</code> — the single source of truth</li>
+          <li>Each event gets: title, date (ISO), endDate, description, location, venue, status (upcoming/completed), featured flag, cover image, gallery (array of image paths), trailer video URL, and tags</li>
+          <li>Add a <code>public/media/events/</code> folder for event images and video trailers</li>
+          <li>Create a composable <code>src/composables/useEvents.ts</code> that fetches and parses the JSON at runtime</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>File Structure</h3>
+        <div class="file-tree">
+          <span class="folder">public/</span><br>
+          <span class="indent folder">data/</span><br>
+          <span class="indent-2 new-file">events.json</span> ← NEW: all event data lives here<br>
+          <span class="indent folder">media/</span><br>
+          <span class="indent-2 folder">events/</span><br>
+          <span class="indent-2 new-file">general-assembly-cover.webp</span> ← event cover images<br>
+          <span class="indent-2 new-file">general-assembly-trailer.mp4</span> ← event trailers<br><br>
+          <span class="folder">src/</span><br>
+          <span class="indent folder">composables/</span><br>
+          <span class="indent-2 new-file">useEvents.ts</span> ← NEW: fetches + parses events.json<br>
+          <span class="indent folder">types/</span><br>
+          <span class="indent-2 new-file">event.ts</span> ← NEW: TypeScript interface<br>
+          <span class="indent folder">data/</span><br>
+          <span class="indent-2 mod-file">events.ts</span> ← DELETE or keep as fallback
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          AI Agent Prompt
+          <span class="badge badge-ai">AI Prompt</span>
+        </h3>
+        <div class="prompt-block">
+          <button class="prompt-copy" onclick="copyPrompt(this)">Copy</button>
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Paste this into your AI coding agent
+          </div>
+          <div class="prompt-text">I need to replace the hardcoded events system in this Vue 3 + TypeScript project with a JSON-based approach. Here's what to do:
+
+<span class="highlight">1. Create the event type</span> at `src/types/event.ts`:
+```typescript
+export interface USCEvent {
+  id: string              // unique slug, e.g. "general-assembly-2026"
+  title: string
+  date: string            // ISO 8601, e.g. "2026-07-25T08:00:00+08:00"
+  endDate?: string        // ISO 8601
+  description: string
+  location: string        // campus name
+  venue?: string          // specific room/area
+  status: 'upcoming' | 'ongoing' | 'completed'
+  featured: boolean       // if true, shows in hero spotlight
+  coverImage?: string     // path relative to public/, e.g. "/media/events/cover.webp"
+  gallery?: string[]      // array of image paths
+  trailerUrl?: string     // path to MP4/WebM or YouTube embed URL
+  tags?: string[]         // e.g. ["academic", "general"]
+  icon?: string           // emoji fallback
+}
+```
+
+<span class="highlight">2. Create `public/data/events.json`</span> with the existing 4 events migrated to this schema. Set the first event (General Assembly) as `featured: true` and `status: "upcoming"`. Make up reasonable ISO dates for July–October 2026.
+
+<span class="highlight">3. Create composable `src/composables/useEvents.ts`</span>:
+- Fetch `/data/events.json` at runtime using `fetch()`
+- Provide reactive state: `events`, `featuredEvent`, `upcomingEvents`, `pastEvents`
+- Include a `getCountdown(event)` function that returns `{ days, hours, minutes, seconds }` for the event's date
+- Sort events by date descending
+- Cache the fetch result so subsequent calls don't re-fetch
+
+<span class="highlight">4. Update `src/pages/PublicEventsPage.vue`</span> to use `useEvents()` instead of importing from `src/data/events.ts`.
+
+<span class="highlight">5. Update `src/pages/HomePage.vue`</span> to use `useEvents()` for the events preview section.
+
+Keep the existing design/styling. Don't change the visual appearance — just swap the data source.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Manual: Add Sample Media
+          <span class="badge badge-manual">Manual</span>
+        </h3>
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Add Real Event Assets
+          </div>
+          <div class="manual-text">
+            <ol>
+              <li>Create the folder: <code>public/media/events/</code></li>
+              <li>Add cover images for each event (recommended: 1200×630px, WebP format)</li>
+              <li>Add any trailer videos (MP4, max ~20MB for web performance)</li>
+              <li>Update the file paths in <code>public/data/events.json</code> to point to your actual files</li>
+              <li>For gallery images, create subfolders like <code>public/media/events/general-assembly/</code></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 3 — LANDING PAGE
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-3" class="section phase-3">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <div>
+          <span class="label">Phase 3 — Landing Page</span>
+          <h2>Hero Spotlight, Countdown &amp; Events Carousel</h2>
+        </div>
+      </div>
+
+      <div class="alert alert-tip">
+        <span class="alert-icon">🎯</span>
+        <div><strong>This is the highest-impact phase.</strong> The landing page will get a "Featured Event" hero mode with a countdown timer, and the About section gains a horizontal events carousel. The existing animated GIF logo must be preserved.</div>
+      </div>
+
+      <div class="card">
+        <h3>3A: Hero Spotlight Mode</h3>
+        <p>When there's a featured event (an event in <code>events.json</code> with <code>featured: true</code> and <code>status: "upcoming"</code>), the hero section transforms to showcase that event with:</p>
+        <ul>
+          <li>Event title + countdown timer (days, hours, minutes, seconds)</li>
+          <li>Event cover image or trailer as the hero background</li>
+          <li>CTA buttons: "View Details" and "Watch Trailer" (if trailer exists)</li>
+          <li>The <strong>animated USC logo GIF remains visible</strong> — positioned on the right side as it currently is</li>
+          <li>A subtle "switch" or visual indicator showing this is an event spotlight</li>
+          <li>When no featured event exists, the hero falls back to the current default view</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>3B: Events Carousel — Under About Section</h3>
+        <p>A horizontal scrolling carousel of recent/upcoming events placed directly after the "Who We Are" about preview section on the homepage. Inspired by the IRJICT website's event cards (see reference image).</p>
+        <ul>
+          <li>Horizontal scroll with snap points — auto-scrolls every 5 seconds, pauses on hover</li>
+          <li>Each card shows: cover image, status badge (upcoming/completed), title, date, location, short description, "View Details →" link</li>
+          <li>If the event has a trailer, show a small "Watch →" button with a video thumbnail</li>
+          <li>Cards have the same navy + gold styling as the rest of the site</li>
+          <li>Mobile: stack vertically or scroll horizontally</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>
+          AI Agent Prompt — Hero Spotlight
+          <span class="badge badge-ai">AI Prompt</span>
+        </h3>
+        <div class="prompt-block">
+          <button class="prompt-copy" onclick="copyPrompt(this)">Copy</button>
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Paste this into your AI coding agent
+          </div>
+          <div class="prompt-text">Modify the hero section in <span class="highlight">src/pages/HomePage.vue</span> to support a "Featured Event Spotlight" mode.
+
+<span class="highlight">Requirements:</span>
+1. Import the `useEvents` composable (from Phase 2)
+2. If there is a `featuredEvent` with status "upcoming", render the SPOTLIGHT version of the hero
+3. If no featured event, render the CURRENT DEFAULT hero (keep all existing code as the fallback)
+
+<span class="highlight">Spotlight Hero Layout:</span>
+- Left side: Event info
+  - Small badge: "🔥 Featured Event" with a pulsing dot
+  - Event title (large, serif font like the current h1)
+  - Event date + location in a subtle mono font
+  - Live countdown timer showing days : hours : minutes : seconds
+    - Use `setInterval` with 1-second ticks, compute from event ISO date
+    - Style each unit in a rounded box (navy background, gold numbers)
+  - Two CTA buttons:
+    - "View Details →" (gold filled button)  
+    - "Watch Trailer ▶" (outlined button, only shown if event has trailerUrl)
+- Right side: KEEP the existing animated USC logo GIF exactly as it is now
+  - Path: `/gif/usc%20logo%20animation.gif`
+  - Same sizing, same float animation, same glow effect
+  - Do NOT remove or replace the logo
+
+<span class="highlight">Background:</span>
+- If the event has a `coverImage`, use it as the hero background (with the same dark overlay style as current)
+- If not, use the default `/isufst.jpg` background
+
+<span class="highlight">Transition:</span>
+- Add a smooth crossfade between default and spotlight modes
+- Keep all existing v-motion animations
+
+<span class="highlight">Important:</span>
+- Preserve the logo carousel section below the hero (don't touch it)
+- The countdown should stop and show "Event Started" once the date passes
+- Use the existing Tailwind classes and navy/gold color scheme</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          AI Agent Prompt — Events Carousel
+          <span class="badge badge-ai">AI Prompt</span>
+        </h3>
+        <div class="prompt-block">
+          <button class="prompt-copy" onclick="copyPrompt(this)">Copy</button>
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Paste this into your AI coding agent
+          </div>
+          <div class="prompt-text">Create a new component <span class="highlight">src/components/ui/EventsCarousel.vue</span> and add it to the HomePage.
+
+<span class="highlight">EventsCarousel Component:</span>
+- Accepts `events` prop (array of USCEvent from the useEvents composable)
+- Horizontal scrollable carousel with CSS scroll-snap
+- Auto-scrolls every 5 seconds, pauses on hover or touch
+- Shows left/right arrow buttons on desktop (hidden on mobile)
+- Dot indicators at the bottom showing current position
+
+<span class="highlight">Each Event Card in the Carousel:</span>
+- Status badge in top-right: "Upcoming" (green) or "Completed" (gray), show days-ago for completed
+- Cover image (or a gradient placeholder if no image)
+- Event title (bold, navy)
+- Date icon + formatted date (e.g., "Jul 25, 2026")
+- Location icon + venue/location
+- Truncated description (2 lines max)
+- "View Details →" link
+- If event has `trailerUrl`: a small "Watch →" button with video icon
+- Card styling: white background, subtle border, rounded-xl, shadow on hover
+
+<span class="highlight">Placement on HomePage:</span>
+- Insert the carousel section BETWEEN the "About Preview" section and the "Officers Preview" section
+- Add a section header: label "Recent & Upcoming", title "Events"
+- Keep the existing navy + gold color scheme
+- Background: use `bg-paper` to match the surrounding sections
+
+<span class="highlight">Mobile:</span>
+- Single card visible, swipe to scroll
+- Touch-friendly with momentum scrolling
+
+<span class="highlight">Styling notes:</span>
+- Use the existing Tailwind config (navy, gold, paper colors)
+- Match the card style from the IRJICT reference: status badge, date/location with icons, "View Details →" link
+- Add subtle hover animations (scale 1.02, shadow increase)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 4 — CAMPUS GUIDE
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-4" class="section phase-4">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <div>
+          <span class="label">Phase 4 — Public Information</span>
+          <h2>Campus Guide — Student Handbook Page</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>What This Is</h3>
+        <p>
+          A dedicated page for <strong>general knowledge about the school</strong> — things every student should know but might not.
+          It's NOT a traditional FAQ. It's more like a lightweight "Student Handbook" with categorized accordion sections.
+        </p>
+        <p>Think of entries like:</p>
+        <ul>
+          <li>"Why do we pay ₱50/semester if tuition is free?" → Departmental fee for ID, insurance, and student activities</li>
+          <li>"Where is the registrar's office?" → Building, floor, office hours</li>
+          <li>"How do I join a student organization?" → Process and requirements</li>
+          <li>"What's the academic calendar for this year?" → Key dates overview</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Categories to Include</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; margin: 0.75rem 0;">
+          <div style="padding: 0.75rem; border-radius: 8px; background: var(--teal-bg); border: 1px solid rgba(45,188,168,0.15);">
+            <strong style="font-size: 0.85rem; color: var(--teal);">💰 Fees & Financial Info</strong>
+            <p style="font-size: 0.75rem; color: var(--slate); margin-top: 0.3rem;">Departmental fees, misc fees, payment schedules, why certain fees exist despite free tuition</p>
+          </div>
+          <div style="padding: 0.75rem; border-radius: 8px; background: var(--blue-bg); border: 1px solid rgba(52,152,219,0.15);">
+            <strong style="font-size: 0.85rem; color: var(--blue);">📋 Enrollment & Registration</strong>
+            <p style="font-size: 0.75rem; color: var(--slate); margin-top: 0.3rem;">Step-by-step enrollment process, required documents, deadlines</p>
+          </div>
+          <div style="padding: 0.75rem; border-radius: 8px; background: var(--purple-bg); border: 1px solid rgba(155,89,182,0.15);">
+            <strong style="font-size: 0.85rem; color: var(--purple);">🏫 Campus Facilities & Services</strong>
+            <p style="font-size: 0.75rem; color: var(--slate); margin-top: 0.3rem;">Library, computer labs, clinic, canteen, study areas, dormitory</p>
+          </div>
+          <div style="padding: 0.75rem; border-radius: 8px; background: var(--orange-bg); border: 1px solid rgba(230,126,34,0.15);">
+            <strong style="font-size: 0.85rem; color: var(--orange);">🤝 Student Organizations</strong>
+            <p style="font-size: 0.75rem; color: var(--slate); margin-top: 0.3rem;">How to join, list of recognized orgs, what USC does</p>
+          </div>
+          <div style="padding: 0.75rem; border-radius: 8px; background: var(--green-bg); border: 1px solid rgba(39,174,96,0.15);">
+            <strong style="font-size: 0.85rem; color: var(--green);">📅 Academic Calendar</strong>
+            <p style="font-size: 0.75rem; color: var(--slate); margin-top: 0.3rem;">Semester start/end, enrollment periods, exam weeks, holidays</p>
+          </div>
+          <div style="padding: 0.75rem; border-radius: 8px; background: var(--red-bg); border: 1px solid rgba(231,76,60,0.15);">
+            <strong style="font-size: 0.85rem; color: var(--red);">📜 Campus Rules & Regulations</strong>
+            <p style="font-size: 0.75rem; color: var(--slate); margin-top: 0.3rem;">Dress code, ID policy, campus hours, disciplinary procedures</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Data Approach — JSON File</h3>
+        <p>Like the events system, store the campus guide data in a JSON file that can be easily edited:</p>
+        <div class="file-tree">
+          <span class="folder">public/</span><br>
+          <span class="indent folder">data/</span><br>
+          <span class="indent-2 new-file">campus-guide.json</span> ← NEW: all Q&A entries by category<br><br>
+          <span class="folder">src/</span><br>
+          <span class="indent folder">composables/</span><br>
+          <span class="indent-2 new-file">useCampusGuide.ts</span> ← NEW: fetches + groups by category<br>
+          <span class="indent folder">pages/</span><br>
+          <span class="indent-2 new-file">CampusGuidePage.vue</span> ← NEW: dedicated page
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          AI Agent Prompt
+          <span class="badge badge-ai">AI Prompt</span>
+        </h3>
+        <div class="prompt-block">
+          <button class="prompt-copy" onclick="copyPrompt(this)">Copy</button>
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Paste this into your AI coding agent
+          </div>
+          <div class="prompt-text">Create a "Campus Guide" page for the USC website. This is a public information section — like a student handbook in accordion format.
+
+<span class="highlight">Step 1: Create `public/data/campus-guide.json`</span>
+Structure:
+```json
+{
+  "categories": [
+    {
+      "id": "fees",
+      "title": "Fees & Financial Info",
+      "icon": "💰",
+      "color": "teal",
+      "entries": [
+        {
+          "question": "Why do we pay ₱50 per semester if tuition is free?",
+          "answer": "Under Republic Act 10931 (Universal Access to Quality Tertiary Education Act), tuition is covered by the government. However, the ₱50 departmental fee covers essential services not included in the free tuition policy, such as: student ID processing, personal accident insurance, and USC-organized student activities. This fee is authorized by the university administration."
+        }
+      ]
+    }
+  ]
+}
+```
+
+Include these 6 categories with 3-4 entries each (write realistic, helpful content specific to ISUFST):
+1. **Fees & Financial Info** (icon: 💰) — departmental fee explanation, miscellaneous fees, payment methods
+2. **Enrollment & Registration** (icon: 📋) — enrollment steps, documents needed, late enrollment
+3. **Campus Facilities & Services** (icon: 🏫) — library, labs, clinic, study areas, WiFi
+4. **Student Organizations** (icon: 🤝) — how to join, recognized orgs, USC role
+5. **Academic Calendar** (icon: 📅) — semester dates, exam periods, holidays
+6. **Campus Rules & Regulations** (icon: 📜) — dress code, ID policy, campus hours
+
+<span class="highlight">Step 2: Create `src/composables/useCampusGuide.ts`</span>
+- Fetch `/data/campus-guide.json`
+- Provide reactive `categories` array
+- Include a search function that filters entries by keyword
+
+<span class="highlight">Step 3: Create `src/pages/CampusGuidePage.vue`</span>
+- Hero section matching the existing page style (navy background, grid pattern overlay, same as FAQPage and OfficersPage)
+- Title: "Campus Guide" with subtitle "Everything you need to know about ISUFST Dingle Campus"
+- Search bar at the top that filters across all categories
+- Category cards with icons — clicking a category scrolls to its accordion section
+- Each category has an accordion (matching the existing FAQ page styling in FAQPage.vue)
+- Smooth open/close animations on accordion items
+- Use the existing navy + gold color scheme
+
+<span class="highlight">Step 4: Add route</span>
+Add a route in `src/router/index.ts`:
+- Path: `/campus-guide`
+- Name: `campus-guide`
+- Meta: `{ layout: 'public' }`
+
+<span class="highlight">Step 5: Add navigation link</span>
+Add "Campus Guide" to the site navigation (find the nav component in `src/components/layout/` and add it between "Events" and "Contact").</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Manual: Populate Real Content
+          <span class="badge badge-manual">Manual</span>
+        </h3>
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Content Gathering
+          </div>
+          <div class="manual-text">
+            <p>After the AI generates placeholder content, you'll need to:</p>
+            <ol>
+              <li>Review the <code>public/data/campus-guide.json</code> file</li>
+              <li>Replace placeholder answers with <strong>accurate information</strong> from ISUFST Dingle Campus</li>
+              <li>Verify the ₱50 departmental fee breakdown with the USC Treasurer</li>
+              <li>Get the actual academic calendar dates from the Registrar</li>
+              <li>Confirm the list of recognized student organizations</li>
+              <li>Verify campus facility details (locations, hours, etc.)</li>
+            </ol>
+            <p style="margin-top: 0.5rem; color: var(--orange);"><strong>This is the most important manual step — accuracy matters more than design here.</strong></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 5 — POLISH & DEPLOY
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-5" class="section phase-5">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <div>
+          <span class="label">Phase 5 — Final</span>
+          <h2>Polish, Test &amp; Deploy</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          AI Agent Prompt — Final Polish
+          <span class="badge badge-ai">AI Prompt</span>
+        </h3>
+        <div class="prompt-block">
+          <button class="prompt-copy" onclick="copyPrompt(this)">Copy</button>
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Paste this into your AI coding agent
+          </div>
+          <div class="prompt-text">Do a final review and polish pass on the USC website revamp. Check these things:
+
+<span class="highlight">1. Mobile Responsiveness:</span>
+- Test all new pages/components at 375px, 768px, and 1024px widths
+- The events carousel should be swipeable on mobile
+- The campus guide accordion should work well on small screens
+- The hero spotlight countdown boxes should stack/resize on mobile
+
+<span class="highlight">2. Navigation Consistency:</span>
+- Make sure "Campus Guide" appears in the main nav for all pages
+- Verify the navigation order: Home, About, Officers, Projects, Events, Campus Guide, Contact
+- Check that the mobile hamburger menu includes all links
+
+<span class="highlight">3. Loading States:</span>
+- Add skeleton loaders for the events carousel while events.json loads
+- Add a loading state for the campus guide page
+- Handle the case where events.json or campus-guide.json fails to load (show a friendly error)
+
+<span class="highlight">4. SEO & Meta Tags:</span>
+- Update `index.html` title and meta description to mention the new features
+- Add proper `<title>` and meta tags to CampusGuidePage
+
+<span class="highlight">5. Performance:</span>
+- Make sure event cover images use `loading="lazy"`
+- Ensure trailer videos don't auto-download (use poster images instead)
+- Check that the countdown timer cleanup happens on component unmount (clearInterval)
+
+<span class="highlight">6. Verify existing features still work:</span>
+- Login page
+- Officer Portal
+- Attendance system
+- The animated USC logo GIF on the homepage</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Deploy Checklist
+          <span class="badge badge-manual">Manual</span>
+        </h3>
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Pre-Deploy Steps
+          </div>
+          <div class="manual-text">
+            <ol>
+              <li>Run the build to check for TypeScript errors:
+                <div class="code-block"><code>npm run build</code></div>
+              </li>
+              <li>Test locally with the production build:
+                <div class="code-block"><code>npm run preview</code></div>
+              </li>
+              <li>Verify all JSON files are valid:
+                <div class="code-block"><code><span class="comment"># Quick validation</span>
+node -e "JSON.parse(require('fs').readFileSync('public/data/events.json'))"
+node -e "JSON.parse(require('fs').readFileSync('public/data/campus-guide.json'))"</code></div>
+              </li>
+              <li>Check that all media files are committed:
+                <div class="code-block"><code>git status
+git add public/media/ public/data/
+git commit -m "feat: add event media and campus guide data"</code></div>
+              </li>
+              <li>Push to deploy (Vercel auto-deploys from the repo):
+                <div class="code-block"><code>git push origin main</code></div>
+              </li>
+              <li>After deploy, verify on the live URL:
+                <ul style="list-style: disc; padding-left: 1.5rem;">
+                  <li>Homepage hero spotlight (if a featured event exists)</li>
+                  <li>Events carousel scrolls and links work</li>
+                  <li>Campus Guide page loads and search works</li>
+                  <li>Officers page shows real names</li>
+                  <li>Mobile navigation includes all new links</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         APPENDIX — QUICK REFERENCE
+         ═══════════════════════════════════════════════════ -->
+    <section class="section" style="border-top: 2px solid var(--gold); padding-top: 2.5rem;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 1.5rem;">📎 Quick Reference</h2>
+
+      <div class="card">
+        <h3>Tech Stack</h3>
+        <table class="data-table">
+          <thead>
+            <tr><th>Layer</th><th>Technology</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Frontend</td><td>Vue 3 + TypeScript</td><td>Composition API, <code>&lt;script setup&gt;</code></td></tr>
+            <tr><td>Styling</td><td>TailwindCSS 3.4</td><td>Custom navy/gold theme configured</td></tr>
+            <tr><td>Animations</td><td>@vueuse/motion</td><td>v-motion directive for scroll animations</td></tr>
+            <tr><td>Routing</td><td>Vue Router 4</td><td>Auth guards, layout meta</td></tr>
+            <tr><td>State</td><td>Pinia</td><td>Auth store for user sessions</td></tr>
+            <tr><td>Backend</td><td>Vercel Serverless (api/)</td><td>Prisma ORM + Supabase PostgreSQL</td></tr>
+            <tr><td>Auth</td><td>Supabase Auth</td><td>JWT-based, officer-only accounts</td></tr>
+            <tr><td>Deployment</td><td>Vercel</td><td>Auto-deploy from GitHub</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Key File Paths</h3>
+        <table class="data-table">
+          <thead>
+            <tr><th>What</th><th>Path</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Homepage</td><td><code>src/pages/HomePage.vue</code></td></tr>
+            <tr><td>Officers Page</td><td><code>src/pages/OfficersPage.vue</code></td></tr>
+            <tr><td>Org Chart Component</td><td><code>src/components/ui/OrgChart.vue</code></td></tr>
+            <tr><td>Officer Card Component</td><td><code>src/components/ui/OfficerCard.vue</code></td></tr>
+            <tr><td>Officers Data</td><td><code>src/data/officers.ts</code></td></tr>
+            <tr><td>Events Data (current)</td><td><code>src/data/events.ts</code></td></tr>
+            <tr><td>Events Data (new)</td><td><code>public/data/events.json</code></td></tr>
+            <tr><td>Campus Guide Data</td><td><code>public/data/campus-guide.json</code></td></tr>
+            <tr><td>Router</td><td><code>src/router/index.ts</code></td></tr>
+            <tr><td>FAQ Page (reference)</td><td><code>src/pages/FAQPage.vue</code></td></tr>
+            <tr><td>USC Logo GIF</td><td><code>public/gif/usc logo animation.gif</code></td></tr>
+            <tr><td>Nav Layout</td><td><code>src/components/layout/</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Prompt Order Cheat Sheet</h3>
+        <table class="data-table">
+          <thead>
+            <tr><th>#</th><th>Phase</th><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight: 700; color: var(--teal);">1</td>
+              <td>Officers</td>
+              <td><span class="badge badge-ai" style="display:inline-block">AI</span></td>
+              <td>Fill real names into officers.ts oversight array</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--blue);">2</td>
+              <td>Events</td>
+              <td><span class="badge badge-ai" style="display:inline-block">AI</span></td>
+              <td>Create events.json, type, composable, update pages</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--blue);">2b</td>
+              <td>Events</td>
+              <td><span class="badge badge-manual" style="display:inline-block">Manual</span></td>
+              <td>Add real event images + trailer videos</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--purple);">3a</td>
+              <td>Landing</td>
+              <td><span class="badge badge-ai" style="display:inline-block">AI</span></td>
+              <td>Hero spotlight mode with countdown</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--purple);">3b</td>
+              <td>Landing</td>
+              <td><span class="badge badge-ai" style="display:inline-block">AI</span></td>
+              <td>Events carousel component + integration</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--orange);">4</td>
+              <td>Guide</td>
+              <td><span class="badge badge-ai" style="display:inline-block">AI</span></td>
+              <td>Campus Guide page, composable, route, nav link</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--orange);">4b</td>
+              <td>Guide</td>
+              <td><span class="badge badge-manual" style="display:inline-block">Manual</span></td>
+              <td>Verify and replace placeholder content with real info</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--green);">5</td>
+              <td>Polish</td>
+              <td><span class="badge badge-both" style="display:inline-block">Both</span></td>
+              <td>Responsive check, loading states, deploy</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div>
+          <strong>How to Use This Roadmap</strong><br>
+          Work through each phase sequentially. For AI-prompted tasks, copy the prompt, paste it into your AI coding agent, and review the output before moving on. For manual tasks, follow the instructions step by step. Each phase builds on the previous one, so don't skip ahead.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="footer">
+    <div class="container">
+      <p>USC Website Revamp Roadmap · <span class="gold-text">ISUFST Dingle Campus</span> · July 2026</p>
+      <p style="margin-top: 0.5rem; font-size: 0.7rem; opacity: 0.5;">Generated for the USC development team</p>
+    </div>
+  </footer>
+
+  <!-- ═══════════ COPY PROMPT SCRIPT ═══════════ -->
+  <script>
+    function copyPrompt(btn) {
+      const block = btn.closest('.prompt-block');
+      const text = block.querySelector('.prompt-text').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.color = '#2dbca8';
+        btn.style.borderColor = 'rgba(45, 188, 168, 0.4)';
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>

@@ -35,6 +35,9 @@ const variantClass = computed(() => {
 
 <template>
   <div class="officer-card" :class="[variantClass, { 'card-flagged': flagged }]">
+    <!-- Metallic sheen layer (decorative, pointer-events:none) -->
+    <div class="card-sheen" aria-hidden="true"></div>
+
     <!-- Avatar Section -->
     <div class="avatar-wrap">
       <img
@@ -43,8 +46,24 @@ const variantClass = computed(() => {
         :alt="name || designation"
         class="avatar-img"
       />
-      <div v-else class="avatar-fallback">
-        {{ initials }}
+      <!-- SVG silhouette bust — replaces initials fallback -->
+      <div v-else class="avatar-silhouette">
+        <svg
+          viewBox="0 0 48 48"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="silhouette-svg"
+          aria-hidden="true"
+        >
+          <!-- Head circle -->
+          <circle cx="24" cy="16" r="9" fill="currentColor" opacity="0.85"/>
+          <!-- Shoulders / body -->
+          <path
+            d="M6 44c0-9.941 8.059-18 18-18s18 8.059 18 18"
+            fill="currentColor"
+            opacity="0.7"
+          />
+        </svg>
       </div>
     </div>
 
@@ -67,43 +86,61 @@ const variantClass = computed(() => {
 
 <style scoped>
 /* ══════════════════════════════════════════
-   BASE CARD STYLES (Desktop - Horizontal Layout)
+   BASE CARD — Metallic Foundation
    ══════════════════════════════════════════ */
 .officer-card {
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.875rem;
-  border-radius: 0.75rem;
-  padding: 0.875rem 1rem;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.2s ease,
-              background 0.2s ease;
+  gap: 0.75rem;
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s ease;
   box-sizing: border-box;
   text-align: left;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid transparent;
+  overflow: hidden; /* contain sheen pseudo-element */
 }
 
 .officer-card:hover {
   transform: translateY(-3px);
-  box-shadow: 
-    0 8px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Avatar base styles (Square with rounded corners) */
+/* ── Diagonal metallic sheen strip ── */
+.card-sheen {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    118deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.07) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.07) 55%,
+    transparent 80%
+  );
+  z-index: 1;
+}
+
+/* ── Avatar ── */
 .avatar-wrap {
-  width: var(--avatar-size, 48px);
-  height: var(--avatar-size, 48px);
-  border-radius: 0.5rem;
+  width: var(--avatar-size, 46px);
+  height: var(--avatar-size, 46px);
+  border-radius: 0.45rem;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--avatar-border, rgba(255, 255, 255, 0.12));
+  background: var(--avatar-bg, rgba(255, 255, 255, 0.06));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
 }
 
 .avatar-img {
@@ -112,269 +149,313 @@ const variantClass = computed(() => {
   object-fit: cover;
 }
 
-.avatar-fallback {
+.avatar-silhouette {
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: var(--avatar-font-size, 1rem);
-  text-transform: uppercase;
-  color: var(--avatar-color, rgba(255, 255, 255, 0.8));
-  background: var(--avatar-bg, rgba(255, 255, 255, 0.08));
+  color: var(--silhouette-color, rgba(255, 255, 255, 0.5));
+  padding-bottom: 0;
+  overflow: hidden;
 }
 
-/* Info wrap layout */
+.silhouette-svg {
+  width: 88%;
+  height: 88%;
+  display: block;
+  margin-bottom: -4px; /* let shoulders bleed to bottom edge */
+}
+
+/* ── Info wrap ── */
 .info-wrap {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 0; /* allows text truncation/wrap inside flex items */
+  min-width: 0;
   flex-grow: 1;
+  position: relative;
+  z-index: 2;
 }
 
 .info-name {
-  font-size: 0.875rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  color: #ffffff;
-  line-height: 1.3;
+  color: var(--name-color, #ffffff);
+  line-height: 1.25;
   white-space: normal;
   word-break: break-word;
+  letter-spacing: -0.01em;
 }
 
 .info-designation {
-  font-size: 0.725rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--designation-color, rgba(255, 255, 255, 0.6));
   margin-top: 0.15rem;
   line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
 }
 
-/* Email styles */
 .info-email {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  margin-top: 0.375rem;
-  font-size: 0.625rem;
+  margin-top: 0.35rem;
+  font-size: 0.6rem;
   font-family: 'JetBrains Mono', monospace;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
   min-width: 0;
 }
 
-.email-icon {
-  width: 0.75rem;
-  height: 0.75rem;
-}
-
-.email-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.email-icon { width: 0.72rem; height: 0.72rem; }
+.email-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ══════════════════════════════════════════
-   VARIANT STYLES
+   TIER VARIANTS — Metallic Gradients
    ══════════════════════════════════════════ */
 
-/* Tier 1: Institutional Oversight — Dark blue/slate with gold accents */
+/* ── Tier 1: Institutional — navy-gold metallic ── */
 .card-institutional {
   width: 100%;
-  max-width: 260px;
-  background: rgba(28, 37, 65, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-color: rgba(201, 162, 75, 0.35);
-  border-width: 1px;
+  max-width: 262px;
+  background: linear-gradient(
+    148deg,
+    #1c2848 0%,
+    #253568 40%,
+    #1e2d5c 70%,
+    #151f40 100%
+  );
+  border-color: rgba(201, 162, 75, 0.45);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(201, 162, 75, 0.1),
-    inset 0 1px 0 rgba(201, 162, 75, 0.12);
-  --avatar-size: 52px;
-  --avatar-font-size: 1.05rem;
-  --avatar-bg: rgba(201, 162, 75, 0.18);
-  --avatar-color: #e4cd8e;
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(201, 162, 75, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  --avatar-size: 50px;
+  --avatar-bg: linear-gradient(145deg, rgba(201, 162, 75, 0.22), rgba(201, 162, 75, 0.08));
+  --avatar-border: rgba(201, 162, 75, 0.3);
+  --silhouette-color: rgba(228, 205, 142, 0.7);
+  --name-color: #f0e8cc;
+  --designation-color: rgba(201, 162, 75, 0.9);
 }
 
 .card-institutional .info-name {
-  color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.card-institutional .info-designation {
-  color: rgba(201, 162, 75, 0.85);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .card-institutional:hover {
-  border-color: rgba(201, 162, 75, 0.65);
-  background: rgba(35, 47, 80, 0.9);
+  border-color: rgba(201, 162, 75, 0.7);
   box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(201, 162, 75, 0.25),
-    inset 0 1px 0 rgba(201, 162, 75, 0.18);
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(201, 162, 75, 0.28),
+    0 0 0 1px rgba(201, 162, 75, 0.18);
 }
 
-/* Tier 2: Pivot Points — Dark blue with gold border */
+/* ── Tier 2: Pivot — deeper navy, stronger gold border ── */
 .card-pivot {
   width: 100%;
-  max-width: 260px;
-  background: rgba(28, 37, 65, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-color: rgba(201, 162, 75, 0.5);
+  max-width: 262px;
+  background: linear-gradient(
+    148deg,
+    #18234a 0%,
+    #223070 45%,
+    #1b2860 75%,
+    #131d42 100%
+  );
+  border-color: rgba(201, 162, 75, 0.6);
+  border-width: 1.5px;
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(201, 162, 75, 0.12),
-    inset 0 1px 0 rgba(201, 162, 75, 0.1);
-  --avatar-size: 52px;
-  --avatar-font-size: 1.05rem;
-  --avatar-bg: rgba(201, 162, 75, 0.2);
-  --avatar-color: #e4cd8e;
+    0 8px 22px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(201, 162, 75, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(201, 162, 75, 0.12);
+  --avatar-size: 50px;
+  --avatar-bg: linear-gradient(145deg, rgba(201, 162, 75, 0.28), rgba(201, 162, 75, 0.1));
+  --avatar-border: rgba(201, 162, 75, 0.38);
+  --silhouette-color: rgba(228, 205, 142, 0.8);
+  --name-color: #f5edda;
+  --designation-color: rgba(228, 205, 142, 0.95);
 }
 
 .card-pivot .info-name {
-  color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.card-pivot .info-designation {
-  color: rgba(201, 162, 75, 0.9);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .card-pivot:hover {
-  border-color: rgba(201, 162, 75, 0.75);
-  background: rgba(35, 47, 80, 0.9);
+  border-color: rgba(201, 162, 75, 0.85);
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(201, 162, 75, 0.3),
-    inset 0 1px 0 rgba(201, 162, 75, 0.15);
+    0 12px 32px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(201, 162, 75, 0.32),
+    0 0 0 1px rgba(201, 162, 75, 0.25);
 }
 
-/* Tier 3: USC President & Vice President (Gold Gradient) */
+/* ── Tier 3: Executive — bright gold metallic (USC Pres / VP) ── */
 .card-executive {
   width: 100%;
-  max-width: 290px;
-  background: linear-gradient(135deg, #c9a24b 0%, #e4cd8e 50%, #8a6d2f 100%);
-  border-color: rgba(255, 255, 255, 0.25);
-  --avatar-size: 56px;
-  --avatar-font-size: 1.15rem;
-  --avatar-bg: rgba(12, 27, 54, 0.5);
-  --avatar-color: #f0d880;
+  max-width: 292px;
+  background: linear-gradient(
+    138deg,
+    #a07828 0%,
+    #d4ac48 20%,
+    #f0d870 42%,
+    #e8ca58 55%,
+    #c49830 75%,
+    #8a6820 100%
+  );
+  border: 1.5px solid rgba(255, 235, 130, 0.5);
+  box-shadow:
+    0 10px 30px rgba(180, 130, 20, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 200, 0.4),
+    inset 0 -2px 0 rgba(80, 50, 0, 0.4);
+  --avatar-size: 54px;
+  --avatar-bg: linear-gradient(145deg, rgba(12, 27, 54, 0.55), rgba(12, 27, 54, 0.35));
+  --avatar-border: rgba(255, 255, 255, 0.25);
+  --silhouette-color: rgba(240, 216, 112, 0.85);
+  --name-color: #0c1b36;
+  --designation-color: rgba(12, 27, 54, 0.78);
 }
 
 .card-executive .info-name {
   color: #0c1b36;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 800;
 }
 
 .card-executive .info-designation {
-  color: rgba(12, 27, 54, 0.85);
-  font-size: 0.75rem;
+  color: rgba(12, 27, 54, 0.75);
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
 .card-executive .info-email {
-  color: rgba(12, 27, 54, 0.65);
+  color: rgba(12, 27, 54, 0.55);
 }
 
 .card-executive:hover {
-  border-color: rgba(255, 255, 255, 0.45);
-  box-shadow: 
-    0 12px 32px rgba(201, 162, 75, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 245, 160, 0.75);
+  box-shadow:
+    0 14px 38px rgba(201, 162, 75, 0.55),
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 220, 0.5);
 }
 
-/* Tier 4: Committee / Executive Officers — Dark slate with crisp white text */
+/* Override sheen on executive — lighter, brighter */
+.card-executive .card-sheen {
+  background: linear-gradient(
+    118deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.12) 42%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.12) 58%,
+    transparent 82%
+  );
+}
+
+/* ── Tier 4: Committee — steel-blue metallic ── */
 .card-committee {
   width: 100%;
-  max-width: 250px;
-  background: rgba(28, 37, 65, 0.85);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-color: rgba(100, 140, 220, 0.3);
-  border-width: 1px;
+  max-width: 252px;
+  background: linear-gradient(
+    148deg,
+    #182050 0%,
+    #1d2c6e 40%,
+    #182458 70%,
+    #111a42 100%
+  );
+  border-color: rgba(100, 150, 240, 0.42);
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
-  --avatar-size: 48px;
-  --avatar-font-size: 1.05rem;
-  --avatar-bg: rgba(100, 140, 220, 0.18);
-  --avatar-color: rgba(180, 210, 255, 0.9);
-}
-
-.card-committee .info-name {
-  color: #ffffff;
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.card-committee .info-designation {
-  color: rgba(180, 210, 255, 0.9);
-  font-size: 0.725rem;
-  font-weight: 700;
+    0 5px 16px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(120, 170, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
+  --avatar-size: 46px;
+  --avatar-bg: linear-gradient(145deg, rgba(100, 150, 240, 0.22), rgba(80, 120, 210, 0.08));
+  --avatar-border: rgba(100, 150, 240, 0.3);
+  --silhouette-color: rgba(160, 200, 255, 0.7);
+  --name-color: #e8eeff;
+  --designation-color: rgba(160, 200, 255, 0.88);
 }
 
 .card-committee .info-email {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .card-committee:hover {
-  background: rgba(35, 47, 80, 0.9);
-  border-color: rgba(100, 160, 255, 0.55);
+  border-color: rgba(120, 170, 255, 0.65);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 0 1px rgba(100, 160, 255, 0.2);
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(140, 190, 255, 0.25),
+    0 0 0 1px rgba(100, 150, 255, 0.18);
 }
 
-/* Tier 5: Student Senate — Dark cards with teal accents, high-contrast white text */
+/* Override sheen on committee — cooler/bluer */
+.card-committee .card-sheen {
+  background: linear-gradient(
+    118deg,
+    transparent 20%,
+    rgba(140, 180, 255, 0.06) 45%,
+    rgba(200, 220, 255, 0.12) 50%,
+    rgba(140, 180, 255, 0.06) 55%,
+    transparent 80%
+  );
+}
+
+/* ── Tier 5: Senate — teal-steel metallic ── */
 .card-senate {
   width: 100%;
-  max-width: 190px;
-  background: rgba(15, 50, 45, 0.4);
-  border-color: rgba(45, 188, 168, 0.3);
-  padding: 0.625rem 0.75rem;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  max-width: 192px;
+  background: linear-gradient(
+    148deg,
+    #0c2e2a 0%,
+    #143d38 42%,
+    #102e2a 72%,
+    #081e1c 100%
+  );
+  border-color: rgba(45, 188, 168, 0.42);
+  padding: 0.6rem 0.75rem;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(60, 220, 195, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
   --avatar-size: 36px;
-  --avatar-font-size: 0.8rem;
-  --avatar-bg: rgba(45, 188, 168, 0.15);
-  --avatar-color: rgba(80, 220, 200, 0.9);
+  --avatar-bg: linear-gradient(145deg, rgba(45, 188, 168, 0.2), rgba(30, 150, 135, 0.08));
+  --avatar-border: rgba(45, 188, 168, 0.28);
+  --silhouette-color: rgba(80, 220, 200, 0.75);
+  --name-color: #d8f8f4;
+  --designation-color: rgba(80, 220, 200, 0.88);
 }
 
 .card-senate .info-name {
-  color: #ffffff;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.75rem;
   white-space: normal;
   word-break: break-word;
 }
 
 .card-senate .info-designation {
-  color: rgba(80, 220, 200, 0.85);
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-size: 0.62rem;
 }
 
 .card-senate:hover {
-  border-color: rgba(45, 188, 168, 0.55);
-  background: rgba(20, 60, 55, 0.5);
+  border-color: rgba(60, 210, 188, 0.65);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(80, 230, 205, 0.2),
+    0 0 0 1px rgba(45, 188, 168, 0.18);
+}
+
+/* Override sheen on senate — teal-cool */
+.card-senate .card-sheen {
+  background: linear-gradient(
+    118deg,
+    transparent 20%,
+    rgba(60, 220, 195, 0.05) 45%,
+    rgba(100, 240, 215, 0.1) 50%,
+    rgba(60, 220, 195, 0.05) 55%,
+    transparent 80%
+  );
 }
 
 /* ══════════════════════════════════════════
@@ -384,7 +465,7 @@ const variantClass = computed(() => {
   border: 1px dashed rgba(239, 68, 68, 0.4) !important;
   background: rgba(239, 68, 68, 0.04) !important;
   --avatar-bg: rgba(239, 68, 68, 0.08) !important;
-  --avatar-color: rgba(239, 68, 68, 0.85) !important;
+  --silhouette-color: rgba(239, 68, 68, 0.7) !important;
 }
 
 .card-flagged:hover {
@@ -398,57 +479,12 @@ const variantClass = computed(() => {
 }
 
 /* ══════════════════════════════════════════
-   MOBILE LAYOUT (Keep Existing Style/Layout)
+   TOUCH / MOBILE — hover disabled only
+   The OrgChart scales the entire tree via CSS transform, so no per-card
+   size overrides are needed here. Applying them would cause double-shrink
+   (media query fires at device width, then the whole tree gets scaled down).
    ══════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .officer-card {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.5rem;
-    padding: 0.75rem 0.5rem !important;
-    width: auto !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    border-radius: 0.625rem;
-  }
-
-  .avatar-wrap {
-    width: 2rem !important;
-    height: 2rem !important;
-    --avatar-size: 2rem !important;
-  }
-  
-  .avatar-fallback {
-    font-size: 0.7rem !important;
-  }
-
-  .info-wrap {
-    align-items: center;
-    width: 100%;
-  }
-
-  .info-name {
-    font-size: 0.6rem !important;
-    text-align: center;
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-
-  .info-designation {
-    font-size: 0.5rem !important;
-    margin-top: 0.2rem;
-  }
-
-  .info-email {
-    display: none !important; /* Never show email on mobile cards per specs */
-  }
-
-  /* Reset hover translation slightly to scale properly on mobile */
-  .officer-card:hover {
-    transform: none;
-  }
+@media (hover: none) {
+  .officer-card:hover { transform: none; }
 }
 </style>
