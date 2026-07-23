@@ -202,9 +202,11 @@ const logos = [
             v-motion
             :initial="{ opacity: 0, x: -40 }"
             :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
-            class="text-xs font-mono uppercase tracking-widest text-gold mb-5"
+            class="text-xs font-mono uppercase tracking-widest text-gold mb-5 flex flex-wrap items-center gap-2"
           >
-            ISUFST Dingle Campus
+            <span>ISUFST Dingle Campus</span>
+            <span class="text-white/30">•</span>
+            <span class="text-white/60">A.Y. 2026-2027</span>
           </div>
 
           <h1
