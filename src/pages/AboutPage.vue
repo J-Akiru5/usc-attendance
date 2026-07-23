@@ -13,7 +13,7 @@ const values = [
     <section class="relative text-white py-20 md:py-28 overflow-hidden">
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style="background-image: url('/isufst.jpg');"
+        style="background-image: url('/isufst.webp');"
       />
       <div class="absolute inset-0 bg-navy/75" />
       <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(12,27,54,0.95) 0%, rgba(12,27,54,0.70) 60%, rgba(12,27,54,0.40) 100%);" />
@@ -34,7 +34,7 @@ const values = [
             <div class="w-72 h-48 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-sm flex items-center justify-center relative overflow-hidden">
               <div class="absolute inset-0 bg-gradient-to-br from-gold/10 to-transparent" />
               <div class="text-center relative z-10">
-                <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-16 h-16 rounded-2xl object-cover border border-gold/40 mx-auto mb-3 shadow-md shrink-0" />
+                <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-16 h-16 rounded-2xl object-cover border border-gold/40 mx-auto mb-3 shadow-md shrink-0" />
                 <div class="text-sm font-semibold text-white">ISUFST Dingle Campus</div>
                 <div class="text-xs text-white/50 font-mono mt-1">University Student Council</div>
               </div>
@@ -74,7 +74,7 @@ const values = [
             </p>
 
             <div class="flex items-center gap-3">
-              <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-10 h-10 rounded-full object-contain bg-white/10 p-0.5 border border-gold/20 shrink-0" />
+              <img src="/logo/ISUFST_logo.webp" alt="ISUFST Logo" class="w-10 h-10 rounded-full object-contain bg-white/10 p-0.5 border border-gold/20 shrink-0" />
               <div>
                 <div class="text-sm font-semibold text-navy">ISUFST Dingle Campus</div>
                 <div class="text-xs text-slate">Serving Students Since Establishment</div>
@@ -85,7 +85,7 @@ const values = [
           <div class="relative rounded-2xl border border-line bg-navy shadow-xl overflow-hidden group min-h-[340px] flex flex-col justify-between">
             <div
               class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-              style="background-image: url('/library.png');"
+              style="background-image: url('/library.webp');"
             />
             <div class="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/70 to-navy/30" />
 

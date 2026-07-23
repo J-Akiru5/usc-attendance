@@ -33,7 +33,7 @@ const sections = [
     <section class="relative text-white py-20 md:py-28 overflow-hidden">
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style="background-image: url('/isufst.jpg');"
+        style="background-image: url('/isufst.webp');"
       />
       <div class="absolute inset-0 bg-navy/75" />
       <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(12,27,54,0.95) 0%, rgba(12,27,54,0.70) 60%, rgba(12,27,54,0.40) 100%);" />

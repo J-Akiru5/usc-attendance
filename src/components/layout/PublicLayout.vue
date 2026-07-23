@@ -35,13 +35,13 @@ function closeMobileMenu() {
         <div class="flex items-center gap-3 cursor-pointer shrink-0" @click="router.push('/')">
           <!-- ISUFST Logo -->
           <div class="flex items-center gap-1.5">
-            <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-9 h-9 rounded-full object-contain shrink-0 bg-white/10 p-0.5 border border-gold/30" />
+            <img src="/logo/ISUFST_logo.webp" alt="ISUFST Logo" class="w-9 h-9 rounded-full object-contain shrink-0 bg-white/10 p-0.5 border border-gold/30" />
           </div>
           <!-- Divider -->
           <div class="h-6 w-px bg-white/20" />
           <!-- USC Logo -->
           <div class="flex items-center gap-2">
-            <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-9 h-9 rounded-full object-cover shrink-0 border border-gold/30" />
+            <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-9 h-9 rounded-full object-cover shrink-0 border border-gold/30" />
             <div class="hidden sm:block">
               <div class="text-[11px] font-bold text-white leading-tight">University Student Council</div>
               <div class="text-[9px] text-white/50 font-mono uppercase tracking-wider">ISUFST Dingle Campus</div>
@@ -153,11 +153,11 @@ function closeMobileMenu() {
           <div class="sm:col-span-2 lg:col-span-1">
             <div class="flex items-center gap-3 mb-5">
               <div class="footer-logo-ring">
-                <img src="/logo/ISUFST_logo.png" alt="ISUFST Logo" class="w-10 h-10 rounded-full object-contain bg-white/5 p-0.5" />
+                <img src="/logo/ISUFST_logo.webp" alt="ISUFST Logo" class="w-10 h-10 rounded-full object-contain bg-white/5 p-0.5" />
               </div>
               <div class="h-8 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
               <div class="footer-logo-ring">
-                <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-10 h-10 rounded-full object-cover" />
+                <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-10 h-10 rounded-full object-cover" />
               </div>
               <div>
                 <div class="text-sm font-bold text-white leading-tight tracking-wide">University Student Council</div>

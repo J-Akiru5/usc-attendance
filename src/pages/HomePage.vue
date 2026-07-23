@@ -141,7 +141,7 @@ const logos = [
     <section class="relative text-white overflow-hidden min-h-[580px] flex items-center">
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style="background-image: url('/isufst.jpg');"
+        style="background-image: url('/isufst.webp');"
       />
       <div class="absolute inset-0 bg-navy/60" />
       <div
@@ -332,7 +332,7 @@ const logos = [
             <!-- Background Photo: Knowledge Management Library -->
             <div
               class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-              style="background-image: url('/library.png');"
+              style="background-image: url('/library.webp');"
             />
             <!-- Dark Gradient Vignette Overlay -->
             <div class="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/60 to-navy/20" />
@@ -351,7 +351,7 @@ const logos = [
             <div class="relative z-10 p-6 pt-12">
               <div class="bg-navy/85 backdrop-blur-md border border-white/15 rounded-xl p-4 shadow-2xl">
                 <div class="flex items-center gap-3 mb-3 pb-3 border-b border-white/10">
-                  <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-9 h-9 rounded-full object-cover border border-gold/40 shrink-0" />
+                  <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-9 h-9 rounded-full object-cover border border-gold/40 shrink-0" />
                   <div>
                     <div class="text-xs font-bold text-white">University Student Council</div>
                     <div class="text-[10px] text-gold/80 font-mono">ISUFST Dingle Campus</div>
@@ -382,7 +382,7 @@ const logos = [
       <!-- Background -->
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style="background-image: url('/admin.png');"
+        style="background-image: url('/admin.webp');"
       />
       <div class="absolute inset-0 bg-navy/85 backdrop-blur-[1px]" />
 
@@ -626,7 +626,7 @@ const logos = [
       <!-- Background Image: Admin Side Angle -->
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transition-transform duration-1000 hover:scale-110"
-        style="background-image: url('/admin-side angle.png');"
+        style="background-image: url('/admin-side-angle.webp');"
       />
       <!-- Gradient Overlay -->
       <div class="absolute inset-0 bg-gradient-to-r from-navy-deep/95 via-navy/90 to-navy-deep/95" />

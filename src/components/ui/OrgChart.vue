@@ -139,7 +139,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
            ═══════════════════════════════════════════════════════ -->
       <div class="watermark-layer" aria-hidden="true">
         <img
-          src="/logo/USC_logo.jpg"
+          src="/logo/USC_logo.webp"
           alt=""
           class="watermark-img"
         />
@@ -553,7 +553,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
            ═══════════════════════════════════════════════════════ -->
       <div class="chart-footer-graphic">
         <img
-          src="/usc-org-chart-footer.png"
+          src="/usc-org-chart-footer.webp"
           alt="ISUFST USC Core Values - Integrity, Social Justice, Discipline, Academic Excellence"
           class="footer-graphic-img"
         />

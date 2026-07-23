@@ -37,7 +37,7 @@ const services = [
     <section class="relative text-white overflow-hidden min-h-[480px] flex items-center">
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style="background-image: url('/isufst.jpg');"
+        style="background-image: url('/isufst.webp');"
       />
       <div class="absolute inset-0 bg-navy/60" />
       <div

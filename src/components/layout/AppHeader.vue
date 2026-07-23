@@ -60,7 +60,7 @@ async function saveSettings() {
   <header class="bg-paper-panel border-b border-line px-4 md:px-6 py-3 flex items-center justify-between relative">
     <!-- Left Logo & Branding (Mobile only) -->
     <div class="flex items-center gap-3 md:hidden">
-      <img src="/logo/USC_logo.jpg" alt="USC Logo" class="w-8 h-8 rounded-full object-cover border border-gold" />
+      <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-8 h-8 rounded-full object-cover border border-gold" />
       <span class="text-xs font-mono tracking-widest uppercase text-navy">Attendance</span>
     </div>
 
