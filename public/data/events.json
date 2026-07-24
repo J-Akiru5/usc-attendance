@@ -11,8 +11,8 @@
     "featured": true,
     "icon": "🎉",
     "tags": ["celebration", "cultural", "community", "orientation"],
-    "coverImage": "/webp/pag-abi-abi-poster.webp",
-    "trailerUrl": "https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/videos/pag-abi-abi-2026-trailer.mp4"
+    "coverImage": "https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/profiles/pag-abi-abi-2026-poster.webp",
+    "trailerUrl": "https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/videos/pag-abi-abi-trailer-video%20(1).mp4"
   },
   {
     "id": "organizations-day-2026",
