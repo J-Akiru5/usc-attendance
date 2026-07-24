@@ -63,7 +63,7 @@
     "featured": true,
     "icon": "🎉",
     "tags": ["celebration", "cultural", "community"],
-    "coverImage": "https://<your-project>.supabase.co/storage/v1/object/public/videos/pag-abi-abi-2026-poster.jpg",
-    "trailerUrl": "https://<your-project>.supabase.co/storage/v1/object/public/videos/pag-abi-abi-2026-trailer.mp4"
+    "coverImage": "/webp/pag-abi-abi-poster.webp",
+    "trailerUrl": "https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/videos/pag-abi-abi-2026-trailer.mp4"
   }
 ]

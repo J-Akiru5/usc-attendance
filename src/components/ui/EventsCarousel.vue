@@ -15,6 +15,12 @@ const isPaused = ref(false)
 
 const slideCount = computed(() => props.events.length)
 
+const failedImages = ref(new Set<string>())
+
+function handleImageError(id: string) {
+  failedImages.value.add(id)
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -183,21 +189,18 @@ onUnmounted(() => {
           class="snap-start shrink-0 w-[280px] sm:w-[300px] md:w-[340px] rounded-xl border border-line bg-white shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden flex flex-col"
         >
           <!-- Cover / placeholder -->
-          <div class="relative h-40 overflow-hidden">
+          <div class="relative h-40 overflow-hidden bg-gradient-to-br from-navy via-navy/90 to-navy/70 flex items-center justify-center">
             <img
-              v-if="event.coverImage"
+              v-if="event.coverImage && !failedImages.has(event.id)"
               :src="event.coverImage"
               :alt="event.title"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-cover absolute inset-0 z-10"
+              @error="handleImageError(event.id)"
             />
-            <div
-              v-else
-              class="w-full h-full bg-gradient-to-br from-navy via-navy/90 to-navy/70 flex items-center justify-center"
-            >
-              <span class="text-4xl">{{ event.icon || '📅' }}</span>
-            </div>
-            <!-- Status badge -->
-            <div class="absolute top-3 right-3">
+            <span class="text-4xl select-none">{{ event.icon || '📅' }}</span>
+          </div>
+          <!-- Status badge -->
+          <div class="absolute top-3 right-3">
               <span
                 v-if="event.status === 'completed'"
                 class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200"
@@ -215,7 +218,6 @@ onUnmounted(() => {
                 Upcoming
               </span>
             </div>
-          </div>
 
           <!-- Content -->
           <div class="p-5 flex flex-col flex-1">

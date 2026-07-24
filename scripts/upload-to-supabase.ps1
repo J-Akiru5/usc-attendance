@@ -44,7 +44,8 @@ if (-not (Test-Path $envFile)) {
 # Parse .env file
 $envVars = @{}
 Get-Content $envFile | Where-Object { $_ -match '^\s*([^#=]+?)\s*=\s*(.+?)\s*$' } | ForEach-Object {
-  $envVars[$Matches[1]] = $Matches[2]
+  $val = $Matches[2] -replace '^["'']|["'']$', ''
+  $envVars[$Matches[1]] = $val
 }
 
 $supabaseUrl = $envVars['SUPABASE_URL']
@@ -84,16 +85,25 @@ foreach ($file in $files) {
   $fileSizeMB = [math]::Round($file.Length / 1MB, 1)
   Write-Host "Uploading $($file.Name) ($fileSizeMB MB) -> $Bucket/$remoteName ..."
 
-  $body = [System.IO.File]::ReadAllBytes($file.FullName)
   $uri = "$supabaseUrl/storage/v1/object/$Bucket/$remoteName"
 
-  $headers = @{
-    'Authorization' = "Bearer $serviceRoleKey"
-    'Content-Type'  = $mimeType
-  }
-
   try {
-    $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body -ContentType $mimeType
+    $httpClient = [System.Net.Http.HttpClient]::new()
+    $httpClient.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer', $serviceRoleKey)
+
+    $fileStream = [System.IO.File]::OpenRead($file.FullName)
+    $streamContent = [System.Net.Http.StreamContent]::new($fileStream)
+    $streamContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new($mimeType)
+
+    $formData = [System.Net.Http.MultipartFormDataContent]::new()
+    $formData.Add($streamContent, 'file', $remoteName)
+
+    $response = $httpClient.PostAsync($uri, $formData).GetAwaiter().GetResult()
+    $response.EnsureSuccessStatusCode() | Out-Null
+
+    $fileStream.Dispose()
+    $httpClient.Dispose()
+
     $publicUrl = "$supabaseUrl/storage/v1/object/public/$Bucket/$remoteName"
     Write-Host "  Uploaded: $publicUrl" -ForegroundColor Green
   }

@@ -18,11 +18,11 @@ VALUES (
   'videos',
   true,
   262144000,  -- 250 MB
-  ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']
+  ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif']
 ) ON CONFLICT (id) DO UPDATE SET
   public              = true,
   file_size_limit     = 262144000,
-  allowed_mime_types  = ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+  allowed_mime_types  = ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif'];
 
 -- PROFILES bucket (public, 5 MB limit, image MIME types only)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
