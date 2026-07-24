@@ -8,31 +8,17 @@ export interface PublicEvent {
 
 export const publicEvents: PublicEvent[] = [
   {
-    title: 'General Assembly',
+    title: 'Pag Abi Abi 2026',
     date: 'July 2026',
-    description: 'Quarterly gathering of all USC officers to discuss council business, review accomplishments, and plan upcoming initiatives.',
+    description: 'Welcome program for all students introducing them to campus life, student organizations, and the USC. A day of cultural festivities, performances, and community building to open the new academic year.',
     location: 'ISUFST Dingle Campus',
-    icon: '🏛️',
+    icon: '🎉',
   },
   {
-    title: 'Freshmen Orientation',
-    date: 'August 2026',
-    description: 'Welcome program for incoming freshmen students introducing them to campus life, student organizations, and university resources.',
+    title: 'Organizations Day',
+    date: 'July 2026',
+    description: 'A two-day celebration of student organizations showcasing their programs, recruitment drives, and interactive activities.',
     location: 'ISUFST Dingle Campus',
-    icon: '🎒',
-  },
-  {
-    title: 'Tree Planting Activity',
-    date: 'September 2026',
-    description: 'Community tree planting drive in partnership with local government units as part of the USC environmental advocacy program.',
-    location: 'Dingle, Iloilo',
-    icon: '🌳',
-  },
-  {
-    title: 'Leadership Seminar',
-    date: 'October 2026',
-    description: 'Annual leadership development seminar for student officers featuring guest speakers, workshops, and team-building activities.',
-    location: 'ISUFST Dingle Campus',
-    icon: '🎤',
+    icon: '🏫',
   },
 ]
