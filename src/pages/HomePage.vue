@@ -327,45 +327,43 @@ const logos = [
             v-motion
             :initial="{ opacity: 0, x: 40 }"
             :enter="{ opacity: 1, x: 0, transition: { duration: 0.5, delay: 100 } }"
-            class="relative rounded-2xl border border-line bg-navy shadow-xl overflow-hidden group min-h-[360px] flex flex-col justify-between"
+            class="rounded-2xl border border-line bg-paper-panel shadow-lg overflow-hidden"
           >
-            <!-- Background Photo: Knowledge Management Library -->
-            <div
-              class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-              style="background-image: url('/library.webp');"
-            />
-            <!-- Dark Gradient Vignette Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/60 to-navy/20" />
-
-            <!-- Top Header Badge -->
-            <div class="relative z-10 p-5 flex items-center justify-between">
-              <div class="bg-navy/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 flex items-center gap-2 shadow-lg">
-                <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
-                <span class="text-[10px] font-mono text-white/90 uppercase tracking-wider font-semibold">
-                  ISUFST Knowledge Management Library
-                </span>
+            <div class="bg-navy px-4 py-3 flex items-center gap-2">
+              <div class="flex gap-1.5">
+                <div class="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                <div class="w-2.5 h-2.5 rounded-full bg-green-400/60" />
               </div>
+              <div class="ml-2 text-[10px] font-mono text-white/40 uppercase tracking-wider">About the Council</div>
             </div>
-
-            <!-- Bottom Content & Quick Stats Overlay -->
-            <div class="relative z-10 p-6 pt-12">
-              <div class="bg-navy/85 backdrop-blur-md border border-white/15 rounded-xl p-4 shadow-2xl">
-                <div class="flex items-center gap-3 mb-3 pb-3 border-b border-white/10">
-                  <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-9 h-9 rounded-full object-cover border border-gold/40 shrink-0" />
-                  <div>
-                    <div class="text-xs font-bold text-white">University Student Council</div>
-                    <div class="text-[10px] text-gold/80 font-mono">ISUFST Dingle Campus</div>
-                  </div>
+            <div class="p-6">
+              <div class="flex items-center gap-3 mb-5 pb-4 border-b border-line">
+                <img src="/logo/USC_logo.webp" alt="USC Logo" class="w-10 h-10 rounded-full object-cover border border-gold/40 shrink-0" />
+                <div>
+                  <div class="text-sm font-bold text-navy">University Student Council</div>
+                  <div class="text-[10px] text-slate font-mono">ISUFST Dingle Campus</div>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                  <div class="bg-white/5 rounded-lg p-2.5 text-center border border-white/10">
-                    <div class="text-xl font-bold text-gold font-serif">14</div>
-                    <div class="text-[10px] text-white/60 font-mono uppercase tracking-wider">Officers</div>
-                  </div>
-                  <div class="bg-white/5 rounded-lg p-2.5 text-center border border-white/10">
-                    <div class="text-xl font-bold text-gold font-serif">6</div>
-                    <div class="text-[10px] text-white/60 font-mono uppercase tracking-wider">Programs</div>
-                  </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-navy/5 rounded-xl p-4 text-center border border-line/50">
+                  <div class="text-2xl font-bold text-navy font-serif">14</div>
+                  <div class="text-xs text-slate mt-1">Officers</div>
+                </div>
+                <div class="bg-navy/5 rounded-xl p-4 text-center border border-line/50">
+                  <div class="text-2xl font-bold text-navy font-serif">6</div>
+                  <div class="text-xs text-slate mt-1">Programs</div>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div v-for="item in ['Student representation', 'Campus programs', 'Community outreach', 'Leadership development']"
+                  :key="item"
+                  class="flex items-center gap-2 text-sm text-slate"
+                >
+                  <svg class="w-4 h-4 text-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {{ item }}
                 </div>
               </div>
             </div>

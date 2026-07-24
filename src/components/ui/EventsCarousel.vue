@@ -41,14 +41,20 @@ function scrollTo(index: number) {
   const el = scrollRef.value
   if (!el) return
   const cards = el.children
-  if (cards[index]) {
-    ;(cards[index] as HTMLElement).scrollIntoView({
-      behavior: 'smooth',
-      inline: 'start',
-      block: 'nearest',
-    })
-    currentIndex.value = index
+  if (!cards[index]) return
+
+  const card = cards[index] as HTMLElement
+  let scrollLeft = 0
+  for (let i = 0; i < index; i++) {
+    scrollLeft += (cards[i] as HTMLElement).offsetWidth + 20
   }
+  scrollLeft = scrollLeft + card.offsetWidth / 2 - el.clientWidth / 2
+
+  el.scrollTo({
+    left: Math.max(0, scrollLeft),
+    behavior: 'smooth',
+  })
+  currentIndex.value = index
 }
 
 function scrollPrev() {
