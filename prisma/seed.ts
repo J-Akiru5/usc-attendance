@@ -4,6 +4,8 @@ const prisma = new PrismaClient()
 
 const officers = [
   { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
+  { email: 'staff@usc.edu.ph', name: 'USC Staff Officer', position: 'Officer on Duty', role: 'staff' },
+  { email: 'officer@usc.edu.ph', name: 'USC Student Officer', position: 'USC Officer', role: 'client' },
   { email: 'jdemonteverde@isufst.edu.ph', name: 'Jared S. Demonteverde', position: 'President', role: 'super_admin' },
   { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'staff' },
   { email: 'ndanugrao@isufst.edu.ph', name: 'Nikki Loraine B. Danugrao', position: 'Secretary', role: 'staff' },

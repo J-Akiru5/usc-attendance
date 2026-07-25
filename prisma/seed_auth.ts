@@ -11,14 +11,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const adminPassword = process.env.SEED_ADMIN_PASSWORD
-if (!adminPassword) {
-  console.error('SEED_ADMIN_PASSWORD env var is required to seed the admin account')
-  process.exit(1)
-}
+const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'password123'
 
 const OFFICER_PASSWORDS: Record<string, string> = {
   'admin@usc.edu.ph': adminPassword,
+  'staff@usc.edu.ph': 'password123',
+  'officer@usc.edu.ph': 'password123',
   'jdemonteverde@isufst.edu.ph': 'USC2026!EGKJ3G',
   'kbicodo@isufst.edu.ph':      'USC2026!hwLRTq',
   'ndanugrao@isufst.edu.ph':    'USC2026!EJLFDZ',
@@ -37,6 +35,8 @@ const OFFICER_PASSWORDS: Record<string, string> = {
 
 const officers = [
   { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
+  { email: 'staff@usc.edu.ph', name: 'USC Staff Officer', position: 'Officer on Duty', role: 'staff' },
+  { email: 'officer@usc.edu.ph', name: 'USC Student Officer', position: 'USC Officer', role: 'client' },
   { email: 'jdemonteverde@isufst.edu.ph', name: 'Jared S. Demonteverde', position: 'President', role: 'super_admin' },
   { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'staff' },
   { email: 'ndanugrao@isufst.edu.ph', name: 'Nikki Loraine B. Danugrao', position: 'Secretary', role: 'staff' },
