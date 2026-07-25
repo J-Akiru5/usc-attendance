@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 interface Props {
   name?: string
@@ -31,6 +31,14 @@ const shouldShowEmail = computed(() => {
 const variantClass = computed(() => {
   return `card-${props.variant}`
 })
+
+const imgFailed = ref(false)
+
+const showPhoto = computed(() => props.photo && !imgFailed.value)
+
+const onImgError = () => {
+  imgFailed.value = true
+}
 </script>
 
 <template>
@@ -41,10 +49,12 @@ const variantClass = computed(() => {
     <!-- Avatar Section -->
     <div class="avatar-wrap">
       <img
-        v-if="photo"
+        v-if="showPhoto"
         :src="photo"
         :alt="name || designation"
-        class="avatar-img"
+        class="avatar-img object-cover object-top w-full h-full"
+        style="image-rendering: -webkit-optimize-contrast;"
+        @error="onImgError"
       />
       <!-- SVG silhouette bust — replaces initials fallback -->
       <div v-else class="avatar-silhouette">
@@ -131,10 +141,10 @@ const variantClass = computed(() => {
 .avatar-wrap {
   width: var(--avatar-size, 46px);
   height: var(--avatar-size, 46px);
-  border-radius: 0.45rem;
+  border-radius: 0.5rem;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid var(--avatar-border, rgba(255, 255, 255, 0.12));
+  border: 1.5px solid var(--avatar-border, rgba(255, 255, 255, 0.15));
   background: var(--avatar-bg, rgba(255, 255, 255, 0.06));
   display: flex;
   align-items: flex-end;
@@ -147,6 +157,9 @@ const variantClass = computed(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .avatar-silhouette {

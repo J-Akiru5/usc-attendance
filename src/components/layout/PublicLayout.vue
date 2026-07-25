@@ -262,12 +262,15 @@ function closeMobileMenu() {
                class="text-gold/60 font-semibold hover:text-gold transition-colors duration-200">
               Jeff Edrick Martinez
             </a>
-            <span class="text-white/15">·</span>
-            <span>CEO of</span>
+            <span class="text-white/15">(CEO of</span>
             <a href="https://www.syntaxure.dev/" target="_blank" rel="noopener noreferrer"
                class="text-gold/60 font-semibold hover:text-gold transition-colors duration-200">
               Syntaxure Labs
             </a>
+            <span class="text-white/15">)</span>
+            <span class="text-white/15 mx-1">•</span>
+            <span>UI/UX Designed by</span>
+            <span class="text-gold/60 font-semibold">Katherine Anne Bicodo</span>
           </div>
         </div>
       </div>

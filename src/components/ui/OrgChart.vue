@@ -177,6 +177,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="president.name"
                   designation="University President"
+                  :photo="president.photo"
                   :initials="getInitials(president.name)"
                   variant="institutional"
                 />
@@ -192,6 +193,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="vpAcademic.name"
                   designation="Vice President for Academic Affairs"
+                  :photo="vpAcademic.photo"
                   :initials="getInitials(vpAcademic.name)"
                   variant="institutional"
                 />
@@ -207,6 +209,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="campusAdmin.name"
                   designation="Campus Administrator"
+                  :photo="campusAdmin.photo"
                   :initials="getInitials(campusAdmin.name)"
                   variant="pivot"
                 />
@@ -225,6 +228,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="sscChair.name"
                   designation="OIC Chairperson, Student Support Center"
+                  :photo="sscChair.photo"
                   :initials="getInitials(sscChair.name)"
                   variant="institutional"
                 />
@@ -237,6 +241,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   <OfficerCard
                     :name="adminSupport.name"
                     designation="Administrative Support Staff, SSC"
+                    :photo="adminSupport.photo"
                     :initials="getInitials(adminSupport.name)"
                     variant="institutional"
                   />
@@ -270,6 +275,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordSubang.name"
                   designation="Coordinator, Recreation & Sports"
+                  :photo="coordSubang.photo"
                   :initials="getInitials(coordSubang.name)"
                   variant="institutional"
                 />
@@ -278,6 +284,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordVerdeflorCoord.name"
                   designation="Coordinator, Guidance and Testing"
+                  :photo="coordVerdeflorCoord.photo"
                   :initials="getInitials(coordVerdeflorCoord.name)"
                   variant="institutional"
                 />
@@ -286,6 +293,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordAlada.name"
                   designation="Coordinator, Student Publication"
+                  :photo="coordAlada.photo"
                   :initials="getInitials(coordAlada.name)"
                   variant="institutional"
                 />
@@ -294,6 +302,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordEsmeralda.name"
                   designation="Coordinator, Student Organization"
+                  :photo="coordEsmeralda.photo"
                   :initials="getInitials(coordEsmeralda.name)"
                   variant="institutional"
                 />
@@ -302,6 +311,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordDeslate.name"
                   designation="University Psychometrician"
+                  :photo="coordDeslate.photo"
                   :initials="getInitials(coordDeslate.name)"
                   variant="institutional"
                 />
@@ -314,6 +324,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordDaguro.name"
                   designation="Coordinator, Cultural Affairs"
+                  :photo="coordDaguro.photo"
                   :initials="getInitials(coordDaguro.name)"
                   variant="institutional"
                 />
@@ -322,6 +333,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordBracamonte.name"
                   designation="Coordinator, Health Services"
+                  :photo="coordBracamonte.photo"
                   :initials="getInitials(coordBracamonte.name)"
                   variant="institutional"
                 />
@@ -330,6 +342,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordTanquerido.name"
                   designation="Coordinator, Dormitory & Housing"
+                  :photo="coordTanquerido.photo"
                   :initials="getInitials(coordTanquerido.name)"
                   variant="institutional"
                 />
@@ -338,6 +351,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                 <OfficerCard
                   :name="coordBatislOng.name"
                   designation="Coordinator, Scholarship"
+                  :photo="coordBatislOng.photo"
                   :initials="getInitials(coordBatislOng.name)"
                   variant="institutional"
                 />
@@ -368,6 +382,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   <OfficerCard
                     :name="fedAdviser.name"
                     designation="Adviser"
+                    :photo="fedAdviser.photo"
                     :initials="getInitials(fedAdviser.name)"
                     variant="institutional"
                   />
@@ -377,6 +392,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   <OfficerCard
                     :name="fedPresident.name"
                     designation="President"
+                    :photo="fedPresident.photo"
                     :initials="getInitials(fedPresident.name)"
                     variant="pivot"
                   />
@@ -394,6 +410,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   <OfficerCard
                     :name="uscAdviser.name"
                     designation="Adviser"
+                    :photo="uscAdviser.photo"
                     :initials="getInitials(uscAdviser.name)"
                     variant="institutional"
                   />
@@ -403,6 +420,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   <OfficerCard
                     :name="uscCoAdviser.name"
                     designation="Co-Adviser"
+                    :photo="uscCoAdviser.photo"
                     :initials="getInitials(uscCoAdviser.name)"
                     variant="institutional"
                   />
@@ -422,6 +440,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                     :name="execPresident.name"
                     designation="President"
                     :email="execPresident.email"
+                    :photo="execPresident.photo"
                     :initials="getInitials(execPresident.name)"
                     variant="executive"
                   />
@@ -433,6 +452,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                     :name="execVp.name"
                     designation="Vice President"
                     :email="execVp.email"
+                    :photo="execVp.photo"
                     :initials="getInitials(execVp.name)"
                     variant="executive"
                   />
@@ -452,6 +472,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                       :name="execSenatePres.name"
                       designation="Senate President"
                       :email="execSenatePres.email"
+                      :photo="execSenatePres.photo"
                       :initials="getInitials(execSenatePres.name)"
                       variant="committee"
                     />
@@ -461,6 +482,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                       :name="execSecretary.name"
                       designation="Secretary"
                       :email="execSecretary.email"
+                      :photo="execSecretary.photo"
                       :initials="getInitials(execSecretary.name)"
                       variant="committee"
                     />
@@ -470,6 +492,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                       :name="execTreasurer.name"
                       designation="Treasurer"
                       :email="execTreasurer.email"
+                      :photo="execTreasurer.photo"
                       :initials="getInitials(execTreasurer.name)"
                       variant="committee"
                     />
@@ -489,6 +512,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                       :name="execAuditor.name"
                       designation="Auditor"
                       :email="execAuditor.email"
+                      :photo="execAuditor.photo"
                       :initials="getInitials(execAuditor.name)"
                       variant="committee"
                     />
@@ -498,6 +522,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                       :name="execSpokesperson.name"
                       designation="Spokesperson"
                       :email="execSpokesperson.email"
+                      :photo="execSpokesperson.photo"
                       :initials="getInitials(execSpokesperson.name)"
                       variant="committee"
                     />
@@ -531,6 +556,7 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
               <OfficerCard
                 :name="senator.name"
                 designation="Senator"
+                :photo="senator.photo"
                 :initials="getInitials(senator.name)"
                 variant="senate"
               />
