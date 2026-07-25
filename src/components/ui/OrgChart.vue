@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import type { Officer } from '@/data/officers'
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, provide } from 'vue'
 import OfficerCard from './OfficerCard.vue'
 
 const props = defineProps<{
   officers: Officer[]
 }>()
+
+const emit = defineEmits<{
+  select: [data: { name?: string; designation: string; photo?: string }]
+}>()
+
+provide('selectOfficer', (data: { name?: string; designation: string; photo?: string }) => {
+  emit('select', data)
+})
 
 // ── Lookups by name ──
 function find(namePart: string) {
