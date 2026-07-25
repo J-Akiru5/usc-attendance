@@ -18,6 +18,9 @@ export const useDutyStore = defineStore('duties', () => {
       todayDuties.value = duties.value.filter(
         (d) => d.dayOfWeek === todayDayOfWeek && d.active
       )
+    } catch {
+      duties.value = []
+      todayDuties.value = []
     } finally {
       loading.value = false
     }
@@ -31,6 +34,9 @@ export const useDutyStore = defineStore('duties', () => {
       )
       todayDuties.value = result.duties
       dutyAttendance.value = result.attendance
+    } catch {
+      todayDuties.value = []
+      dutyAttendance.value = []
     } finally {
       loading.value = false
     }

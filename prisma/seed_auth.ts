@@ -58,6 +58,7 @@ async function main() {
 
   const credentials: { name: string; email: string; password: string; position: string }[] = []
   const skippedMismatches: { email: string; authId: string; dbId: string }[] = []
+  const failedUpdates: { email: string; message: string }[] = []
 
   // Fetch all auth users once to avoid repeated API calls
   const { data: authList, error: listError } = await supabaseAdmin.auth.admin.listUsers()
@@ -79,14 +80,16 @@ async function main() {
 
     if (existingAuthUser) {
       authUserId = existingAuthUser.id
-      status = 'already existed'
 
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingAuthUser.id,
         { password: tempPassword }
       )
       if (updateError) {
-        console.error(`  ✗ Error updating password for ${u.email}: ${updateError.message}`)
+        status = `FAILED — password update rejected: ${updateError.message}`
+        failedUpdates.push({ email: u.email, message: updateError.message })
+      } else {
+        status = 'already existed'
       }
     } else {
       const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -168,6 +171,10 @@ async function main() {
       status = 'created'
     }
 
+    const failedUpdate = failedUpdates.find((f) => f.email === u.email)
+    if (failedUpdate) {
+      status = `FAILED — password update rejected: ${failedUpdate.message}`
+    }
     console.log(`  ${u.email} — ${status}`)
   }
 
@@ -196,6 +203,18 @@ async function main() {
     console.log(`\nTotal new accounts: ${credentials.length}`)
   } else {
     console.log('\nAll officers already have accounts. No new credentials generated.')
+  }
+
+  if (failedUpdates.length > 0) {
+    console.log('\nFAILED PASSWORD UPDATES — these accounts still have their previous passwords:')
+    console.log('-'.repeat(70))
+    for (const f of failedUpdates) {
+      console.log(`  ✗ ${f.email} — ${f.message}`)
+    }
+    console.log('-'.repeat(70))
+    console.log(`Total failed password updates: ${failedUpdates.length}`)
+
+    process.exitCode = 1
   }
 }
 

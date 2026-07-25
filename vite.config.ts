@@ -43,5 +43,18 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  server: {
+    watch: {
+      ignored: ['**/api/**']
+    }
+  },
+  optimizeDeps: {
+    exclude: ['api']
+  },
+  build: {
+    rollupOptions: {
+      external: [/^\/api\//]
+    }
   }
 })

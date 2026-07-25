@@ -14,6 +14,7 @@ const loading = ref(false)
 const error = ref('')
 const showPassword = ref(false)
 const toastRef = ref<InstanceType<typeof Toast>>()
+const isDev = import.meta.env.DEV
 
 async function handleLogin() {
   if (!email.value || !password.value) {
@@ -218,6 +219,13 @@ async function handleLogin() {
         <p class="text-center text-xs text-slate mt-6">
           For authorized USC officers only.
         </p>
+
+        <!-- Dev credentials hint -->
+        <div v-if="isDev" class="mt-4 rounded-lg border border-dashed border-gold/40 bg-gold/5 px-4 py-3">
+          <p class="text-[11px] font-mono text-gold-dark leading-relaxed text-center">
+            <span class="font-bold">Dev Mode:</span> admin@usc.edu.ph / password123
+          </p>
+        </div>
       </div>
     </div>
   </div>
