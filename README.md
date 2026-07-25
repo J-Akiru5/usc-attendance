@@ -62,16 +62,36 @@ npx prisma migrate dev
 
 ### 4. Seed test accounts
 
+Login-capable accounts require **both** a Postgres row (`public.users`) and a Supabase Auth identity (`auth.users`) with matching IDs. Two separate scripts exist — you need the second one:
+
 ```bash
-npm run db:seed
+npm run db:auth-seed
 ```
 
-This creates three test users:
-- `admin@usc.edu.ph` (super_admin)
-- `staff@usc.edu.ph` (staff)
-- `officer@usc.edu.ph` (client)
+This runs `prisma/seed_auth.ts`, which:
+- Creates (or updates the password of) each officer's Supabase Auth account
+- Syncs the Postgres `users` table row so the ID matches the Auth account
+- Reads passwords from `prisma/seed_auth.ts` (officers) and the `SEED_ADMIN_PASSWORD` env var (admin)
+
+| Script | What it does | Creates Auth accounts? |
+|--------|-------------|----------------------|
+| `npm run db:seed` | Inserts Postgres rows with random UUIDs | No |
+| `npm run db:auth-seed` | Creates Supabase Auth users and syncs Postgres rows | Yes |
+
+**Important:** `prisma migrate dev` (step 3) automatically runs `db:seed` — not `db:auth-seed` — as a side effect of Prisma's seed hook (`"prisma.seed"` in package.json). If you reset your database (e.g. `prisma migrate reset`), the Postgres rows get re-seeded with fresh random UUIDs that won't match any Auth account. Always run `npm run db:auth-seed` afterward to restore login-capable accounts.
 
 ### 5. Start development server
+
+```bash
+npm run dev:full
+```
+
+This runs `vercel dev`, which:
+- Proxies the Vite frontend dev server (HMR, Tailwind, etc.)
+- Executes `api/` serverless functions locally (auth, events, attendance)
+- Reads `.env` for Supabase credentials — mirrors production exactly
+
+For frontend-only work (styles, markup, components) where you don't need the API:
 
 ```bash
 npm run dev

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, inject } from 'vue'
 
 interface Props {
   name?: string
@@ -17,6 +17,18 @@ const props = withDefaults(defineProps<Props>(), {
   flagged: false
 })
 
+const emit = defineEmits<{
+  select: [data: { name?: string; designation: string; photo?: string }]
+}>()
+
+const injectedSelect = inject<((data: { name?: string; designation: string; photo?: string }) => void) | null>('selectOfficer', null)
+
+function handleClick() {
+  const data = { name: props.name, designation: props.designation, photo: props.photo }
+  emit('select', data)
+  injectedSelect?.(data)
+}
+
 // Determine whether email should be shown based on variant and prop override
 const shouldShowEmail = computed(() => {
   if (props.showEmail !== undefined) {
@@ -31,20 +43,30 @@ const shouldShowEmail = computed(() => {
 const variantClass = computed(() => {
   return `card-${props.variant}`
 })
+
+const imgFailed = ref(false)
+
+const showPhoto = computed(() => props.photo && !imgFailed.value)
+
+const onImgError = () => {
+  imgFailed.value = true
+}
 </script>
 
 <template>
-  <div class="officer-card" :class="[variantClass, { 'card-flagged': flagged }]">
+  <div class="officer-card" :class="[variantClass, { 'card-flagged': flagged }]" @click="handleClick">
     <!-- Metallic sheen layer (decorative, pointer-events:none) -->
     <div class="card-sheen" aria-hidden="true"></div>
 
     <!-- Avatar Section -->
     <div class="avatar-wrap">
       <img
-        v-if="photo"
+        v-if="showPhoto"
         :src="photo"
         :alt="name || designation"
-        class="avatar-img"
+        class="avatar-img object-cover object-top w-full h-full"
+        style="image-rendering: -webkit-optimize-contrast;"
+        @error="onImgError"
       />
       <!-- SVG silhouette bust — replaces initials fallback -->
       <div v-else class="avatar-silhouette">
@@ -96,6 +118,7 @@ const variantClass = computed(() => {
   gap: 0.75rem;
   border-radius: 0.625rem;
   padding: 0.75rem 0.875rem;
+  cursor: pointer;
   transition:
     transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
@@ -107,7 +130,7 @@ const variantClass = computed(() => {
 }
 
 .officer-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-3px) scale(1.05);
 }
 
 /* ── Diagonal metallic sheen strip ── */
@@ -131,10 +154,10 @@ const variantClass = computed(() => {
 .avatar-wrap {
   width: var(--avatar-size, 46px);
   height: var(--avatar-size, 46px);
-  border-radius: 0.45rem;
+  border-radius: 0.5rem;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid var(--avatar-border, rgba(255, 255, 255, 0.12));
+  border: 1.5px solid var(--avatar-border, rgba(255, 255, 255, 0.15));
   background: var(--avatar-bg, rgba(255, 255, 255, 0.06));
   display: flex;
   align-items: flex-end;
@@ -147,6 +170,9 @@ const variantClass = computed(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .avatar-silhouette {

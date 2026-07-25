@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Org Chart Profile Images — Developer Roadmap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════
+       DESIGN TOKENS
+       ═══════════════════════════════════════════════════ */
+    :root {
+      --navy: #0c1b36;
+      --navy-deep: #081422;
+      --navy-light: #162d50;
+      --gold: #c9a24b;
+      --gold-dark: #a07c2e;
+      --gold-pale: #f5e6c0;
+      --paper: #F5F2EB;
+      --paper-panel: #FDFCF9;
+      --slate: #5a6677;
+      --line: #e0dcd4;
+      --teal: #2dbca8;
+      --teal-bg: rgba(45, 188, 168, 0.08);
+      --red: #e74c3c;
+      --red-bg: rgba(231, 76, 60, 0.08);
+      --blue: #3498db;
+      --blue-bg: rgba(52, 152, 219, 0.08);
+      --purple: #9b59b6;
+      --purple-bg: rgba(155, 89, 182, 0.08);
+      --orange: #e67e22;
+      --orange-bg: rgba(230, 126, 34, 0.08);
+      --green: #27ae60;
+      --green-bg: rgba(39, 174, 96, 0.08);
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Playfair Display', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       RESET & BASE
+       ═══════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--paper);
+      color: var(--navy);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--gold-dark); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════
+       LAYOUT
+       ═══════════════════════════════════════════════════ */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       HERO
+       ═══════════════════════════════════════════════════ */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 50%, #0a1e3d 100%);
+      color: white;
+      padding: 5rem 0 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(201, 162, 75, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(45, 188, 168, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.9rem;
+      border: 1px solid rgba(201, 162, 75, 0.25);
+      border-radius: 999px;
+      background: rgba(201, 162, 75, 0.08);
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(201, 162, 75, 0.8);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero h1 .gold { color: var(--gold); }
+    .hero .subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-family: var(--font-mono);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 0.4rem; }
+    .hero-meta .icon { width: 14px; height: 14px; opacity: 0.6; }
+
+    /* ═══════════════════════════════════════════════════
+       TABLE OF CONTENTS
+       ═══════════════════════════════════════════════════ */
+    .toc {
+      background: var(--paper-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin: 2.5rem 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .toc h2 {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: var(--navy);
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.5rem;
+    }
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+      font-size: 0.88rem;
+    }
+    .toc-item:hover { background: rgba(201, 162, 75, 0.06); }
+    .toc-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    .toc-item a { color: var(--navy); font-weight: 500; }
+
+    /* ═══════════════════════════════════════════════════
+       SECTIONS
+       ═══════════════════════════════════════════════════ */
+    .section {
+      padding: 3rem 0 2rem;
+      border-top: 1px solid var(--line);
+    }
+    .section:first-of-type { border-top: none; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .section-num {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+      color: white;
+    }
+    .section-header h2 {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      line-height: 1.3;
+    }
+    .section-header .label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--slate);
+      font-weight: 600;
+    }
+
+    /* Phase colors */
+    .phase-1 .section-num { background: var(--teal); }
+    .phase-2 .section-num { background: var(--blue); }
+    .phase-3 .section-num { background: var(--purple); }
+    .phase-4 .section-num { background: var(--orange); }
+    .phase-5 .section-num { background: var(--green); }
+
+    /* ═══════════════════════════════════════════════════
+       CARDS
+       ═══════════════════════════════════════════════════ */
+    .card {
+      background: var(--paper-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card h3 .badge {
+      font-size: 0.6rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .badge-auto {
+      background: var(--teal-bg);
+      color: var(--teal);
+      border: 1px solid rgba(45, 188, 168, 0.2);
+    }
+    .badge-manual {
+      background: var(--orange-bg);
+      color: var(--orange);
+      border: 1px solid rgba(230, 126, 34, 0.2);
+    }
+    .badge-script {
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px solid rgba(52, 152, 219, 0.2);
+    }
+    .card p, .card li {
+      font-size: 0.88rem;
+      color: var(--slate);
+      line-height: 1.7;
+    }
+    .card ul { list-style: none; margin: 0.5rem 0; }
+    .card ul li {
+      padding: 0.25rem 0;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+    .card ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       MANUAL INSTRUCTION BLOCKS
+       ═══════════════════════════════════════════════════ */
+    .manual-block {
+      background: rgba(230, 126, 34, 0.04);
+      border: 1px solid rgba(230, 126, 34, 0.15);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+      position: relative;
+    }
+    .manual-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: linear-gradient(to bottom, var(--orange), rgba(230, 126, 34, 0.3));
+    }
+    .manual-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--orange);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    .manual-text {
+      font-size: 0.85rem;
+      color: var(--navy);
+      line-height: 1.8;
+    }
+    .manual-text code {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(12, 27, 54, 0.06);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--navy);
+    }
+    .manual-text ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+    .manual-text ol li { padding: 0.2rem 0; color: var(--slate); }
+
+    /* ═══════════════════════════════════════════════════
+       PROMPT / CODE BLOCKS
+       ═══════════════════════════════════════════════════ */
+    .prompt-block {
+      background: var(--navy-deep);
+      border: 1px solid rgba(45, 188, 168, 0.2);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .prompt-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: linear-gradient(to bottom, var(--teal), rgba(45, 188, 168, 0.3));
+    }
+    .prompt-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--teal);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    .prompt-label svg { width: 14px; height: 14px; }
+    .prompt-text {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.85);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .prompt-text .highlight { color: var(--gold); font-weight: 600; }
+    .prompt-text .comment { color: rgba(255, 255, 255, 0.35); }
+    .prompt-text .string { color: #a5d6a7; }
+    .prompt-text .keyword { color: #80cbc4; }
+    .prompt-text .prop { color: var(--gold); }
+
+    .code-block {
+      background: var(--navy-deep);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 0.75rem 0;
+      overflow-x: auto;
+    }
+    .code-block code {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.6;
+      white-space: pre;
+    }
+    .code-block .comment { color: rgba(255, 255, 255, 0.35); }
+    .code-block .string { color: #a5d6a7; }
+    .code-block .keyword { color: #80cbc4; }
+    .code-block .prop { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════
+       ALERT BOXES
+       ═══════════════════════════════════════════════════ */
+    .alert {
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .alert-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .alert-warning {
+      background: rgba(230, 126, 34, 0.08);
+      border: 1px solid rgba(230, 126, 34, 0.2);
+      color: var(--navy);
+    }
+    .alert-info {
+      background: rgba(52, 152, 219, 0.08);
+      border: 1px solid rgba(52, 152, 219, 0.2);
+      color: var(--navy);
+    }
+    .alert-success {
+      background: rgba(39, 174, 96, 0.08);
+      border: 1px solid rgba(39, 174, 96, 0.2);
+      color: var(--navy);
+    }
+    .alert-tip {
+      background: rgba(155, 89, 182, 0.08);
+      border: 1px solid rgba(155, 89, 182, 0.2);
+      color: var(--navy);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       DATA TABLE
+       ═══════════════════════════════════════════════════ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin: 1rem 0;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      background: var(--navy);
+      color: var(--gold);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .data-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+    .data-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+    .data-table td {
+      padding: 0.55rem 0.8rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--slate);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover { background: rgba(201, 162, 75, 0.04); }
+    .tier-badge {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-family: var(--font-mono);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tier-1 { background: rgba(231, 76, 60, 0.1); color: var(--red); }
+    .tier-2 { background: rgba(230, 126, 34, 0.1); color: var(--orange); }
+    .tier-3 { background: rgba(52, 152, 219, 0.1); color: var(--blue); }
+    .tier-4 { background: rgba(155, 89, 182, 0.1); color: var(--purple); }
+    .tier-5 { background: rgba(45, 188, 168, 0.1); color: var(--teal); }
+
+    /* ═══════════════════════════════════════════════════
+       PROGRESS TRACKER
+       ═══════════════════════════════════════════════════ */
+    .progress-tracker {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 2rem 0;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      white-space: nowrap;
+    }
+    .progress-dot {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: white;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .progress-dot .p-label {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 0.4rem;
+      font-size: 0.6rem;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .progress-line {
+      width: 40px;
+      height: 2px;
+      background: var(--line);
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       FILE TREE
+       ═══════════════════════════════════════════════════ */
+    .file-tree {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.8;
+      color: var(--slate);
+      background: rgba(12, 27, 54, 0.03);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin: 0.75rem 0;
+    }
+    .file-tree .folder { color: var(--gold-dark); font-weight: 600; }
+    .file-tree .new-file { color: var(--teal); }
+    .file-tree .mod-file { color: var(--blue); }
+    .file-tree .indent { padding-left: 1.2rem; }
+    .file-tree .indent-2 { padding-left: 2.4rem; }
+
+    /* ═══════════════════════════════════════════════════
+       FLOW DIAGRAM
+       ═══════════════════════════════════════════════════ */
+    .flow-diagram {
+      background: var(--paper-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+      box-shadow: var(--shadow-sm);
+    }
+    .flow-diagram svg {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
+    }
+    .flow-diagram .caption {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--slate);
+      font-family: var(--font-mono);
+      margin-top: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       COMPARISON GRID
+       ═══════════════════════════════════════════════════ */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .comparison-card {
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      border: 1px solid var(--line);
+    }
+    .comparison-card.before {
+      background: rgba(231, 76, 60, 0.04);
+      border-color: rgba(231, 76, 60, 0.15);
+    }
+    .comparison-card.after {
+      background: rgba(39, 174, 96, 0.04);
+      border-color: rgba(39, 174, 96, 0.15);
+    }
+    .comparison-card h4 {
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    .comparison-card.before h4 { color: var(--red); }
+    .comparison-card.after h4 { color: var(--green); }
+    .comparison-card p { font-size: 0.85rem; color: var(--slate); }
+
+    /* ═══════════════════════════════════════════════════
+       STEP INDICATOR
+       ═══════════════════════════════════════════════════ */
+    .step-list {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 0.75rem 0;
+    }
+    .step-list li {
+      counter-increment: step;
+      padding: 0.6rem 0 0.6rem 2.8rem;
+      position: relative;
+      font-size: 0.88rem;
+      color: var(--slate);
+      border-left: 2px solid var(--line);
+      margin-left: 0.85rem;
+    }
+    .step-list li:last-child { border-left-color: transparent; }
+    .step-list li::before {
+      content: counter(step);
+      position: absolute;
+      left: -0.85rem;
+      top: 0.55rem;
+      width: 1.5rem; height: 1.5rem;
+      border-radius: 50%;
+      background: var(--navy);
+      color: var(--gold);
+      font-size: 0.65rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-list li strong { color: var(--navy); }
+
+    /* ═══════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════ */
+    .footer {
+      background: var(--navy);
+      color: rgba(255, 255, 255, 0.4);
+      padding: 2.5rem 0;
+      text-align: center;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+    .footer .gold-text { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════════
+       CHECKLIST
+       ═══════════════════════════════════════════════════ */
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0;
+    }
+    .checklist li {
+      padding: 0.4rem 0 0.4rem 1.8rem;
+      position: relative;
+      font-size: 0.88rem;
+      color: var(--slate);
+    }
+    .checklist li::before {
+      content: '☐';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-size: 1rem;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      .hero { padding: 3rem 0 2.5rem; }
+      .hero h1 { font-size: 1.8rem; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .progress-tracker { flex-wrap: wrap; gap: 0.5rem; }
+      .progress-line { width: 20px; }
+      .data-table { font-size: 0.72rem; }
+      .data-table th, .data-table td { padding: 0.4rem 0.5rem; }
+      .comparison-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       PRINT STYLES
+       ═══════════════════════════════════════════════════ */
+    @media print {
+      .hero { background: white !important; color: black !important; padding: 1rem 0; }
+      .hero::before, .hero::after { display: none; }
+      .prompt-block { background: #f5f5f5 !important; color: black !important; border-color: #ccc !important; }
+      .prompt-block::before { background: #999 !important; }
+      .prompt-text { color: black !important; }
+      .code-block { background: #f5f5f5 !important; }
+      .code-block code { color: black !important; }
+      .card:hover { box-shadow: var(--shadow-sm); }
+      body { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Developer Guide v1.0
+      </div>
+      <h1>Org Chart <span class="gold">Profile Images</span></h1>
+      <p class="subtitle">
+        A step-by-step manual roadmap for adding officer profile photos to the organizational chart —
+        from image preparation and WebP conversion to Supabase Storage upload and code integration.
+      </p>
+      <div class="hero-meta">
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Est. 2–3 hours
+        </span>
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          5 Phases
+        </span>
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          30 Officers
+        </span>
+        <span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          July 2026
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ═══════════ TABLE OF CONTENTS ═══════════ -->
+    <nav class="toc">
+      <h2>Roadmap Overview</h2>
+      <div class="toc-grid">
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--teal)">1</span>
+          <a href="#phase-1">Prepare — Collect &amp; Convert Photos to WebP</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--blue)">2</span>
+          <a href="#phase-2">Upload — Push WebP Files to Supabase Storage</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--purple)">3</span>
+          <a href="#phase-3">Wire — Update <code>officers.ts</code> with Photo URLs</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--orange)">4</span>
+          <a href="#phase-4">Connect — Pass <code>photo</code> Prop in OrgChart</a>
+        </div>
+        <div class="toc-item">
+          <span class="toc-num" style="background: var(--green)">5</span>
+          <a href="#phase-5">Verify — Test, Polish &amp; Troubleshoot</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══════════ PROGRESS TRACKER ═══════════ -->
+    <div class="progress-tracker">
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--teal)">1
+          <span class="p-label">Prepare</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--blue)">2
+          <span class="p-label">Upload</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--purple)">3
+          <span class="p-label">Wire</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--orange)">4
+          <span class="p-label">Connect</span>
+        </div>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="background: var(--green)">5
+          <span class="p-label">Verify</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         CONTEXT — HOW IT ALL FITS TOGETHER
+         ═══════════════════════════════════════════════════ -->
+    <section class="section" style="border-top: none;">
+      <div class="section-header">
+        <div>
+          <span class="label">Context</span>
+          <h2>Architecture — How Profile Images Flow</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Current State</h3>
+        <p>
+          The <code>OfficerCard</code> component already supports an optional <code>photo</code> prop.
+          When provided, it renders the officer's image. When absent, it falls back to an SVG silhouette bust.
+          Currently, <strong>none of the 30 officers</strong> have a photo assigned — all render the silhouette.
+        </p>
+        <div class="comparison-grid">
+          <div class="comparison-card before">
+            <h4>Before (Current)</h4>
+            <p>Each officer card shows an anonymous SVG head-and-shoulders silhouette. No identity, no personality.</p>
+          </div>
+          <div class="comparison-card after">
+            <h4>After (Target)</h4>
+            <p>Each officer card shows a crisp WebP portrait photo loaded from Supabase Storage's <code>profiles</code> bucket.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARCHITECTURE DIAGRAM -->
+      <div class="flow-diagram">
+        <svg viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+          <!-- Background grid dots -->
+          <defs>
+            <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.8" fill="#e0dcd4" opacity="0.5"/>
+            </pattern>
+            <linearGradient id="arrowGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#c9a24b"/>
+              <stop offset="100%" stop-color="#2dbca8"/>
+            </linearGradient>
+          </defs>
+          <rect width="800" height="320" fill="#FDFCF9" rx="8"/>
+          <rect width="800" height="320" fill="url(#dots)" rx="8"/>
+
+          <!-- Step 1: Photo Files -->
+          <rect x="20" y="100" width="130" height="100" rx="10" fill="#0c1b36" stroke="#c9a24b" stroke-width="1.5"/>
+          <text x="85" y="135" text-anchor="middle" fill="#c9a24b" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace">PHOTOS</text>
+          <text x="85" y="155" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Original JPG/PNG</text>
+          <text x="85" y="170" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">30 officer images</text>
+          <rect x="55" y="180" width="60" height="14" rx="3" fill="rgba(201,162,75,0.2)" stroke="rgba(201,162,75,0.4)" stroke-width="0.5"/>
+          <text x="85" y="190" text-anchor="middle" fill="#c9a24b" font-size="8" font-weight="600">.jpg / .png</text>
+
+          <!-- Arrow 1 -->
+          <line x1="155" y1="150" x2="205" y2="150" stroke="url(#arrowGrad)" stroke-width="2" marker-end="url(#arrowhead1)"/>
+          <defs><marker id="arrowhead1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#c9a24b"/></marker></defs>
+          <text x="180" y="140" text-anchor="middle" fill="#a07c2e" font-size="8" font-weight="600">CONVERT</text>
+
+          <!-- Step 2: WebP Conversion -->
+          <rect x="210" y="100" width="130" height="100" rx="10" fill="#162d50" stroke="#3498db" stroke-width="1.5"/>
+          <text x="275" y="135" text-anchor="middle" fill="#3498db" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace">CONVERT</text>
+          <text x="275" y="155" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Resize &amp; WebP</text>
+          <text x="275" y="170" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">200×200px, q=85</text>
+          <rect x="245" y="180" width="60" height="14" rx="3" fill="rgba(52,152,219,0.2)" stroke="rgba(52,152,219,0.4)" stroke-width="0.5"/>
+          <text x="275" y="190" text-anchor="middle" fill="#3498db" font-size="8" font-weight="600">.webp</text>
+
+          <!-- Arrow 2 -->
+          <line x1="345" y1="150" x2="395" y2="150" stroke="url(#arrowGrad)" stroke-width="2" marker-end="url(#arrowhead2)"/>
+          <defs><marker id="arrowhead2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#c9a24b"/></marker></defs>
+          <text x="370" y="140" text-anchor="middle" fill="#a07c2e" font-size="8" font-weight="600">UPLOAD</text>
+
+          <!-- Step 3: Supabase Storage -->
+          <rect x="400" y="80" width="150" height="140" rx="10" fill="#081422" stroke="#2dbca8" stroke-width="1.5"/>
+          <text x="475" y="110" text-anchor="middle" fill="#2dbca8" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace">SUPABASE</text>
+          <text x="475" y="126" text-anchor="middle" fill="#2dbca8" font-size="10" font-weight="600">STORAGE</text>
+          <rect x="425" y="140" width="100" height="28" rx="6" fill="rgba(45,188,168,0.15)" stroke="rgba(45,188,168,0.3)" stroke-width="0.5"/>
+          <text x="475" y="152" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-weight="600">profiles/</text>
+          <text x="475" y="163" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8">30 .webp files</text>
+          <rect x="425" y="178" width="100" height="18" rx="4" fill="rgba(45,188,168,0.08)"/>
+          <text x="475" y="190" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="8">Public bucket</text>
+
+          <!-- Arrow 3 -->
+          <line x1="555" y1="150" x2="605" y2="150" stroke="url(#arrowGrad)" stroke-width="2" marker-end="url(#arrowhead3)"/>
+          <defs><marker id="arrowhead3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#c9a24b"/></marker></defs>
+          <text x="580" y="140" text-anchor="middle" fill="#a07c2e" font-size="8" font-weight="600">REFERENCE</text>
+
+          <!-- Step 4: officers.ts -->
+          <rect x="610" y="100" width="160" height="100" rx="10" fill="#1c2848" stroke="#9b59b6" stroke-width="1.5"/>
+          <text x="690" y="132" text-anchor="middle" fill="#9b59b6" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace">officers.ts</text>
+          <text x="690" y="150" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">photo: URL string</text>
+          <text x="690" y="167" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">→ OfficerCard prop</text>
+          <rect x="645" y="178" width="90" height="14" rx="3" fill="rgba(155,89,182,0.2)" stroke="rgba(155,89,182,0.4)" stroke-width="0.5"/>
+          <text x="690" y="188" text-anchor="middle" fill="#9b59b6" font-size="8" font-weight="600">OrgChart.vue</text>
+
+          <!-- Bottom: Result -->
+          <rect x="280" y="260" width="240" height="40" rx="20" fill="var(--green)" opacity="0.12" stroke="var(--green)" stroke-width="1"/>
+          <text x="400" y="284" text-anchor="middle" fill="var(--green)" font-size="11" font-weight="700">Officer cards display profile photos</text>
+
+          <!-- Connecting line from step 4 to result -->
+          <line x1="690" y1="205" x2="520" y2="270" stroke="var(--line)" stroke-width="1" stroke-dasharray="4,4"/>
+          <line x1="475" y1="225" x2="400" y2="258" stroke="var(--line)" stroke-width="1" stroke-dasharray="4,4"/>
+        </svg>
+        <p class="caption">Fig 1. End-to-end flow: Photo files → WebP conversion → Supabase Storage → officers.ts → OfficerCard</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 1 — PREPARE PHOTOS
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-1" class="section phase-1">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <div>
+          <span class="label">Phase 1 — Image Preparation</span>
+          <h2>Collect &amp; Convert Photos to WebP</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Naming Convention
+          <span class="badge badge-manual">Critical</span>
+        </h3>
+        <p>
+          Each photo filename must map to the officer it represents. Use a consistent,
+          URL-safe naming scheme based on the officer's surname (lowercase, hyphenated).
+        </p>
+
+        <!-- Naming Diagram -->
+        <div class="flow-diagram">
+          <svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, monospace">
+            <rect width="700" height="180" fill="#FDFCF9" rx="8"/>
+
+            <!-- Filename anatomy -->
+            <text x="350" y="28" text-anchor="middle" fill="#0c1b36" font-size="12" font-weight="700" font-family="Inter, sans-serif">Filename Anatomy</text>
+
+            <!-- Full filename -->
+            <rect x="120" y="48" width="460" height="36" rx="6" fill="#081422"/>
+            <text x="350" y="72" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="14">
+              <tspan fill="#a5d6a7">siason</tspan><tspan fill="rgba(255,255,255,0.4)">.</tspan><tspan fill="#80cbc4">webp</tspan>
+            </text>
+
+            <!-- Bracket: name part -->
+            <line x1="155" y1="92" x2="310" y2="92" stroke="#c9a24b" stroke-width="1.5"/>
+            <line x1="155" y1="88" x2="155" y2="96" stroke="#c9a24b" stroke-width="1.5"/>
+            <line x1="310" y1="88" x2="310" y2="96" stroke="#c9a24b" stroke-width="1.5"/>
+            <text x="233" y="108" text-anchor="middle" fill="#a07c2e" font-size="10" font-weight="600">surname (lowercase)</text>
+
+            <!-- Bracket: extension -->
+            <line x1="320" y1="92" x2="410" y2="92" stroke="#3498db" stroke-width="1.5"/>
+            <line x1="320" y1="88" x2="320" y2="96" stroke="#3498db" stroke-width="1.5"/>
+            <line x1="410" y1="88" x2="410" y2="96" stroke="#3498db" stroke-width="1.5"/>
+            <text x="365" y="108" text-anchor="middle" fill="#3498db" font-size="10" font-weight="600">extension</text>
+
+            <!-- Examples -->
+            <text x="120" y="140" fill="#5a6677" font-size="10" font-weight="600">Examples:</text>
+            <text x="120" y="158" fill="#5a6677" font-size="10">
+              <tspan fill="#a5d6a7">demonteverde</tspan><tspan fill="rgba(255,255,255,0.3)">.</tspan><tspan fill="#80cbc4">webp</tspan>
+              <tspan fill="#5a6677">   ← USC President</tspan>
+            </text>
+            <text x="120" y="173" fill="#5a6677" font-size="10">
+              <tspan fill="#a5d6a7">depositario</tspan><tspan fill="rgba(255,255,255,0.3)">.</tspan><tspan fill="#80cbc4">webp</tspan>
+              <tspan fill="#5a6677">   ← Fed USC President</tspan>
+            </text>
+          </svg>
+          <p class="caption">Fig 2. Naming convention: officer's surname in lowercase + .webp extension</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Image Specifications
+          <span class="badge badge-manual">Requirements</span>
+        </h3>
+        <ul>
+          <li><strong>Format:</strong> WebP (for faster loading in this CSR thick-client app)</li>
+          <li><strong>Dimensions:</strong> 200 × 200 pixels (square, the card displays at ~46–50px CSS)</li>
+          <li><strong>Quality:</strong> 85 (the project's standard — see <code>scripts/convert-images.py</code>)</li>
+          <li><strong>Background:</strong> Neutral or transparent — portrait-style, head-and-shoulders crop</li>
+          <li><strong>Max file size:</strong> Under 100 KB each (WebP at 200px is typically 15–40 KB)</li>
+          <li><strong>Color profile:</strong> sRGB</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>
+          WebP Conversion
+          <span class="badge badge-script">Script Available</span>
+        </h3>
+        <p>
+          The project already has a Python conversion script at <code>scripts/convert-images.py</code>.
+          You can adapt it or use one of the manual methods below.
+        </p>
+
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+            Option A — Online Converter (Easiest)
+          </div>
+          <div class="manual-text">
+            <ol class="step-list">
+              <li>Go to <a href="https://squoosh.app" target="_blank">squoosh.app</a> or <a href="https://convertio.co/jpg-webp/" target="_blank">convertio.co</a></li>
+              <li>Upload each officer's photo</li>
+              <li>Set output format to <strong>WebP</strong>, quality to <strong>85</strong>, resize to <strong>200×200</strong></li>
+              <li>Download and rename using the naming convention above</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+            Option B — Python Script (Batch)
+          </div>
+          <div class="manual-text">
+            <p>Use this script to batch-convert all photos in a folder:</p>
+          </div>
+          <div class="prompt-block">
+            <div class="prompt-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+              Python — convert-officer-photos.py
+            </div>
+            <div class="prompt-text"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image
+<span class="keyword">import</span> os
+
+<span class="prop">INPUT_DIR</span> = <span class="string">"raw-photos"</span>      <span class="comment"># folder with original JPG/PNG</span>
+<span class="prop">OUTPUT_DIR</span> = <span class="string">"webp-photos"</span>     <span class="comment"># folder for converted WebP</span>
+<span class="prop">SIZE</span> = (<span class="highlight">200</span>, <span class="highlight">200</span>)
+<span class="prop">QUALITY</span> = <span class="highlight">85</span>
+
+os.makedirs(<span class="prop">OUTPUT_DIR</span>, exist_ok=<span class="keyword">True</span>)
+
+<span class="keyword">for</span> f <span class="keyword">in</span> os.listdir(<span class="prop">INPUT_DIR</span>):
+    <span class="keyword">if</span> <span class="keyword">not</span> f.lower().endswith((<span class="string">'.jpg'</span>, <span class="string">'.jpeg'</span>, <span class="string">'.png'</span>)):
+        <span class="keyword">continue</span>
+    img = Image.open(os.path.join(<span class="prop">INPUT_DIR</span>, f))
+    img = img.convert(<span class="string">"RGBA"</span> <span class="keyword">if</span> img.mode <span class="keyword">in</span> (<span class="string">"LA"</span>, <span class="string">"RGBA"</span>, <span class="string">"PA"</span>) <span class="keyword">else</span> <span class="string">"RGB"</span>)
+    img = img.resize(<span class="prop">SIZE</span>, Image.LANCZOS)
+    name = os.path.splitext(f)[0].lower().replace(<span class="string">" "</span>, <span class="string">"-"</span>)
+    out = os.path.join(<span class="prop">OUTPUT_DIR</span>, <span class="string">f"<span class="highlight">{name}</span>.webp"</span>)
+    img.save(out, <span class="string">"webp"</span>, quality=<span class="prop">QUALITY</span>, method=<span class="highlight">6</span>)
+    print(<span class="string">f"Converted: <span class="highlight">{f}</span> → <span class="highlight">{os.path.basename(out)}</span>"</span>)</div>
+          </div>
+        </div>
+
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+            Option C — PowerShell (Windows, using ffmpeg)
+          </div>
+          <div class="manual-text">
+            <p>If you have <code>ffmpeg</code> installed:</p>
+          </div>
+          <div class="code-block"><code><span class="comment"># Convert a single image</span>
+ffmpeg -i raw-photos\siason.jpg -vf "scale=200:200" -quality 85 webp-photos\siason.webp
+
+<span class="comment"># Batch convert all JPGs in a folder</span>
+Get-ChildItem raw-photos\*.jpg | ForEach-Object {
+  $name = $_.BaseName.ToLower() -replace ' ','-'
+  ffmpeg -i $_.FullName -vf "scale=200:200" -quality 85 "webp-photos\$name.webp"
+}</code></div>
+        </div>
+
+        <div class="alert alert-tip">
+          <span class="alert-icon">💡</span>
+          <div><strong>Why WebP?</strong> WebP provides 25–35% smaller file sizes than JPEG at equivalent quality. Since this is a CSR thick-client app, faster image loading directly improves perceived performance and the PWA caches WebP files via Workbox.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>File Checklist After Phase 1</h3>
+        <p>You should now have a folder with 30 WebP files, one per officer:</p>
+        <div class="file-tree">
+          <div><span class="folder">webp-photos/</span></div>
+          <div class="indent"><span class="new-file">siason.webp</span></div>
+          <div class="indent"><span class="new-file">jinon.webp</span></div>
+          <div class="indent"><span class="new-file">balbona.webp</span></div>
+          <div class="indent"><span class="new-file">ilisan-sales.webp</span></div>
+          <div class="indent"><span class="new-file">baling.webp</span></div>
+          <div class="indent"><span class="new-file">subang.webp</span></div>
+          <div class="indent"><span class="new-file">daguro.webp</span></div>
+          <div class="indent"><span class="new-file">verdeflor.webp</span></div>
+          <div class="indent"><span class="new-file">bracamonte.webp</span></div>
+          <div class="indent"><span class="new-file">alada.webp</span></div>
+          <div class="indent"><span class="new-file">tanquerido.webp</span></div>
+          <div class="indent"><span class="new-file">esmeralda.webp</span></div>
+          <div class="indent"><span class="new-file">batisl-ong.webp</span></div>
+          <div class="indent"><span class="new-file">deslate.webp</span></div>
+          <div class="indent"><span class="new-file">katalbas.webp</span></div>
+          <div class="indent"><span class="new-file">depositario.webp</span></div>
+          <div class="indent"><span class="new-file">borcelo.webp</span></div>
+          <div class="indent"><span class="new-file">demonteverde.webp</span></div>
+          <div class="indent"><span class="new-file">bicodo.webp</span></div>
+          <div class="indent"><span class="new-file">danugrao.webp</span></div>
+          <div class="indent"><span class="new-file">parcia.webp</span></div>
+          <div class="indent"><span class="new-file">manderico.webp</span></div>
+          <div class="indent"><span class="new-file">aquiño.webp</span></div>
+          <div class="indent"><span class="new-file">deang.webp</span></div>
+          <div class="indent"><span class="new-file">natalio.webp</span></div>
+          <div class="indent"><span class="new-file">balinas.webp</span></div>
+          <div class="indent"><span class="new-file">martinez.webp</span></div>
+          <div class="indent"><span class="new-file">perisme.webp</span></div>
+          <div class="indent"><span class="new-file">almirante.webp</span></div>
+          <div class="indent"><span class="new-file">frial.webp</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 2 — UPLOAD TO SUPABASE
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-2" class="section phase-2">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <div>
+          <span class="label">Phase 2 — Storage Upload</span>
+          <h2>Push WebP Files to Supabase Storage</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Storage Bucket Info</h3>
+        <p>
+          The <code>profiles</code> bucket is already configured in Supabase Storage.
+          It's a <strong>public</strong> bucket with a <strong>5 MB</strong> file size limit,
+          accepting PNG, JPEG, WebP, GIF, and AVIF MIME types.
+        </p>
+
+        <!-- Upload Flow Diagram -->
+        <div class="flow-diagram">
+          <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+            <rect width="700" height="200" fill="#FDFCF9" rx="8"/>
+
+            <!-- Local files -->
+            <rect x="30" y="60" width="140" height="80" rx="8" fill="#0c1b36" stroke="#3498db" stroke-width="1.5"/>
+            <text x="100" y="90" text-anchor="middle" fill="#3498db" font-size="10" font-weight="700" font-family="JetBrains Mono, monospace">LOCAL FILES</text>
+            <text x="100" y="108" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="9">webp-photos/</text>
+            <text x="100" y="122" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="8">30 × .webp</text>
+
+            <!-- Upload methods -->
+            <text x="265" y="55" text-anchor="middle" fill="#a07c2e" font-size="9" font-weight="600">CHOOSE METHOD</text>
+
+            <!-- Method A: Dashboard -->
+            <rect x="210" y="68" width="110" height="52" rx="6" fill="rgba(45,188,168,0.08)" stroke="rgba(45,188,168,0.3)" stroke-width="1"/>
+            <text x="265" y="88" text-anchor="middle" fill="var(--teal)" font-size="9" font-weight="700">A: Dashboard</text>
+            <text x="265" y="103" text-anchor="middle" fill="var(--slate)" font-size="8">Drag &amp; drop UI</text>
+
+            <!-- Method B: Script -->
+            <rect x="210" y="128" width="110" height="52" rx="6" fill="rgba(155,89,182,0.08)" stroke="rgba(155,89,182,0.3)" stroke-width="1"/>
+            <text x="265" y="148" text-anchor="middle" fill="var(--purple)" font-size="9" font-weight="700">B: PS Script</text>
+            <text x="265" y="163" text-anchor="middle" fill="var(--slate)" font-size="8">upload-to-supabase.ps1</text>
+
+            <!-- Arrows -->
+            <line x1="170" y1="100" x2="208" y2="90" stroke="var(--gold)" stroke-width="1.5" marker-end="url(#arrowGold)"/>
+            <line x1="170" y1="100" x2="208" y2="150" stroke="var(--gold)" stroke-width="1.5" marker-end="url(#arrowGold)"/>
+            <defs><marker id="arrowGold" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#c9a24b"/></marker></defs>
+
+            <!-- Arrow to bucket -->
+            <line x1="322" y1="100" x2="390" y2="100" stroke="var(--gold)" stroke-width="1.5" marker-end="url(#arrowGold)"/>
+
+            <!-- Supabase bucket -->
+            <rect x="395" y="50" width="170" height="110" rx="10" fill="#081422" stroke="#2dbca8" stroke-width="1.5"/>
+            <text x="480" y="78" text-anchor="middle" fill="#2dbca8" font-size="11" font-weight="700" font-family="JetBrains Mono, monospace">profiles</text>
+            <text x="480" y="95" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">Public bucket</text>
+            <text x="480" y="110" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9">5 MB limit</text>
+            <rect x="420" y="125" width="120" height="18" rx="4" fill="rgba(45,188,168,0.15)"/>
+            <text x="480" y="137" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="8">siason.webp, jinon.webp ...</text>
+
+            <!-- Public URL -->
+            <rect x="590" y="70" width="85" height="70" rx="6" fill="rgba(39,174,96,0.08)" stroke="rgba(39,174,96,0.3)" stroke-width="1"/>
+            <text x="633" y="92" text-anchor="middle" fill="var(--green)" font-size="9" font-weight="700">PUBLIC</text>
+            <text x="633" y="106" text-anchor="middle" fill="var(--green)" font-size="9" font-weight="700">URL</text>
+            <text x="633" y="122" text-anchor="middle" fill="var(--slate)" font-size="7">Ready to use</text>
+            <line x1="567" y1="100" x2="588" y2="100" stroke="var(--green)" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+            <defs><marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#27ae60"/></marker></defs>
+          </svg>
+          <p class="caption">Fig 3. Two upload methods: Supabase Dashboard (drag &amp; drop) or PowerShell script (automated)</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Option A — Supabase Dashboard (Recommended)
+          <span class="badge badge-manual">Manual</span>
+        </h3>
+        <div class="manual-block">
+          <div class="manual-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+            Step-by-step Instructions
+          </div>
+          <div class="manual-text">
+            <ol class="step-list">
+              <li>Open the <a href="https://supabase.com/dashboard" target="_blank">Supabase Dashboard</a> and select your project</li>
+              <li>Navigate to <strong>Storage</strong> in the left sidebar</li>
+              <li>Click on the <code>profiles</code> bucket</li>
+              <li>Click <strong>"Upload file"</strong> or drag all 30 WebP files at once</li>
+              <li>Wait for all uploads to complete — each file should show a green checkmark</li>
+              <li>Verify by clicking any file — copy the public URL and open it in a new tab</li>
+            </ol>
+          </div>
+        </div>
+        <div class="alert alert-info">
+          <span class="alert-icon">💡</span>
+          <div><strong>Tip:</strong> Upload all files in a single batch. The dashboard supports multi-file drag &amp; drop. This is the fastest method for a one-time setup of 30 small images.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Option B — PowerShell Upload Script
+          <span class="badge badge-script">Automated</span>
+        </h3>
+        <p>
+          The project includes <code>scripts/upload-to-supabase.ps1</code> which reads
+          credentials from <code>.env</code> and uploads files via the Supabase REST API.
+        </p>
+        <div class="prompt-block">
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            PowerShell — Upload all officer photos
+          </div>
+          <div class="prompt-text"><span class="comment"># Navigate to project root</span>
+cd S:\Dev\Vue\usc-attendance
+
+<span class="comment"># Upload a single file</span>
+.\scripts\upload-to-supabase.ps1 `
+  -FilePath <span class="string">"webp-photos\siason.webp"</span> `
+  -Bucket <span class="string">"profiles"</span>
+
+<span class="comment"># Upload all WebP files in the folder</span>
+.\scripts\upload-to-supabase.ps1 `
+  -FilePath <span class="string">"webp-photos\*.webp"</span> `
+  -Bucket <span class="string">"profiles"</span></div>
+        </div>
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div><strong>Prerequisite:</strong> Make sure your <code>.env</code> file has valid <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> values. The service role key is required for uploads (the anon key won't work).</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Public URL Format</h3>
+        <p>After upload, each photo is accessible at this URL pattern:</p>
+        <div class="code-block"><code><span class="comment"># URL pattern</span>
+https://<span class="highlight">lqzrraggcaczwwohbqcb</span>.supabase.co/storage/v1/object/public/profiles/<span class="string">FILENAME</span>.webp
+
+<span class="comment"># Examples</span>
+https://<span class="highlight">lqzrraggcaczwwohbqcb</span>.supabase.co/storage/v1/object/public/profiles/<span class="string">siason.webp</span>
+https://<span class="highlight">lqzrraggcaczwwohbqcb</span>.supabase.co/storage/v1/object/public/profiles/<span class="string">demonteverde.webp</span>
+https://<span class="highlight">lqzrraggcaczwwohbqcb</span>.supabase.co/storage/v1/object/public/profiles/<span class="string">depositario.webp</span></code></div>
+        <div class="alert alert-success">
+          <span class="alert-icon">✅</span>
+          <div><strong>Verification:</strong> Paste any URL into your browser. You should see the image render. If you get a 404, check that the filename matches exactly (case-sensitive).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 3 — UPDATE OFFICERS.TS
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-3" class="section phase-3">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <div>
+          <span class="label">Phase 3 — Data Layer</span>
+          <h2>Update <code>officers.ts</code> with Photo URLs</h2>
+        </div>
+      </div>
+
+      <!-- Wiring Diagram -->
+      <div class="flow-diagram">
+        <svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, monospace">
+          <rect width="700" height="160" fill="#FDFCF9" rx="8"/>
+
+          <!-- officers.ts file -->
+          <rect x="30" y="30" width="200" height="100" rx="8" fill="#1c2848" stroke="#9b59b6" stroke-width="1.5"/>
+          <text x="130" y="55" text-anchor="middle" fill="#9b59b6" font-size="11" font-weight="700">officers.ts</text>
+          <rect x="50" y="68" width="160" height="48" rx="4" fill="rgba(155,89,182,0.1)" stroke="rgba(155,89,182,0.2)" stroke-width="0.5"/>
+          <text x="130" y="85" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">{</text>
+          <text x="130" y="100" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">
+            <tspan fill="#c9a24b">photo</tspan>: <tspan fill="#a5d6a7">"https://..."</tspan>
+          </text>
+          <text x="130" y="112" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">}</text>
+
+          <!-- Arrow -->
+          <line x1="235" y1="80" x2="340" y2="80" stroke="var(--gold)" stroke-width="2" marker-end="url(#arrowPurple)"/>
+          <defs><marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9b59b6"/></marker></defs>
+          <text x="288" y="72" text-anchor="middle" fill="#a07c2e" font-size="8" font-weight="600">BINDS TO</text>
+
+          <!-- OrgChart.vue -->
+          <rect x="345" y="30" width="160" height="100" rx="8" fill="#162d50" stroke="#3498db" stroke-width="1.5"/>
+          <text x="425" y="55" text-anchor="middle" fill="#3498db" font-size="11" font-weight="700">OrgChart.vue</text>
+          <rect x="365" y="68" width="120" height="48" rx="4" fill="rgba(52,152,219,0.1)" stroke="rgba(52,152,219,0.2)" stroke-width="0.5"/>
+          <text x="425" y="85" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">&lt;OfficerCard</text>
+          <text x="425" y="100" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">
+            <tspan fill="#c9a24b">:photo</tspan>=<tspan fill="#a5d6a7">"o.photo"</tspan>
+          </text>
+          <text x="425" y="112" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">/&gt;</text>
+
+          <!-- Arrow to result -->
+          <line x1="510" y1="80" x2="570" y2="80" stroke="var(--gold)" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+          <!-- Result -->
+          <rect x="575" y="45" width="100" height="70" rx="8" fill="rgba(39,174,96,0.08)" stroke="rgba(39,174,96,0.3)" stroke-width="1"/>
+          <text x="625" y="72" text-anchor="middle" fill="var(--green)" font-size="10" font-weight="700">IMAGE</text>
+          <text x="625" y="87" text-anchor="middle" fill="var(--green)" font-size="10" font-weight="700">RENDERED</text>
+          <text x="625" y="103" text-anchor="middle" fill="var(--slate)" font-size="8">in card avatar</text>
+        </svg>
+        <p class="caption">Fig 4. The <code>photo</code> field in officers.ts binds to the OfficerCard component via OrgChart.vue</p>
+      </div>
+
+      <div class="card">
+        <h3>
+          What to Change
+          <span class="badge badge-manual">Code Edit</span>
+        </h3>
+        <p>
+          Open <code>src/data/officers.ts</code> and add the <code>photo</code> property to each officer object.
+          The field is already typed as <code>photo?: string</code> in the <code>Officer</code> interface — no schema change needed.
+        </p>
+
+        <div class="prompt-block">
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            TypeScript — src/data/officers.ts (example edits)
+          </div>
+          <div class="prompt-text"><span class="comment">// ── Administration ──</span>
+{
+  <span class="prop">name</span>: <span class="string">'Dr. Nordy D. Siason, Jr., CESO VI'</span>,
+  <span class="prop">position</span>: <span class="string">'University President'</span>,
+  <span class="prop">tier</span>: <span class="string">'administration'</span>,
+  <span class="highlight">photo</span>: <span class="string">'https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/profiles/siason.webp'</span>,
+},
+{
+  <span class="prop">name</span>: <span class="string">'Dr. Stephen Raymund T. Jinon'</span>,
+  <span class="prop">position</span>: <span class="string">'Vice President for Academic Affairs'</span>,
+  <span class="prop">tier</span>: <span class="string">'administration'</span>,
+  <span class="highlight">photo</span>: <span class="string">'https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/profiles/jinon.webp'</span>,
+},
+
+<span class="comment">// ── USC Executive Officers ──</span>
+{
+  <span class="prop">name</span>: <span class="string">'Jared S. Demonteverde'</span>,
+  <span class="prop">position</span>: <span class="string">'President'</span>,
+  <span class="prop">tier</span>: <span class="string">'usc_executive'</span>,
+  <span class="highlight">photo</span>: <span class="string">'https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/profiles/demonteverde.webp'</span>,
+},
+
+<span class="comment">// ... repeat for all 30 officers</span></div>
+        </div>
+
+        <div class="alert alert-tip">
+          <span class="alert-icon">💡</span>
+          <div><strong>DRY approach:</strong> You can define the base URL as a constant to keep the data cleaner:</div>
+        </div>
+
+        <div class="code-block"><code><span class="comment">// At the top of officers.ts</span>
+<span class="keyword">const</span> <span class="prop">PROFILE_BUCKET</span> = <span class="string">'https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/profiles'</span>
+
+<span class="comment">// Then in each officer object</span>
+{
+  <span class="prop">name</span>: <span class="string">'Dr. Nordy D. Siason, Jr., CESO VI'</span>,
+  <span class="prop">position</span>: <span class="string">'University President'</span>,
+  <span class="prop">tier</span>: <span class="string">'administration'</span>,
+  <span class="highlight">photo</span>: <span class="string">`${PROFILE_BUCKET}/siason.webp`</span>,
+},</code></div>
+      </div>
+
+      <div class="card">
+        <h3>Full Officer → Filename Mapping</h3>
+        <p>Reference table for all 30 officers and their expected photo filenames:</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Officer</th>
+              <th>Position</th>
+              <th>Tier</th>
+              <th>Filename</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Dr. Nordy D. Siason, Jr.</td><td>University President</td><td><span class="tier-badge tier-1">admin</span></td><td><code>siason.webp</code></td></tr>
+            <tr><td>Dr. Stephen Raymund T. Jinon</td><td>VP Academic Affairs</td><td><span class="tier-badge tier-1">admin</span></td><td><code>jinon.webp</code></td></tr>
+            <tr><td>Dr. Dingras E. Balbona</td><td>Campus Administrator</td><td><span class="tier-badge tier-1">admin</span></td><td><code>balbona.webp</code></td></tr>
+            <tr><td>Dr. Febe Jane Ilisan-Sales</td><td>OIC Chairperson, SSC</td><td><span class="tier-badge tier-1">admin</span></td><td><code>ilisan-sales.webp</code></td></tr>
+            <tr><td>Dr. Ledeah R. Baling</td><td>Admin Support, SSC</td><td><span class="tier-badge tier-1">admin</span></td><td><code>baling.webp</code></td></tr>
+            <tr><td>Dr. Angeline A. Subang</td><td>Coordinator, Sports</td><td><span class="tier-badge tier-1">admin</span></td><td><code>subang.webp</code></td></tr>
+            <tr><td>Dr. Nancy D. Daguro</td><td>Coordinator, Cultural</td><td><span class="tier-badge tier-1">admin</span></td><td><code>daguro.webp</code></td></tr>
+            <tr><td>Instr. Jonard V. Verdeflor</td><td>Coordinator, Guidance</td><td><span class="tier-badge tier-1">admin</span></td><td><code>verdeflor.webp</code></td></tr>
+            <tr><td>Mrs. Kathryn Rose C. Bracamonte</td><td>Coordinator, Health</td><td><span class="tier-badge tier-1">admin</span></td><td><code>bracamonte.webp</code></td></tr>
+            <tr><td>Dr. Joanne A. Alada</td><td>Coordinator, Publication</td><td><span class="tier-badge tier-1">admin</span></td><td><code>alada.webp</code></td></tr>
+            <tr><td>Mr. Jilbert B. Tanquerido</td><td>Coordinator, Dormitory</td><td><span class="tier-badge tier-1">admin</span></td><td><code>tanquerido.webp</code></td></tr>
+            <tr><td>Ms. Roussel Justinn B. Esmeralda</td><td>Coordinator, Student Org</td><td><span class="tier-badge tier-1">admin</span></td><td><code>esmeralda.webp</code></td></tr>
+            <tr><td>Dr. Soceline N. Batisl-Ong</td><td>Coordinator, Scholarship</td><td><span class="tier-badge tier-1">admin</span></td><td><code>batisl-ong.webp</code></td></tr>
+            <tr><td>Mr. Dwight V. Deslate</td><td>Psychometrician</td><td><span class="tier-badge tier-1">admin</span></td><td><code>deslate.webp</code></td></tr>
+            <tr><td>Armando S. Katalbas</td><td>Adviser, Fed USC</td><td><span class="tier-badge tier-2">federated</span></td><td><code>katalbas.webp</code></td></tr>
+            <tr><td>Gerel A. Depositario</td><td>President, Fed USC</td><td><span class="tier-badge tier-2">federated</span></td><td><code>depositario.webp</code></td></tr>
+            <tr><td>Jonard V. Verdeflor</td><td>Adviser, USC</td><td><span class="tier-badge tier-3">adviser</span></td><td><code>verdeflor.webp</code></td></tr>
+            <tr><td>Rowena S. Borcelo</td><td>Co-Adviser, USC</td><td><span class="tier-badge tier-3">adviser</span></td><td><code>borcelo.webp</code></td></tr>
+            <tr><td>Jared S. Demonteverde</td><td>USC President</td><td><span class="tier-badge tier-4">executive</span></td><td><code>demonteverde.webp</code></td></tr>
+            <tr><td>Katherine Anne B. Bicodo</td><td>USC Vice President</td><td><span class="tier-badge tier-4">executive</span></td><td><code>bicodo.webp</code></td></tr>
+            <tr><td>Nikki Loraine B. Danugrao</td><td>USC Secretary</td><td><span class="tier-badge tier-4">executive</span></td><td><code>danugrao.webp</code></td></tr>
+            <tr><td>Lianne B. Parcia</td><td>USC Auditor</td><td><span class="tier-badge tier-4">executive</span></td><td><code>parcia.webp</code></td></tr>
+            <tr><td>Dein Andrey D. Daguro</td><td>Senate President</td><td><span class="tier-badge tier-4">executive</span></td><td><code>daguro.webp</code></td></tr>
+            <tr><td>Chene D. Manderico</td><td>USC Treasurer</td><td><span class="tier-badge tier-4">executive</span></td><td><code>manderico.webp</code></td></tr>
+            <tr><td>Rena Grace B. Aqui&ntilde;o</td><td>USC Spokesperson</td><td><span class="tier-badge tier-4">executive</span></td><td><code>aquino.webp</code></td></tr>
+            <tr><td>Nezie Ann A. Deang</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>deang.webp</code></td></tr>
+            <tr><td>John David A. Natalio</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>natalio.webp</code></td></tr>
+            <tr><td>John Emiel P. Balinas</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>balinas.webp</code></td></tr>
+            <tr><td>Jeff Edrick C. Martinez</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>martinez.webp</code></td></tr>
+            <tr><td>Andro Renz D. Perisme</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>perisme.webp</code></td></tr>
+            <tr><td>Reynald S. Almirante</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>almirante.webp</code></td></tr>
+            <tr><td>Jona Ross P. Frial</td><td>Senator</td><td><span class="tier-badge tier-5">senate</span></td><td><code>frial.webp</code></td></tr>
+          </tbody>
+        </table>
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div><strong>Verdeflor appears twice</strong> — once as Coordinator (administration tier) and once as USC Adviser (usc_advisers tier). Both can use the same photo filename since they're the same person.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 4 — UPDATE ORGCHART.VUE
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-4" class="section phase-4">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <div>
+          <span class="label">Phase 4 — Component Wiring</span>
+          <h2>Pass <code>photo</code> Prop in OrgChart.vue</h2>
+        </div>
+      </div>
+
+      <!-- Before/After Diagram -->
+      <div class="flow-diagram">
+        <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, monospace">
+          <rect width="700" height="220" fill="#FDFCF9" rx="8"/>
+
+          <!-- BEFORE -->
+          <text x="175" y="28" text-anchor="middle" fill="var(--red)" font-size="11" font-weight="700" font-family="Inter, sans-serif">BEFORE — No photo prop</text>
+          <rect x="40" y="40" width="270" height="75" rx="8" fill="#1c2848" stroke="rgba(231,76,60,0.4)" stroke-width="1.5"/>
+          <text x="175" y="65" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">&lt;OfficerCard</text>
+          <text x="175" y="82" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">
+            <tspan fill="#c9a24b">:name</tspan>=<tspan fill="#a5d6a7">"president.name"</tspan>
+          </text>
+          <text x="175" y="97" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">
+            <tspan fill="#c9a24b">variant</tspan>=<tspan fill="#a5d6a7">"institutional"</tspan>
+          </text>
+          <text x="175" y="112" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">/&gt;</text>
+
+          <!-- Silhouette icon -->
+          <rect x="100" y="130" width="150" height="35" rx="6" fill="rgba(231,76,60,0.08)" stroke="rgba(231,76,60,0.2)" stroke-width="1"/>
+          <text x="175" y="152" text-anchor="middle" fill="var(--red)" font-size="9" font-weight="600">Shows SVG silhouette</text>
+
+          <!-- Arrow down -->
+          <line x1="175" y1="118" x2="175" y2="128" stroke="rgba(231,76,60,0.4)" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+          <defs><marker id="arrowRed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#e74c3c"/></marker></defs>
+
+          <!-- AFTER -->
+          <text x="525" y="28" text-anchor="middle" fill="var(--green)" font-size="11" font-weight="700" font-family="Inter, sans-serif">AFTER — With photo prop</text>
+          <rect x="390" y="40" width="270" height="90" rx="8" fill="#1c2848" stroke="rgba(39,174,96,0.4)" stroke-width="1.5"/>
+          <text x="525" y="62" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">&lt;OfficerCard</text>
+          <text x="525" y="79" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">
+            <tspan fill="#c9a24b">:name</tspan>=<tspan fill="#a5d6a7">"president.name"</tspan>
+          </text>
+          <text x="525" y="94" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">
+            <tspan fill="#c9a24b">variant</tspan>=<tspan fill="#a5d6a7">"institutional"</tspan>
+          </text>
+          <text x="525" y="109" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="10">
+            <tspan fill="#27ae60">:photo</tspan>=<tspan fill="#a5d6a7">"president.photo"</tspan> <tspan fill="var(--green)">← NEW</tspan>
+          </text>
+          <text x="525" y="124" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">/&gt;</text>
+
+          <!-- Photo icon -->
+          <rect x="445" y="145" width="160" height="35" rx="6" fill="rgba(39,174,96,0.08)" stroke="rgba(39,174,96,0.2)" stroke-width="1"/>
+          <text x="525" y="167" text-anchor="middle" fill="var(--green)" font-size="9" font-weight="600">Shows officer photo</text>
+
+          <!-- Arrow down -->
+          <line x1="525" y1="132" x2="525" y2="143" stroke="rgba(39,174,96,0.4)" stroke-width="1.5" marker-end="url(#arrowGreen2)"/>
+          <defs><marker id="arrowGreen2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#27ae60"/></marker></defs>
+
+          <!-- Divider -->
+          <line x1="350" y1="20" x2="350" y2="195" stroke="var(--line)" stroke-width="1" stroke-dasharray="4,4"/>
+        </svg>
+        <p class="caption">Fig 5. Before and after: adding the <code>:photo</code> binding to each OfficerCard instance</p>
+      </div>
+
+      <div class="card">
+        <h3>
+          What to Change
+          <span class="badge badge-manual">Code Edit</span>
+        </h3>
+        <p>
+          Open <code>src/components/ui/OrgChart.vue</code>. There are <strong>27 <code>&lt;OfficerCard&gt;</code></strong> instances.
+          Add the <code>:photo</code> prop to each one, pulling the value from the corresponding officer computed ref.
+        </p>
+
+        <div class="prompt-block">
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            Vue — src/components/ui/OrgChart.vue (example change)
+          </div>
+          <div class="prompt-text"><span class="comment">&lt;!-- BEFORE --&gt;</span>
+&lt;OfficerCard
+  <span class="prop">:name</span>=<span class="string">"president.name"</span>
+  <span class="prop">designation</span>=<span class="string">"University President"</span>
+  <span class="prop">:initials</span>=<span class="string">"getInitials(president.name)"</span>
+  <span class="prop">variant</span>=<span class="string">"institutional"</span>
+/&gt;
+
+<span class="comment">&lt;!-- AFTER — add :photo binding --&gt;</span>
+&lt;OfficerCard
+  <span class="prop">:name</span>=<span class="string">"president.name"</span>
+  <span class="prop">designation</span>=<span class="string">"University President"</span>
+  <span class="prop">:initials</span>=<span class="string">"getInitials(president.name)"</span>
+  <span class="prop">variant</span>=<span class="string">"institutional"</span>
+  <span class="highlight">:photo</span>=<span class="string">"president.photo"</span>
+/&gt;</div>
+        </div>
+
+        <div class="alert alert-info">
+          <span class="alert-icon">💡</span>
+          <div><strong>Safe rollout:</strong> Since <code>photo</code> is optional (<code>photo?: string</code>), adding the prop binding is safe even before all photos are uploaded. Officers without a photo URL will continue showing the SVG silhouette fallback.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>All 27 OfficerCard Instances to Update</h3>
+        <p>Here's every OfficerCard in OrgChart.vue and the computed ref to bind:</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Line</th>
+              <th>Officer Ref</th>
+              <th>Position</th>
+              <th>Photo Binding</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>~177</td><td><code>president</code></td><td>University President</td><td><code>:photo="president.photo"</code></td></tr>
+            <tr><td>~192</td><td><code>vpAcademic</code></td><td>VP Academic Affairs</td><td><code>:photo="vpAcademic.photo"</code></td></tr>
+            <tr><td>~207</td><td><code>campusAdmin</code></td><td>Campus Administrator</td><td><code>:photo="campusAdmin.photo"</code></td></tr>
+            <tr><td>~225</td><td><code>sscChair</code></td><td>OIC Chairperson, SSC</td><td><code>:photo="sscChair.photo"</code></td></tr>
+            <tr><td>~237</td><td><code>adminSupport</code></td><td>Admin Support, SSC</td><td><code>:photo="adminSupport.photo"</code></td></tr>
+            <tr><td>~270</td><td><code>coordSubang</code></td><td>Coordinator, Sports</td><td><code>:photo="coordSubang.photo"</code></td></tr>
+            <tr><td>~278</td><td><code>coordVerdeflorCoord</code></td><td>Coordinator, Guidance</td><td><code>:photo="coordVerdeflorCoord.photo"</code></td></tr>
+            <tr><td>~286</td><td><code>coordAlada</code></td><td>Coordinator, Publication</td><td><code>:photo="coordAlada.photo"</code></td></tr>
+            <tr><td>~294</td><td><code>coordEsmeralda</code></td><td>Coordinator, Student Org</td><td><code>:photo="coordEsmeralda.photo"</code></td></tr>
+            <tr><td>~302</td><td><code>coordDeslate</code></td><td>Psychometrician</td><td><code>:photo="coordDeslate.photo"</code></td></tr>
+            <tr><td>~314</td><td><code>coordDaguro</code></td><td>Coordinator, Cultural</td><td><code>:photo="coordDaguro.photo"</code></td></tr>
+            <tr><td>~322</td><td><code>coordBracamonte</code></td><td>Coordinator, Health</td><td><code>:photo="coordBracamonte.photo"</code></td></tr>
+            <tr><td>~330</td><td><code>coordTanquerido</code></td><td>Coordinator, Dormitory</td><td><code>:photo="coordTanquerido.photo"</code></td></tr>
+            <tr><td>~338</td><td><code>coordBatislOng</code></td><td>Coordinator, Scholarship</td><td><code>:photo="coordBatislOng.photo"</code></td></tr>
+            <tr><td>~368</td><td><code>fedAdviser</code></td><td>Adviser, Fed USC</td><td><code>:photo="fedAdviser.photo"</code></td></tr>
+            <tr><td>~377</td><td><code>fedPresident</code></td><td>President, Fed USC</td><td><code>:photo="fedPresident.photo"</code></td></tr>
+            <tr><td>~394</td><td><code>uscAdviser</code></td><td>Adviser, USC</td><td><code>:photo="uscAdviser.photo"</code></td></tr>
+            <tr><td>~403</td><td><code>uscCoAdviser</code></td><td>Co-Adviser, USC</td><td><code>:photo="uscCoAdviser.photo"</code></td></tr>
+            <tr><td>~421</td><td><code>execPresident</code></td><td>USC President</td><td><code>:photo="execPresident.photo"</code></td></tr>
+            <tr><td>~432</td><td><code>execVp</code></td><td>USC Vice President</td><td><code>:photo="execVp.photo"</code></td></tr>
+            <tr><td>~451</td><td><code>execSecretary</code></td><td>USC Secretary</td><td><code>:photo="execSecretary.photo"</code></td></tr>
+            <tr><td>~460</td><td><code>execAuditor</code></td><td>USC Auditor</td><td><code>:photo="execAuditor.photo"</code></td></tr>
+            <tr><td>~469</td><td><code>execSenatePres</code></td><td>Senate President</td><td><code>:photo="execSenatePres.photo"</code></td></tr>
+            <tr><td>~488</td><td><code>execTreasurer</code></td><td>USC Treasurer</td><td><code>:photo="execTreasurer.photo"</code></td></tr>
+            <tr><td>~497</td><td><code>execSpokesperson</code></td><td>USC Spokesperson</td><td><code>:photo="execSpokesperson.photo"</code></td></tr>
+            <tr><td>~531+</td><td><code>senators[i]</code></td><td>Senators (7 cards)</td><td><code>:photo="senator.photo"</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>
+          Senator Cards (Loop)
+          <span class="badge badge-auto">Loop Pattern</span>
+        </h3>
+        <p>
+          The 7 senator cards are rendered in a <code>v-for</code> loop. You only need to add the prop once to the loop template:
+        </p>
+        <div class="prompt-block">
+          <div class="prompt-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            Vue — Senator loop (around line 531)
+          </div>
+          <div class="prompt-text"><span class="comment">&lt;!-- BEFORE --&gt;</span>
+&lt;OfficerCard
+  <span class="prop">:name</span>=<span class="string">"senator.name"</span>
+  <span class="prop">designation</span>=<span class="string">"Senator"</span>
+  <span class="prop">:initials</span>=<span class="string">"getInitials(senator.name)"</span>
+  <span class="prop">variant</span>=<span class="string">"senate"</span>
+/&gt;
+
+<span class="comment">&lt;!-- AFTER --&gt;</span>
+&lt;OfficerCard
+  <span class="prop">:name</span>=<span class="string">"senator.name"</span>
+  <span class="prop">designation</span>=<span class="string">"Senator"</span>
+  <span class="prop">:initials</span>=<span class="string">"getInitials(senator.name)"</span>
+  <span class="prop">variant</span>=<span class="string">"senate"</span>
+  <span class="highlight">:photo</span>=<span class="string">"senator.photo"</span>
+/&gt;</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         PHASE 5 — VERIFY
+         ═══════════════════════════════════════════════════ -->
+    <section id="phase-5" class="section phase-5">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <div>
+          <span class="label">Phase 5 — Verification</span>
+          <h2>Test, Polish &amp; Troubleshoot</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          Verification Checklist
+          <span class="badge badge-manual">Manual</span>
+        </h3>
+        <ul class="checklist">
+          <li>Open <code>/officers</code> page — all 30 cards should show photos instead of silhouettes</li>
+          <li>Check each tier visually: admin (navy-gold), federated (deeper navy), advisers, executive (bright gold), senate (teal-steel)</li>
+          <li>Verify images are not stretched or cropped badly — they use <code>object-fit: cover</code></li>
+          <li>Test on mobile — the chart auto-scales via CSS transform; images should remain crisp</li>
+          <li>Check browser DevTools Network tab — images should load as WebP (not PNG/JPEG)</li>
+          <li>Verify PWA caching — after first load, images should be served from Service Worker cache</li>
+          <li>Test with slow throttling (3G) — WebP files should load reasonably fast (15–40 KB each)</li>
+          <li>Run <code>npm run build</code> — confirm no build errors related to the photo URLs</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>
+          Run the Dev Server
+          <span class="badge badge-script">Command</span>
+        </h3>
+        <div class="code-block"><code><span class="comment"># Start dev server</span>
+npm run dev
+
+<span class="comment"># Open in browser</span>
+<span class="comment"># http://localhost:5173/officers</span></code></div>
+      </div>
+
+      <div class="card">
+        <h3>Troubleshooting</h3>
+
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <strong>Image not showing (silhouette still visible)?</strong><br>
+            Check that the <code>photo</code> URL in <code>officers.ts</code> is correct. Open the URL directly in a browser tab.
+            Common issues: typo in filename, wrong case (<code>Siason.webp</code> vs <code>siason.webp</code>), file not uploaded yet.
+          </div>
+        </div>
+
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <strong>Image shows but is stretched/squished?</strong><br>
+            The <code>OfficerCard</code> uses <code>object-fit: cover</code> which crops to fill the square.
+            Make sure source photos are roughly square or center-weighted portraits.
+          </div>
+        </div>
+
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <strong>CORS error in console?</strong><br>
+            Supabase Storage public buckets include CORS headers by default.
+            If you see CORS errors, check that the bucket is set to <code>public: true</code> in the Supabase Dashboard → Storage → profiles → Settings.
+          </div>
+        </div>
+
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <strong>403 Forbidden on image URL?</strong><br>
+            The bucket policies may not be set correctly. Re-run the policies section of
+            <code>scripts/setup-supabase-storage.sql</code> or check that the <code>"Public read profiles"</code> policy exists.
+          </div>
+        </div>
+
+        <div class="alert alert-info">
+          <span class="alert-icon">💡</span>
+          <div>
+            <strong>Want to test with one photo first?</strong><br>
+            Upload just one photo (e.g., <code>siason.webp</code>), add the <code>photo</code> URL only to the President's entry in <code>officers.ts</code>,
+            and add <code>:photo="president.photo"</code> only to the first OfficerCard in OrgChart.vue. Verify it works, then do the rest.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Performance Notes</h3>
+        <ul>
+          <li><strong>File sizes:</strong> WebP at 200×200, quality 85 typically produces 15–40 KB files. 30 photos ≈ 0.5–1.2 MB total.</li>
+          <li><strong>PWA caching:</strong> Workbox is configured to precache all <code>*.webp</code> files. After first visit, images load from Service Worker cache.</li>
+          <li><strong>Supabase CDN:</strong> Supabase Storage serves files from a CDN edge node closest to the user (region: <code>ap-northeast-1</code>).</li>
+          <li><strong>Rendered size:</strong> The <code>OfficerCard</code> avatar is ~46–50px CSS. The 200px source provides 4× resolution for retina displays.</li>
+          <li><strong>No lazy loading needed:</strong> With only 30 small WebP images, eager loading is fine. The total payload is smaller than a single hero image.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════
+         SUMMARY
+         ═══════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <span class="label">Summary</span>
+          <h2>Quick Reference — Files to Touch</h2>
+        </div>
+      </div>
+
+      <div class="file-tree">
+        <div><span class="folder">usc-attendance/</span></div>
+        <div class="indent"><span class="folder">scripts/</span></div>
+        <div class="indent-2"><span class="mod-file">convert-images.py</span> — existing WebP converter (reference)</div>
+        <div class="indent-2"><span class="mod-file">upload-to-supabase.ps1</span> — existing upload script (use this)</div>
+        <div class="indent"><span class="folder">src/</span></div>
+        <div class="indent"><span class="folder">data/</span></div>
+        <div class="indent-2"><span class="mod-file">officers.ts</span> — add <code>photo</code> URL to each of 30 officer objects</div>
+        <div class="indent"><span class="folder">components/</span></div>
+        <div class="indent"><span class="folder">ui/</span></div>
+        <div class="indent-2"><span class="mod-file">OrgChart.vue</span> — add <code>:photo</code> binding to 27 OfficerCard instances</div>
+        <div class="indent-2"><span style="color: var(--slate)">OfficerCard.vue</span> — no changes needed (already supports <code>photo</code> prop)</div>
+      </div>
+
+      <!-- Final Flow Diagram -->
+      <div class="flow-diagram">
+        <svg viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+          <rect width="700" height="100" fill="#FDFCF9" rx="8"/>
+
+          <!-- Phase boxes -->
+          <rect x="15" y="25" width="110" height="50" rx="25" fill="var(--teal)" opacity="0.15" stroke="var(--teal)" stroke-width="1.5"/>
+          <text x="70" y="47" text-anchor="middle" fill="var(--teal)" font-size="10" font-weight="700">1. Prepare</text>
+          <text x="70" y="61" text-anchor="middle" fill="var(--teal)" font-size="8">Convert to WebP</text>
+
+          <line x1="128" y1="50" x2="158" y2="50" stroke="var(--line)" stroke-width="2" marker-end="url(#arrowFinal)"/>
+          <defs><marker id="arrowFinal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#c9a24b"/></marker></defs>
+
+          <rect x="162" y="25" width="110" height="50" rx="25" fill="var(--blue)" opacity="0.15" stroke="var(--blue)" stroke-width="1.5"/>
+          <text x="217" y="47" text-anchor="middle" fill="var(--blue)" font-size="10" font-weight="700">2. Upload</text>
+          <text x="217" y="61" text-anchor="middle" fill="var(--blue)" font-size="8">To profiles bucket</text>
+
+          <line x1="275" y1="50" x2="305" y2="50" stroke="var(--line)" stroke-width="2" marker-end="url(#arrowFinal)"/>
+
+          <rect x="309" y="25" width="110" height="50" rx="25" fill="var(--purple)" opacity="0.15" stroke="var(--purple)" stroke-width="1.5"/>
+          <text x="364" y="47" text-anchor="middle" fill="var(--purple)" font-size="10" font-weight="700">3. Wire</text>
+          <text x="364" y="61" text-anchor="middle" fill="var(--purple)" font-size="8">officers.ts URLs</text>
+
+          <line x1="422" y1="50" x2="452" y2="50" stroke="var(--line)" stroke-width="2" marker-end="url(#arrowFinal)"/>
+
+          <rect x="456" y="25" width="110" height="50" rx="25" fill="var(--orange)" opacity="0.15" stroke="var(--orange)" stroke-width="1.5"/>
+          <text x="511" y="47" text-anchor="middle" fill="var(--orange)" font-size="10" font-weight="700">4. Connect</text>
+          <text x="511" y="61" text-anchor="middle" fill="var(--orange)" font-size="8">OrgChart props</text>
+
+          <line x1="569" y1="50" x2="599" y2="50" stroke="var(--line)" stroke-width="2" marker-end="url(#arrowFinal)"/>
+
+          <rect x="603" y="25" width="85" height="50" rx="25" fill="var(--green)" opacity="0.15" stroke="var(--green)" stroke-width="1.5"/>
+          <text x="646" y="47" text-anchor="middle" fill="var(--green)" font-size="10" font-weight="700">5. Verify</text>
+          <text x="646" y="61" text-anchor="middle" fill="var(--green)" font-size="8">Test &amp; done</text>
+        </svg>
+        <p class="caption">Fig 6. The 5-phase workflow at a glance</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="footer">
+    <div class="container">
+      <span class="gold-text">USC Attendance System</span> — Org Chart Profile Images Roadmap<br>
+      ISUFST Dingle Campus &middot; July 2026
+    </div>
+  </footer>
+
+</body>
+</html>

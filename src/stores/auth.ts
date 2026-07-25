@@ -6,6 +6,7 @@ import type { User, Role } from '@/types'
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const loading = ref(true)
+  const lastAuthError = ref<string | null>(null)
 
   const isAuthenticated = computed(() => !!user.value)
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
@@ -15,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUser() {
     loading.value = true
+
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       user.value = null
@@ -24,8 +26,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const data = await api.get<User>('/auth/me')
       user.value = data
-    } catch {
+      lastAuthError.value = null
+    } catch (err: unknown) {
       user.value = null
+      lastAuthError.value = err instanceof Error ? err.message : String(err)
     }
     loading.value = false
   }
@@ -39,6 +43,12 @@ export const useAuthStore = defineStore('auth', () => {
     if (error) throw error
 
     await fetchUser()
+    if (!user.value) {
+      throw new Error(
+        'Signed in, but your account could not be loaded' +
+          (lastAuthError.value ? `: ${lastAuthError.value}` : '')
+      )
+    }
     return data
   }
 
@@ -56,6 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     loading,
+    lastAuthError,
     isAuthenticated,
     isSuperAdmin,
     isStaff,

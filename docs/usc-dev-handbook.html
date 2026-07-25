@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USC ISUFST Dingle Campus — Developer Handbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --usc-navy:     #142850;
+      --usc-gold:     #F5A623;
+      --usc-gold-dim: #c4841b;
+      --usc-sky:      #1A73E8;
+      --bg:           #0d1117;
+      --bg2:          #161b22;
+      --bg3:          #21262d;
+      --border:       #30363d;
+      --text:         #e6edf3;
+      --text-muted:   #8b949e;
+      --green:        #3fb950;
+      --red:          #f85149;
+      --orange:       #d29922;
+      --purple:       #a371f7;
+      --radius:       10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px; }
+
+    /* SIDEBAR */
+    .sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: var(--bg2); border-right: 1px solid var(--border); overflow-y: auto; z-index: 100; padding: 0 0 40px; }
+    .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo .badge { display: inline-block; background: linear-gradient(135deg, var(--usc-navy), #1e3d6b); border: 1px solid var(--usc-gold); color: var(--usc-gold); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; margin-bottom: 8px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .sidebar-logo .version { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .nav-section { padding: 16px 0 0; }
+    .nav-section-title { padding: 0 20px 6px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
+    .nav-link { display: flex; align-items: center; gap: 8px; padding: 7px 20px; color: var(--text-muted); text-decoration: none; font-size: 13px; transition: all 0.15s; border-left: 2px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: var(--text); background: rgba(255,255,255,0.04); border-left-color: var(--usc-gold); }
+    .nav-link .icon { font-size: 14px; width: 16px; }
+
+    /* MAIN */
+    .main { margin-left: 260px; min-height: 100vh; }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #0a1628 0%, #142850 50%, #0d2347 100%); border-bottom: 1px solid var(--border); padding: 80px 60px 60px; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -100px; right: -100px; width: 400px; height: 400px; background: radial-gradient(circle, rgba(245,166,35,0.08) 0%, transparent 70%); pointer-events: none; }
+    .hero .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .tag { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; border: 1px solid; }
+    .tag-gold   { color: var(--usc-gold); border-color: var(--usc-gold); background: rgba(245,166,35,0.08); }
+    .tag-green  { color: var(--green);    border-color: var(--green);    background: rgba(63,185,80,0.08); }
+    .tag-blue   { color: var(--usc-sky);  border-color: var(--usc-sky);  background: rgba(26,115,232,0.08); }
+    .tag-purple { color: var(--purple);   border-color: var(--purple);   background: rgba(163,113,247,0.08); }
+    .hero h1 { font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; background: linear-gradient(135deg, #fff 0%, var(--usc-gold) 60%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 16px; color: rgba(230,237,243,0.7); max-width: 640px; margin-bottom: 32px; }
+    .hero-meta { display: flex; gap: 32px; flex-wrap: wrap; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .hero-meta-item .label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .hero-meta-item .value { font-size: 14px; font-weight: 600; color: var(--usc-gold); }
+
+    /* SECTIONS */
+    .content { padding: 0 60px 80px; }
+    .section { padding-top: 64px; }
+    .section-anchor { display: block; position: relative; top: -80px; visibility: hidden; }
+    h2.section-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 12px; }
+    h2.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .section-desc { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+    h3.subsection { font-size: 16px; font-weight: 600; color: var(--text); margin: 28px 0 12px; padding-left: 12px; border-left: 3px solid var(--usc-gold); }
+
+    /* CARDS */
+    .card-grid { display: grid; gap: 16px; }
+    .card-grid-2 { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .card-grid-3 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; transition: border-color 0.2s, transform 0.2s; }
+    .card:hover { border-color: rgba(245,166,35,0.4); transform: translateY(-2px); }
+    .card-icon { font-size: 28px; margin-bottom: 12px; }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* TABLES */
+    .stack-table, .route-table, .env-table, .schema-fields { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .stack-table th, .route-table th, .env-table th { text-align: left; padding: 10px 16px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); font-weight: 600; }
+    .stack-table td, .route-table td, .env-table td { padding: 12px 16px; border: 1px solid var(--border); vertical-align: top; }
+    .stack-table tr:nth-child(even) td, .route-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .stack-table td:first-child { font-weight: 600; color: var(--usc-gold); white-space: nowrap; width: 140px; }
+    .stack-table td:nth-child(2) { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .stack-table td:nth-child(3), .route-table td:nth-child(4) { color: var(--text-muted); font-size: 13px; }
+    .route-table td:first-child { font-family: 'JetBrains Mono', monospace; color: var(--usc-gold); }
+    .route-public { color: var(--green); font-size: 11px; font-weight: 600; }
+    .route-auth   { color: var(--usc-sky); font-size: 11px; font-weight: 600; }
+    .route-admin  { color: var(--red); font-size: 11px; font-weight: 600; }
+    .env-table td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #79c0ff; white-space: nowrap; }
+    .env-table td:nth-child(2) { color: var(--text-muted); font-size: 12px; }
+    .env-required { color: var(--red); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .env-optional { color: var(--orange); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+
+    /* CODE */
+    pre { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; margin: 16px 0; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--usc-gold); }
+    pre code { background: none; padding: 0; color: inherit; }
+    .cc { color: #6e7681; } .ck { color: #79c0ff; } .cs { color: #a5d6ff; } .kw { color: #ff7b72; } .fn { color: #d2a8ff; }
+
+    /* API ENDPOINT */
+    .endpoint { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); margin: 16px 0; overflow: hidden; }
+    .endpoint-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--bg3); border-bottom: 1px solid var(--border); }
+    .method { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 5px; min-width: 52px; text-align: center; }
+    .method-get    { background: rgba(63,185,80,0.15);  color: var(--green);  border: 1px solid rgba(63,185,80,0.3); }
+    .method-post   { background: rgba(26,115,232,0.15); color: #79c0ff;       border: 1px solid rgba(26,115,232,0.3); }
+    .method-put    { background: rgba(210,153,34,0.15); color: var(--orange); border: 1px solid rgba(210,153,34,0.3); }
+    .method-delete { background: rgba(248,81,73,0.15);  color: var(--red);    border: 1px solid rgba(248,81,73,0.3); }
+    .endpoint-path { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); font-weight: 500; }
+    .endpoint-desc-text { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+    .endpoint-body { padding: 16px 20px; }
+    .endpoint-body p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+
+    /* ROLES */
+    .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+    .role-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .role-card.super-admin { border-top: 3px solid var(--red); }
+    .role-card.staff       { border-top: 3px solid var(--usc-sky); }
+    .role-card.client      { border-top: 3px solid var(--green); }
+    .role-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .super-admin .role-name { color: var(--red); }
+    .staff .role-name       { color: var(--usc-sky); }
+    .client .role-name      { color: var(--green); }
+    .role-card ul { list-style: none; font-size: 13px; color: var(--text-muted); }
+    .role-card li::before { content: '✓ '; color: var(--green); }
+
+    /* SCHEMA */
+    .schema-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 12px 0; }
+    .schema-header { background: var(--bg3); padding: 10px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .schema-model { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--purple); }
+    .schema-table-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .schema-fields th { padding: 8px 16px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); text-align: left; font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+    .schema-fields td { padding: 10px 16px; border-bottom: 1px solid rgba(48,54,61,0.5); }
+    .schema-fields tr:last-child td { border-bottom: none; }
+    .field-name { font-family: 'JetBrains Mono', monospace; color: #79c0ff; }
+    .field-type { font-family: 'JetBrains Mono', monospace; color: var(--purple); }
+    .field-note { color: var(--text-muted); font-size: 12px; }
+    .pk-badge { font-size: 9px; font-weight: 700; background: rgba(245,166,35,0.15); color: var(--usc-gold); border: 1px solid rgba(245,166,35,0.3); border-radius: 3px; padding: 1px 5px; margin-left: 6px; }
+
+    /* FLOW STEPS */
+    .flow-steps { display: flex; flex-direction: column; gap: 4px; margin: 16px 0; }
+    .flow-step { display: flex; align-items: flex-start; gap: 16px; padding: 14px 18px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; }
+    .step-num { min-width: 28px; height: 28px; border-radius: 50%; background: var(--usc-navy); border: 1px solid var(--usc-gold); color: var(--usc-gold); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .step-content { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .step-desc  { font-size: 13px; color: var(--text-muted); }
+
+    /* ALERTS */
+    .alert { padding: 14px 18px; border-radius: var(--radius); border-left: 4px solid; margin: 16px 0; font-size: 13px; }
+    .alert-warning { background: rgba(210,153,34,0.08); border-color: var(--orange); color: #d29922; }
+    .alert-info    { background: rgba(26,115,232,0.08); border-color: var(--usc-sky); color: #79c0ff; }
+    .alert-danger  { background: rgba(248,81,73,0.08);  border-color: var(--red);    color: #f85149; }
+    .alert-success { background: rgba(63,185,80,0.08);  border-color: var(--green);  color: var(--green); }
+    .alert strong { display: block; margin-bottom: 4px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.8px; }
+
+    /* FOOTER */
+    .footer { border-top: 1px solid var(--border); padding: 32px 60px; color: var(--text-muted); font-size: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .footer a { color: var(--usc-gold); text-decoration: none; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .hero, .content, .footer { padding-left: 24px; padding-right: 24px; }
+      .role-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="badge">USC ISUFST</div>
+    <h2>Dingle Campus<br>Developer Handbook</h2>
+    <div class="version">v1.0 &middot; July 2026</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Overview</div>
+    <a href="#overview"    class="nav-link"><span class="icon">&#127979;</span> Project Overview</a>
+    <a href="#tech-stack"  class="nav-link"><span class="icon">&#9881;</span> Tech Stack</a>
+    <a href="#architecture" class="nav-link"><span class="icon">&#128506;</span> Architecture</a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Frontend</div>
+    <a href="#routes"      class="nav-link"><span class="icon">&#129517;</span> Routes &amp; Pages</a>
+    <a href="#stores"      class="nav-link"><span class="icon">&#128230;</span> Pinia Stores</a>
+    <a href="#composables" class="nav-link"><span class="icon">&#128260;</span> Composables</a>
+    <a href="#pwa"         class="nav-link"><span class="icon">&#128241;</span> PWA &amp; Offline</a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Backend</div>
+    <a href="#api-reference" class="nav-link"><span class="icon">&#128268;</span> API Reference</a>
+    <a href="#auth-layer"    class="nav-link"><span class="icon">&#128274;</span> Auth Layer</a>
+    <a href="#qr-system"     class="nav-link"><span class="icon">&#128247;</span> QR System</a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Data</div>
+    <a href="#database"      class="nav-link"><span class="icon">&#128452;</span> Database Schema</a>
+    <a href="#roles"         class="nav-link"><span class="icon">&#128100;</span> Roles &amp; Permissions</a>
+    <a href="#checkin-flows" class="nav-link"><span class="icon">&#10003;</span> Check-in Flows</a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Ops</div>
+    <a href="#env-vars"    class="nav-link"><span class="icon">&#128273;</span> Environment Vars</a>
+    <a href="#deployment"  class="nav-link"><span class="icon">&#128640;</span> Deployment</a>
+    <a href="#conventions" class="nav-link"><span class="icon">&#128208;</span> Conventions</a>
+    <a href="#claude-prompt" class="nav-link"><span class="icon">&#129302;</span> Claude AI Prompt</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="tag-row">
+      <span class="tag tag-gold">USC ISUFST Dingle Campus</span>
+      <span class="tag tag-green">PWA</span>
+      <span class="tag tag-blue">Vue 3 + Vite</span>
+      <span class="tag tag-purple">Vercel Serverless</span>
+    </div>
+    <h1>USC ISUFST Dingle Campus<br>Developer Handbook</h1>
+    <p class="hero-sub">
+      Complete technical reference for the official University Student Council website and
+      integrated attendance management system. Single source of truth for architecture,
+      API contracts, database design, and development conventions.
+    </p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><span class="label">Package</span><span class="value">usc-isufst-website</span></div>
+      <div class="hero-meta-item"><span class="label">Version</span><span class="value">1.0.0</span></div>
+      <div class="hero-meta-item"><span class="label">Runtime</span><span class="value">Node / Vercel Edge</span></div>
+      <div class="hero-meta-item"><span class="label">Database</span><span class="value">PostgreSQL via Supabase</span></div>
+      <div class="hero-meta-item"><span class="label">Deploy Target</span><span class="value">Vercel</span></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="section">
+      <a class="section-anchor" id="overview"></a>
+      <h2 class="section-title">&#127979; Project Overview</h2>
+      <p class="section-desc">What this application is, who it serves, and what problems it solves.</p>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">
+        This repository is a <strong style="color:var(--text)">full-stack monolith</strong> delivered as a
+        <strong style="color:var(--text)">Progressive Web App</strong>. It serves two distinct purposes under one Vercel deployment:
+      </p>
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-icon">&#127968;</div>
+          <div class="card-title">USC Official Website (Public)</div>
+          <div class="card-desc">
+            Public-facing marketing and informational site for the University Student Council of ISUFST Dingle Campus.
+            Contains the homepage, officer roster, events calendar, campus guide (Leaflet map), contact form, and legal pages.
+            Fully accessible without login. Served with <code>layout: 'public'</code> meta tag.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128203;</div>
+          <div class="card-title">Officer Attendance System (Private)</div>
+          <div class="card-desc">
+            Role-gated attendance management platform for USC officers. Supports three check-in methods
+            (self-geolocation with Haversine fence, QR HMAC scan, manual staff override), duty scheduling,
+            real-time tracking, CSV export, and offline IndexedDB queue for unstable mobile connections.
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-top:24px;">
+        <strong>Design Philosophy</strong>
+        Both halves share the same Vue Router, Pinia stores, and Vercel deployment.
+        Public pages use <code>meta: { layout: 'public' }</code>. Authenticated pages use
+        <code>meta: { requiresAuth: true }</code>. A global route guard enforces this split.
+        The public portal pages at <code>/portal/*</code> are informational marketing for the attendance system itself.
+      </div>
+    </div>
+
+    <!-- TECH STACK -->
+    <div class="section">
+      <a class="section-anchor" id="tech-stack"></a>
+      <h2 class="section-title">&#9881; Tech Stack</h2>
+      <p class="section-desc">Every technology in use, versioned and explained.</p>
+
+      <h3 class="subsection">Frontend</h3>
+      <table class="stack-table">
+        <thead><tr><th>Layer</th><th>Package</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Framework</td><td>vue ^3.5</td><td>SPA with Composition API throughout. No Options API used anywhere.</td></tr>
+          <tr><td>Build Tool</td><td>vite ^6.0</td><td>HMR dev server, TypeScript transpilation, PWA plugin host.</td></tr>
+          <tr><td>Language</td><td>TypeScript ^5.8</td><td>All <code>.vue</code> files use <code>&lt;script setup lang="ts"&gt;</code>. Strict mode.</td></tr>
+          <tr><td>Router</td><td>vue-router ^4.5</td><td>Client-side routing with <code>createWebHistory()</code>. Hash mode not used.</td></tr>
+          <tr><td>State</td><td>pinia ^3.0</td><td>Composition-style stores only. Located in <code>src/stores/</code>.</td></tr>
+          <tr><td>Styling</td><td>tailwindcss ^3.4</td><td>Utility-first CSS. Custom theme in <code>tailwind.config.ts</code> (USC navy/gold palette).</td></tr>
+          <tr><td>Icons</td><td>@lucide/vue ^1.0</td><td>Consistent icon set across all UI components.</td></tr>
+          <tr><td>Animations</td><td>@vueuse/motion ^3.0</td><td>Directive-based motion for page transitions and element reveals.</td></tr>
+          <tr><td>QR Scanner</td><td>html5-qrcode ^2.3</td><td>Camera-based QR decoding in <code>ScannerPage.vue</code>.</td></tr>
+          <tr><td>Maps</td><td>leaflet ^1.9</td><td>Interactive map in <code>CampusGuidePage.vue</code>.</td></tr>
+          <tr><td>PWA</td><td>vite-plugin-pwa ^0.21</td><td>Workbox service worker, web manifest, offline caching, installable.</td></tr>
+          <tr><td>Offline DB</td><td>idb ^8.0</td><td>IndexedDB wrapper for the offline check-in queue composable.</td></tr>
+          <tr><td>CV Authority</td><td>class-variance-authority ^0.7</td><td>Variant-based class builder for UI components.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="subsection">Backend (Vercel Serverless)</h3>
+      <table class="stack-table">
+        <thead><tr><th>Layer</th><th>Package</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Runtime</td><td>@vercel/node ^5.0</td><td>Each file in <code>api/</code> is an independently deployed serverless function.</td></tr>
+          <tr><td>ORM</td><td>prisma ^6.0 / @prisma/client ^6.19</td><td>Type-safe PostgreSQL access. Schema in <code>prisma/schema.prisma</code>.</td></tr>
+          <tr><td>Auth Provider</td><td>@supabase/supabase-js ^2.50</td><td>JWT tokens issued by Supabase Auth, verified by every API handler.</td></tr>
+          <tr><td>JWT Fallback</td><td>jose ^6.2</td><td>HS256 fallback verification when Supabase <code>getUser()</code> is unavailable.</td></tr>
+          <tr><td>Database</td><td>PostgreSQL (Supabase)</td><td>Managed Postgres. Session pooler on port 5432. RLS intentionally disabled.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <div class="section">
+      <a class="section-anchor" id="architecture"></a>
+      <h2 class="section-title">&#128506; Architecture</h2>
+      <p class="section-desc">How all the pieces fit together.</p>
+      <pre><code><span class="cc">+------------------------------------------------------------------+
+|                      BROWSER (Client)                            |
+|                                                                  |
+|  +---------------------+   +--------------------------------+   |
+|  |   Public Website    |   |   Officer Portal (Authed)      |   |
+|  |  layout: 'public'   |   |  Dashboard / Check-In / QR /   |   |
+|  |  /, /about, /events |   |  Scanner / Duty / Schedules    |   |
+|  +---------------------+   +--------------------------------+   |
+|          |                              |                        |
+|   Vue Router (vue-router v4)    Pinia Stores (auth,events,duties)|
+|          |                    src/lib/api.ts (fetch + Bearer JWT)|
+|          +----------------------------+                          |
+|                    IndexedDB (idb) -- offline checkin queue      |
++------------------------------------------------------------------+</span>
+                          | HTTPS fetch()
+<span class="cc">+------------------------------------------------------------------+
+|                  VERCEL EDGE (Serverless)                        |
+|                                                                  |
+|  api/_lib/auth.ts  <- authenticate() used by every handler      |
+|  api/_lib/prisma.ts  <- Prisma singleton client                 |
+|  api/_lib/supabase.ts <- Supabase admin client                  |
+|                                                                  |
+|  /api/auth/me          /api/events         /api/duties          |
+|  /api/auth/users       /api/events/[id]    /api/org-profile     |
+|  /api/attendance       /api/attendance/checkout                  |
+|  /api/attendance/qr    /api/attendance/duty                      |
+|  /api/attendance/export                                          |
++------------------------------------------------------------------+</span>
+                    | Prisma Client (service-role bypass)
+<span class="cc">+------------------------------------------------------------------+
+|                SUPABASE (Managed Postgres)                       |
+|                                                                  |
+|  Auth DB (Supabase managed)   App DB (Prisma managed)           |
+|  auth.users  ------------->  users (id = Supabase UID)          |
+|                              events / attendance                 |
+|                              office_duties / org_profile         |
+|                              audit_logs                          |
++------------------------------------------------------------------+</span></code></pre>
+
+      <div class="alert alert-warning">
+        <strong>Critical: RLS is Disabled</strong>
+        Supabase Row-Level Security is explicitly OFF on all Prisma-managed tables.
+        The service-role Prisma connection bypasses RLS regardless.
+        All access control is enforced exclusively in API handler code via
+        <code>authenticate()</code>, <code>requireStaff()</code>, and <code>requireSuperAdmin()</code>.
+        Do NOT add Supabase RLS policies to these tables.
+      </div>
+    </div>
+
+    <!-- ROUTES -->
+    <div class="section">
+      <a class="section-anchor" id="routes"></a>
+      <h2 class="section-title">&#129517; Routes &amp; Pages</h2>
+      <p class="section-desc">All Vue Router routes, guard requirements, and serving component.</p>
+
+      <h3 class="subsection">Public Website Routes <code>meta: { layout: 'public' }</code></h3>
+      <table class="route-table">
+        <thead><tr><th>Path</th><th>Component</th><th>Guard</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>/</td><td>HomePage.vue</td><td><span class="route-public">public</span></td><td>Hero, stats, events teaser, campus map teaser, officers highlight</td></tr>
+          <tr><td>/about</td><td>AboutPage.vue</td><td><span class="route-public">public</span></td><td>USC mission, history, organization overview</td></tr>
+          <tr><td>/officers</td><td>OfficersPage.vue</td><td><span class="route-public">public</span></td><td>Current officer roster display</td></tr>
+          <tr><td>/projects</td><td>ProjectsPage.vue</td><td><span class="route-public">public</span></td><td>USC programs and projects listing</td></tr>
+          <tr><td>/events</td><td>PublicEventsPage.vue</td><td><span class="route-public">public</span></td><td>Public event calendar (from <code>public/data/events.json</code>)</td></tr>
+          <tr><td>/campus-guide</td><td>CampusGuidePage.vue</td><td><span class="route-public">public</span></td><td>Interactive Leaflet map of ISUFST Dingle Campus</td></tr>
+          <tr><td>/contact</td><td>ContactPage.vue</td><td><span class="route-public">public</span></td><td>Contact form and social links</td></tr>
+          <tr><td>/privacy</td><td>PrivacyPolicyPage.vue</td><td><span class="route-public">public</span></td><td>Data privacy disclosure</td></tr>
+          <tr><td>/portal</td><td>PortalPage.vue</td><td><span class="route-public">public</span></td><td>Attendance system marketing landing page</td></tr>
+          <tr><td>/portal/features</td><td>FeaturesPage.vue</td><td><span class="route-public">public</span></td><td>Feature showcase for the attendance portal</td></tr>
+          <tr><td>/portal/how-it-works</td><td>HowItWorksPage.vue</td><td><span class="route-public">public</span></td><td>Step-by-step explainer</td></tr>
+          <tr><td>/portal/security</td><td>SecurityPage.vue</td><td><span class="route-public">public</span></td><td>Security architecture explanation</td></tr>
+          <tr><td>/portal/faq</td><td>FAQPage.vue</td><td><span class="route-public">public</span></td><td>Frequently asked questions</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="subsection">Authenticated App Routes</h3>
+      <table class="route-table">
+        <thead><tr><th>Path</th><th>Component</th><th>Required Role</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>/login</td><td>LoginPage.vue</td><td><span class="route-public">guest only</span></td><td>Login form. Authenticated users are redirected to /dashboard.</td></tr>
+          <tr><td>/dashboard</td><td>DashboardPage.vue</td><td><span class="route-auth">any auth</span></td><td>Post-login hub, summary stats, quick actions</td></tr>
+          <tr><td>/check-in</td><td>CheckInPage.vue</td><td><span class="route-auth">any auth</span></td><td>Self geolocation check-in (event selection)</td></tr>
+          <tr><td>/check-in/:eventId</td><td>CheckInPage.vue</td><td><span class="route-auth">any auth</span></td><td>Self check-in pre-selected to a specific event</td></tr>
+          <tr><td>/qr</td><td>QRCodePage.vue</td><td><span class="route-auth">any auth</span></td><td>Generate personal 60-second QR token for staff scan</td></tr>
+          <tr><td>/duty</td><td>DutyCheckInPage.vue</td><td><span class="route-auth">any auth</span></td><td>Office duty check-in/check-out with time window enforcement</td></tr>
+          <tr><td>/scan</td><td>ScannerPage.vue</td><td><span class="route-admin">staff+</span></td><td>Camera QR scanner to record attendees</td></tr>
+          <tr><td>/manage/events</td><td>EventsManagePage.vue</td><td><span class="route-admin">staff+</span></td><td>Create, edit, delete events</td></tr>
+          <tr><td>/manage/events/:id</td><td>EventDetailPage.vue</td><td><span class="route-admin">staff+</span></td><td>Per-event attendance list, manual override, CSV export</td></tr>
+          <tr><td>/attendance/:eventId</td><td>AttendancePage.vue</td><td><span class="route-admin">staff+</span></td><td>Full attendance table for an event</td></tr>
+          <tr><td>/manage/schedules</td><td>ManageSchedulesPage.vue</td><td><span class="route-admin">super_admin</span></td><td>Assign officer duty schedules by day-of-week</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="subsection">Route Guard Logic</h3>
+      <pre><code><span class="cc">// src/router/index.ts — global beforeEach guard</span>
+router.beforeEach(async (to) => {
+  <span class="cc">// 1. Hydrate auth state from Supabase session on first navigation</span>
+  if (!auth.isAuthenticated) await auth.fetchUser()
+
+  <span class="cc">// 2. Protected route, not logged in → go to login</span>
+  if (to.meta.requiresAuth &amp;&amp; !auth.isAuthenticated) return { name: 'login' }
+
+  <span class="cc">// 3. Guest route (login), already logged in → go to dashboard</span>
+  if (to.meta.guest &amp;&amp; auth.isAuthenticated) return { name: 'dashboard' }
+
+  <span class="cc">// 4. Role-restricted route, insufficient role → go to dashboard</span>
+  if (to.meta.roles &amp;&amp; !to.meta.roles.includes(auth.user.role)) return { name: 'dashboard' }
+
+  return true
+})</code></pre>
+    </div>
+
+    <!-- STORES -->
+    <div class="section">
+      <a class="section-anchor" id="stores"></a>
+      <h2 class="section-title">&#128230; Pinia Stores</h2>
+      <p class="section-desc">All state management. Composition API style. No Options API stores. Located in <code>src/stores/</code>.</p>
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-title">&#128274; auth.ts — <code>useAuthStore</code></div>
+          <div class="card-desc">
+            Manages authenticated session. Wraps Supabase Auth SDK.<br><br>
+            <strong>State:</strong> <code>user: User | null</code>, <code>loading: boolean</code><br>
+            <strong>Computed:</strong> <code>isAuthenticated</code>, <code>isSuperAdmin</code>, <code>isStaff</code>, <code>isClient</code>, <code>role</code><br>
+            <strong>Actions:</strong> <code>login()</code>, <code>logout()</code>, <code>fetchUser()</code>, <code>updateProfile()</code>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#128197; events.ts — <code>useEventsStore</code></div>
+          <div class="card-desc">
+            Manages <code>USCEvent[]</code> for the authenticated app. Handles CRUD via <code>/api/events</code>. Keeps local state in sync after mutations to avoid unnecessary refetches.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#128467; schedules.ts — <code>useSchedulesStore</code></div>
+          <div class="card-desc">
+            Manages <code>OfficeDuty[]</code> schedules. Fetches from <code>/api/duties</code>.
+            Used exclusively by <code>ManageSchedulesPage.vue</code> (super_admin only).
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#127970; duties.ts — <code>useDutiesStore</code></div>
+          <div class="card-desc">
+            Manages the daily duty roster and attendance records.
+            Fetches from <code>/api/attendance/duty</code>.
+            Used by <code>DutyCheckInPage.vue</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPOSABLES -->
+    <div class="section">
+      <a class="section-anchor" id="composables"></a>
+      <h2 class="section-title">&#128260; Composables</h2>
+      <p class="section-desc">Reusable Composition API logic in <code>src/composables/</code>.</p>
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-title">&#128205; useGeolocation.ts</div>
+          <div class="card-desc">
+            Wraps browser Geolocation API. One-shot <code>getPosition()</code> and continuous <code>startWatching()</code>/<code>stopWatching()</code>.
+            Reactive refs: <code>latitude</code>, <code>longitude</code>, <code>accuracy</code>, <code>error</code>.
+            High accuracy, 10s timeout, 30s max cache age. Cleans up watcher on <code>onUnmounted()</code>.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#128395; useOfflineQueue.ts</div>
+          <div class="card-desc">
+            IndexedDB queue (via <code>idb</code>) for failed check-in/check-out requests when offline.
+            Auto-flushes on <code>window.online</code> event. FIFO order is critical — checkouts sync after matching check-ins.
+            Permanent 403 rejections are marked synced to stop retries.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#128506; useCampusGuide.ts</div>
+          <div class="card-desc">
+            Provides campus building POI (points of interest) data for the Leaflet map
+            in <code>CampusGuidePage.vue</code>.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#128197; useEvents.ts</div>
+          <div class="card-desc">
+            Fetches public event data for the public <code>/events</code> page.
+            Reads from <code>public/data/events.json</code> — a static JSON file, NOT the Prisma API.
+            Distinct from the <code>useEventsStore</code> Pinia store.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PWA -->
+    <div class="section">
+      <a class="section-anchor" id="pwa"></a>
+      <h2 class="section-title">&#128241; PWA &amp; Offline Support</h2>
+      <p class="section-desc">The application is a full Progressive Web App, installable on Android and iOS.</p>
+      <div class="card-grid card-grid-3" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-title">Web Manifest</div>
+          <div class="card-desc">
+            Name: <em>University Student Council &mdash; ISUFST Dingle Campus</em><br>
+            Short: <em>USC ISUFST</em><br>
+            Theme: <code>#142850</code> (Navy)<br>
+            Display: standalone<br>
+            Icons: 192px and 512px PNG
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Service Worker</div>
+          <div class="card-desc">
+            Workbox with <code>autoUpdate</code> register type.
+            Caches all JS/CSS/HTML/images/SVG up to 5 MB per file.
+            Runtime caching for Supabase URLs: NetworkFirst strategy, 5 min TTL, 50 max entries.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Offline Queue</div>
+          <div class="card-desc">
+            Failed check-ins during offline are stored in IndexedDB under store <code>checkin-queue</code> (DB v2).
+            Auto-replayed in FIFO order when connectivity is restored.
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-warning">
+        <strong>QR Tokens Are Not Offline-Compatible</strong>
+        QR tokens expire in 60 seconds and require a live session to generate.
+        Do not attempt to cache or persist QR tokens. The offline queue handles check-ins, not QR generation.
+      </div>
+    </div>
+
+    <!-- API REFERENCE -->
+    <div class="section">
+      <a class="section-anchor" id="api-reference"></a>
+      <h2 class="section-title">&#128268; API Reference</h2>
+      <p class="section-desc">
+        All backend endpoints live in <code>api/</code> as Vercel Serverless Functions.
+        Every protected endpoint calls <code>authenticate(req)</code> first.
+        All responses are JSON. All errors return <code>{ "error": "message string" }</code>.
+      </p>
+
+      <h3 class="subsection">Auth — <code>api/auth/</code></h3>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/auth/me</span>
+          <span class="endpoint-desc-text">Returns current user's Prisma profile</span>
+        </div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> Any authenticated user &nbsp;|&nbsp; <strong>Returns:</strong> <code>User</code></p></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/auth/users</span>
+          <span class="endpoint-desc-text">List all users in the system</span>
+        </div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> super_admin only &nbsp;|&nbsp; <strong>Returns:</strong> <code>User[]</code></p></div>
+      </div>
+
+      <h3 class="subsection">Events — <code>api/events/</code></h3>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/events</span><span class="endpoint-desc-text">List all events, newest first</span></div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> Any &nbsp;|&nbsp; <strong>Returns:</strong> <code>USCEvent[]</code></p></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post">POST</span><span class="endpoint-path">/api/events</span><span class="endpoint-desc-text">Create a new event</span></div>
+        <div class="endpoint-body">
+          <p><strong>Auth:</strong> staff+ &nbsp;|&nbsp; <strong>Body:</strong></p>
+          <pre><code>{ "title": string, "date": ISO8601, "lat": number, "lng": number, "radiusMeters": number }</code></pre>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/events/:id</span><span class="endpoint-desc-text">Get single event with attendance</span></div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> Any &nbsp;|&nbsp; <strong>Returns:</strong> <code>USCEvent</code> with nested <code>attendance[]</code></p></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-put">PUT</span><span class="endpoint-path">/api/events/:id</span><span class="endpoint-desc-text">Update event details</span></div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> staff+ &nbsp;|&nbsp; Same fields as POST, all partial-update supported.</p></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-delete">DELETE</span><span class="endpoint-path">/api/events/:id</span><span class="endpoint-desc-text">Delete event and cascade attendance</span></div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> super_admin</p></div>
+      </div>
+
+      <h3 class="subsection">Attendance — <code>api/attendance/</code></h3>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/attendance?eventId=:id</span><span class="endpoint-desc-text">All attendance records for an event</span></div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> Any &nbsp;|&nbsp; <strong>Returns:</strong> <code>Attendance[]</code> including user and recorder sub-objects</p></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post">POST</span><span class="endpoint-path">/api/attendance</span><span class="endpoint-desc-text">Record a check-in (event or duty)</span></div>
+        <div class="endpoint-body">
+          <p><strong>Auth:</strong> Any (method restrictions apply) &nbsp;|&nbsp; <strong>Body:</strong></p>
+          <pre><code>{
+  "type":     "event" | "duty",
+  "eventId":  string,    <span class="cc">// required if type="event"</span>
+  "dutyDate": ISO8601,   <span class="cc">// required if type="duty"</span>
+  "userId":   string,    <span class="cc">// officer being checked in</span>
+  "method":   "self" | "manual" | "qr",
+  "lat":      number,    <span class="cc">// required for method="self"</span>
+  "lng":      number     <span class="cc">// required for method="self"</span>
+}</code></pre>
+          <div class="alert alert-info" style="margin-top:8px;">
+            <strong>Server Validates Geofence for method=self</strong>
+            Haversine distance is recomputed server-side. Cannot be bypassed from the client.
+            Returns 403 if officer is outside <code>event.radiusMeters</code>.
+          </div>
+          <div class="alert alert-danger" style="margin-top:4px;">
+            <strong>Staff Cannot Manual-Record Their Own Attendance</strong>
+            If <code>method=manual</code> and <code>user.id === userId</code>, returns 403.
+            Prevents staff from overriding their own attendance record.
+          </div>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post">POST</span><span class="endpoint-path">/api/attendance/checkout</span><span class="endpoint-desc-text">Record a check-out (sets checkOutAt)</span></div>
+        <div class="endpoint-body">
+          <p><strong>Auth:</strong> Any (self) or staff+ (manual) &nbsp;|&nbsp; <strong>Body:</strong> <code>{ userId, eventId?, dutyDate? }</code></p>
+          <p>Duty checkouts enforce: <code>nowManila &gt;= orgProfile.dutyCheckOutStart</code>. Returns 403 if too early.</p>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post">POST</span><span class="endpoint-path">/api/attendance/qr</span><span class="endpoint-desc-text">QR-based check-in (staff scans officer QR)</span></div>
+        <div class="endpoint-body">
+          <p><strong>Auth:</strong> staff+ &nbsp;|&nbsp; <strong>Body:</strong> Full QR token payload <code>{ userId, eventId, issuedAt, exp, sig }</code></p>
+          <p>Server re-computes HMAC-SHA256 and uses <code>timingSafeEqual()</code>. Tokens expire after 60 seconds.</p>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/attendance/duty?date=ISO8601</span><span class="endpoint-desc-text">Duty roster + attendance for a date</span></div>
+        <div class="endpoint-body"><p><strong>Auth:</strong> Any &nbsp;|&nbsp; <strong>Returns:</strong> <code>{ duties: OfficeDuty[], attendance: Attendance[] }</code></p></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post">POST</span><span class="endpoint-path">/api/attendance/duty</span><span class="endpoint-desc-text">Record a duty check-in</span></div>
+        <div class="endpoint-body">
+          <p><strong>Auth:</strong> Any &nbsp;|&nbsp; Validates officer has active duty schedule for today's day-of-week.</p>
+          <p>Enforces cutoff: <code>nowManila &lt; orgProfile.dutyCheckInCutoff</code>. Returns 403 if too late.</p>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/attendance/export?eventId=:id</span><span class="endpoint-desc-text">CSV export of event attendance</span></div>
+        <div class="endpoint-body">
+          <p><strong>Auth:</strong> staff+ &nbsp;|&nbsp; <strong>Response:</strong> <code>text/csv</code> attachment</p>
+          <p>Columns: Name, Position, Method, Latitude, Longitude, Recorded By, Checked In At, Checked Out At</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTH LAYER -->
+    <div class="section">
+      <a class="section-anchor" id="auth-layer"></a>
+      <h2 class="section-title">&#128274; Auth Layer</h2>
+      <p class="section-desc">End-to-end authentication flow from browser to database.</p>
+
+      <h3 class="subsection">Login Flow</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Officer submits email + password on <code>/login</code></div><div class="step-desc">Calls <code>supabase.auth.signInWithPassword()</code> via <code>useAuthStore.login()</code>.</div></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Supabase issues a JWT access token</div><div class="step-desc">Token stored in Supabase client memory/localStorage. SDK auto-refreshes before expiry.</div></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><div class="step-title"><code>fetchUser()</code> calls <code>GET /api/auth/me</code></div><div class="step-desc">Token sent as <code>Authorization: Bearer &lt;token&gt;</code>. API returns Prisma <code>User</code> record with role.</div></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><div class="step-title">Router guard allows or redirects based on <code>auth.user.role</code></div><div class="step-desc">All protected pages become accessible per the role's permissions.</div></div></div>
+      </div>
+
+      <h3 class="subsection">API Token Verification Flow (<code>api/_lib/auth.ts</code>)</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Extract Bearer token from Authorization header</div><div class="step-desc">Throws if missing or malformed.</div></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Primary: <code>supabaseAdmin.auth.getUser(token)</code></div><div class="step-desc">Uses service role key. On success, fetches matching Prisma <code>User</code> by Supabase UID.</div></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><div class="step-title">Fallback: JOSE JWT verification (HS256)</div><div class="step-desc">Uses <code>SUPABASE_JWT_SECRET</code>. Handles transient Supabase errors gracefully.</div></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><div class="step-title">Return <code>AuthUser</code> to handler</div><div class="step-desc">All handlers then call <code>requireStaff(user)</code> or <code>requireSuperAdmin(user)</code> as needed.</div></div></div>
+      </div>
+    </div>
+
+    <!-- QR SYSTEM -->
+    <div class="section">
+      <a class="section-anchor" id="qr-system"></a>
+      <h2 class="section-title">&#128247; QR Check-in System</h2>
+      <p class="section-desc">Short-lived HMAC-SHA256 signed tokens that cannot be forged or reused.</p>
+      <div class="card-grid card-grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-title">Token Generation — <code>src/lib/qr.ts</code></div>
+          <div class="card-desc">
+            Uses browser <code>crypto.subtle</code> (WebCrypto API) with HMAC-SHA256.<br><br>
+            Payload: <code>{ userId, eventId, issuedAt, exp, sig }</code><br>
+            TTL: <strong>60 seconds</strong> from <code>issuedAt</code><br>
+            Sign string: <code>"userId:eventId:issuedAt"</code><br>
+            Secret source: <code>VITE_QR_SECRET</code> env var
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Token Verification — <code>api/attendance/qr.ts</code></div>
+          <div class="card-desc">
+            Uses Node.js <code>crypto.createHmac('sha256', SECRET)</code>.<br><br>
+            Re-computes expected signature. Uses <code>timingSafeEqual()</code> to prevent timing attacks.
+            Checks <code>now &gt; exp</code> for expiry.<br>
+            Secret source: <code>QR_SECRET</code> env var (must match frontend)
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-danger">
+        <strong>QR_SECRET Must Match Both Environments</strong>
+        Frontend uses <code>VITE_QR_SECRET</code>. Backend uses <code>QR_SECRET</code>.
+        Both must be set to the same value. Mismatch causes all QR scans to fail with 403.
+      </div>
+      <pre><code><span class="cc">// Full QR check-in flow</span>
+Officer on /qr  
+  → generateQRToken(userId, eventId)  
+  → QR canvas displayed (refreshes every 60s)
+
+Staff on /scan  
+  → html5-qrcode decodes camera frame  
+  → POST /api/attendance/qr { userId, eventId, issuedAt, exp, sig }  
+  → Server: timingSafeEqual(recomputed sig, provided sig)  
+  → Server: now &lt;= exp check  
+  → 201 OK | 403 Forbidden</code></pre>
+    </div>
+
+    <!-- DATABASE -->
+    <div class="section">
+      <a class="section-anchor" id="database"></a>
+      <h2 class="section-title">&#128452; Database Schema</h2>
+      <p class="section-desc">
+        PostgreSQL on Supabase, managed entirely by Prisma ORM.
+        Migrations live in <code>prisma/migrations/</code>.
+        Run <code>npm run db:migrate</code> to apply. Never edit the DB directly.
+      </p>
+
+      <div class="schema-block">
+        <div class="schema-header"><span class="schema-model">User</span><span class="schema-table-name">&#8594; table: users</span></div>
+        <table class="schema-fields">
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">id<span class="pk-badge">PK</span></td><td class="field-type">String UUID</td><td class="field-note">Must match Supabase <code>auth.users.id</code> — this is the identity bridge between the two systems.</td></tr>
+            <tr><td class="field-name">email</td><td class="field-type">String</td><td class="field-note">Unique. Institutional email address.</td></tr>
+            <tr><td class="field-name">name</td><td class="field-type">String</td><td class="field-note">Display name</td></tr>
+            <tr><td class="field-name">position</td><td class="field-type">String</td><td class="field-note">USC position title (e.g. "President", "Secretary General")</td></tr>
+            <tr><td class="field-name">role</td><td class="field-type">String</td><td class="field-note"><code>"super_admin"</code> | <code>"staff"</code> | <code>"client"</code> — stored as plain string, not enum</td></tr>
+            <tr><td class="field-name">mustChangePassword</td><td class="field-type">Boolean</td><td class="field-note">Default true. Flags first-time login password change requirement.</td></tr>
+            <tr><td class="field-name">active</td><td class="field-type">Boolean</td><td class="field-note">Default true. Set false to deactivate (soft delete).</td></tr>
+            <tr><td class="field-name">createdAt</td><td class="field-type">DateTime</td><td class="field-note">Auto-set at creation</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="schema-block">
+        <div class="schema-header"><span class="schema-model">Event</span><span class="schema-table-name">&#8594; table: events</span></div>
+        <table class="schema-fields">
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">id<span class="pk-badge">PK</span></td><td class="field-type">String UUID</td><td class="field-note"></td></tr>
+            <tr><td class="field-name">title</td><td class="field-type">String</td><td class="field-note">Event name</td></tr>
+            <tr><td class="field-name">date</td><td class="field-type">DateTime</td><td class="field-note">Stored UTC. Display in PH time on front-end.</td></tr>
+            <tr><td class="field-name">lat</td><td class="field-type">Float</td><td class="field-note">Geofence center latitude</td></tr>
+            <tr><td class="field-name">lng</td><td class="field-type">Float</td><td class="field-note">Geofence center longitude</td></tr>
+            <tr><td class="field-name">radiusMeters</td><td class="field-type">Int</td><td class="field-note">Default 50. Officers must be within this radius to self-check-in.</td></tr>
+            <tr><td class="field-name">createdBy</td><td class="field-type">String FK</td><td class="field-note">&#8594; User.id</td></tr>
+            <tr><td class="field-name">createdAt</td><td class="field-type">DateTime</td><td class="field-note">Auto-set</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="schema-block">
+        <div class="schema-header"><span class="schema-model">Attendance</span><span class="schema-table-name">&#8594; table: attendance</span></div>
+        <table class="schema-fields">
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">id<span class="pk-badge">PK</span></td><td class="field-type">String UUID</td><td class="field-note"></td></tr>
+            <tr><td class="field-name">type</td><td class="field-type">String</td><td class="field-note"><code>"event"</code> | <code>"duty"</code>. Default "event".</td></tr>
+            <tr><td class="field-name">eventId</td><td class="field-type">String? FK</td><td class="field-note">&#8594; Event.id. Null when type=duty.</td></tr>
+            <tr><td class="field-name">dutyDate</td><td class="field-type">DateTime?</td><td class="field-note">Required when type=duty. Null when type=event.</td></tr>
+            <tr><td class="field-name">userId</td><td class="field-type">String FK</td><td class="field-note">&#8594; User.id. The officer being recorded.</td></tr>
+            <tr><td class="field-name">method</td><td class="field-type">String</td><td class="field-note"><code>"self"</code> | <code>"manual"</code> | <code>"qr"</code>. Full audit trail of how check-in occurred.</td></tr>
+            <tr><td class="field-name">lat / lng</td><td class="field-type">Float?</td><td class="field-note">Officer coordinates at check-in. Null for manual check-ins.</td></tr>
+            <tr><td class="field-name">recordedBy</td><td class="field-type">String FK</td><td class="field-note">&#8594; User.id. ALWAYS the authenticated API caller. Never from client input.</td></tr>
+            <tr><td class="field-name">createdAt</td><td class="field-type">DateTime</td><td class="field-note">Check-in timestamp</td></tr>
+            <tr><td class="field-name">checkOutAt</td><td class="field-type">DateTime?</td><td class="field-note">Null until checked out. An open record means still checked in.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="schema-block">
+        <div class="schema-header"><span class="schema-model">OfficeDuty</span><span class="schema-table-name">&#8594; table: office_duties</span></div>
+        <table class="schema-fields">
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">id<span class="pk-badge">PK</span></td><td class="field-type">String UUID</td><td class="field-note"></td></tr>
+            <tr><td class="field-name">userId</td><td class="field-type">String FK</td><td class="field-note">&#8594; User.id</td></tr>
+            <tr><td class="field-name">dayOfWeek</td><td class="field-type">Int</td><td class="field-note">0=Sunday … 6=Saturday. Matches JS <code>Date.getDay()</code>.</td></tr>
+            <tr><td class="field-name">startTime</td><td class="field-type">String</td><td class="field-note">HH:mm 24hr string (e.g. "08:00")</td></tr>
+            <tr><td class="field-name">endTime</td><td class="field-type">String</td><td class="field-note">HH:mm 24hr string (e.g. "17:00")</td></tr>
+            <tr><td class="field-name">active</td><td class="field-type">Boolean</td><td class="field-note">Soft-delete for duty assignments</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="schema-block">
+        <div class="schema-header"><span class="schema-model">OrgProfile</span><span class="schema-table-name">&#8594; table: org_profile (singleton)</span></div>
+        <table class="schema-fields">
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">dutyCheckInCutoff</td><td class="field-type">String</td><td class="field-note">Default "12:00". Duty check-ins must occur BEFORE this time (Manila TZ).</td></tr>
+            <tr><td class="field-name">dutyCheckOutStart</td><td class="field-type">String</td><td class="field-note">Default "12:00". Duty check-outs must occur AT OR AFTER this time (Manila TZ).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="schema-block">
+        <div class="schema-header"><span class="schema-model">AuditLog</span><span class="schema-table-name">&#8594; table: audit_logs</span></div>
+        <table class="schema-fields">
+          <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">action</td><td class="field-type">String</td><td class="field-note">account_created | password_changed | password_reset | officer_deactivated | role_changed | manual_override</td></tr>
+            <tr><td class="field-name">userId</td><td class="field-type">String?</td><td class="field-note">User being acted upon. Null for system actions.</td></tr>
+            <tr><td class="field-name">performedBy</td><td class="field-type">String?</td><td class="field-note">Admin or system UID performing the action.</td></tr>
+            <tr><td class="field-name">details</td><td class="field-type">String?</td><td class="field-note">Serialized JSON string with additional context.</td></tr>
+            <tr><td class="field-name">createdAt</td><td class="field-type">DateTime</td><td class="field-note">Auto-set</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="section">
+      <a class="section-anchor" id="roles"></a>
+      <h2 class="section-title">&#128100; Roles &amp; Permissions</h2>
+      <p class="section-desc">
+        Three roles. All enforced <strong>server-side</strong> in <code>api/_lib/auth.ts</code>.
+        Frontend route guards are UX convenience only — never a security boundary.
+      </p>
+      <div class="role-grid">
+        <div class="role-card super-admin">
+          <div class="role-name">super_admin</div>
+          <ul>
+            <li>Full system access</li>
+            <li>Create/edit/delete events</li>
+            <li>Manage officer duty schedules</li>
+            <li>Manage all users</li>
+            <li>Manual attendance override</li>
+            <li>QR scanner access</li>
+            <li>CSV export</li>
+            <li>View all attendance records</li>
+            <li>Configure org profile</li>
+          </ul>
+        </div>
+        <div class="role-card staff">
+          <div class="role-name">staff</div>
+          <ul>
+            <li>Create/edit events (no delete)</li>
+            <li>Manual override for others</li>
+            <li>QR scanner access</li>
+            <li>CSV export</li>
+            <li>View attendance records</li>
+            <li>Self check-in/checkout</li>
+            <li>Duty check-in/checkout</li>
+            <li>Cannot self-record via manual</li>
+          </ul>
+        </div>
+        <div class="role-card client">
+          <div class="role-name">client</div>
+          <ul>
+            <li>Self check-in (geolocation)</li>
+            <li>Self check-out</li>
+            <li>Own QR token generation</li>
+            <li>Duty check-in if scheduled</li>
+            <li>View dashboard</li>
+            <li>No event management</li>
+            <li>No attendance list access</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECK-IN FLOWS -->
+    <div class="section">
+      <a class="section-anchor" id="checkin-flows"></a>
+      <h2 class="section-title">&#10003; Check-in Flows</h2>
+      <p class="section-desc">The three check-in methods and their complete server-side validation chains.</p>
+
+      <h3 class="subsection">Method 1: Self Check-in (Geolocation)</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Officer opens <code>/check-in</code> or <code>/check-in/:eventId</code></div><div class="step-desc">Selects event or arrives at pre-selected event page.</div></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Browser requests GPS via <code>useGeolocation.getPosition()</code></div><div class="step-desc">High accuracy, 10s timeout. User must grant location permission in browser.</div></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><div class="step-title"><code>POST /api/attendance</code> with <code>method: "self"</code> + coordinates</div><div class="step-desc">Bearer token passed as Authorization header.</div></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><div class="step-title">Server: Haversine distance vs <code>event.radiusMeters</code></div><div class="step-desc">403 if too far. Client coordinates are untrusted; always recomputed server-side.</div></div></div>
+        <div class="flow-step"><div class="step-num">5</div><div class="step-content"><div class="step-title">Server: Duplicate check for open record</div><div class="step-desc">409 if already checked in. Race condition protected by Prisma P2002 unique constraint catch.</div></div></div>
+        <div class="flow-step"><div class="step-num">6</div><div class="step-content"><div class="step-title">201 Created</div><div class="step-desc">On network failure, <code>useOfflineQueue</code> stores payload in IndexedDB and retries on reconnect.</div></div></div>
+      </div>
+
+      <h3 class="subsection">Method 2: QR Scan</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Officer opens <code>/qr</code></div><div class="step-desc"><code>generateQRToken(userId, eventId)</code> runs. 60s TTL. QR displayed as canvas.</div></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><div class="step-title">Staff opens <code>/scan</code> — camera activates via <code>html5-qrcode</code></div><div class="step-desc">Continuous scan loop until a valid QR is detected.</div></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><div class="step-title">QR decoded → JSON token payload extracted</div><div class="step-desc"></div></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><div class="step-title"><code>POST /api/attendance/qr</code> with full token</div><div class="step-desc">Staff's Bearer token as auth header, not the officer's.</div></div></div>
+        <div class="flow-step"><div class="step-num">5</div><div class="step-content"><div class="step-title">Server: HMAC-SHA256 re-sign + <code>timingSafeEqual</code></div><div class="step-desc">403 on signature mismatch or expired token.</div></div></div>
+        <div class="flow-step"><div class="step-num">6</div><div class="step-content"><div class="step-title">201 Created with <code>method: "qr"</code></div><div class="step-desc"></div></div></div>
+      </div>
+
+      <h3 class="subsection">Method 3: Manual Override (Staff)</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><div class="step-content"><div class="step-title">Staff on event detail page selects officer from roster</div><div class="step-desc">Manual controls are only visible to staff/super_admin.</div></div></div>
+        <div class="flow-step"><div class="step-num">2</div><div class="step-content"><div class="step-title"><code>POST /api/attendance</code> with <code>method: "manual"</code> — no coordinates</div><div class="step-desc"></div></div></div>
+        <div class="flow-step"><div class="step-num">3</div><div class="step-content"><div class="step-title">Server: <code>requireStaff(user)</code></div><div class="step-desc">403 if calling user has client role.</div></div></div>
+        <div class="flow-step"><div class="step-num">4</div><div class="step-content"><div class="step-title">Server: self-targeting guard</div><div class="step-desc">403 if <code>user.id === userId</code>. Staff cannot manually record their own attendance.</div></div></div>
+        <div class="flow-step"><div class="step-num">5</div><div class="step-content"><div class="step-title">201 Created. <code>recordedBy</code> always set to authenticated caller ID</div><div class="step-desc">Full audit trail. <code>recordedBy</code> is never accepted from client input.</div></div></div>
+      </div>
+    </div>
+
+    <!-- ENV VARS -->
+    <div class="section">
+      <a class="section-anchor" id="env-vars"></a>
+      <h2 class="section-title">&#128273; Environment Variables</h2>
+      <p class="section-desc">Frontend variables are prefixed <code>VITE_</code> and bundled into the client. All others are backend-only.</p>
+
+      <h3 class="subsection">Frontend (<code>.env</code>)</h3>
+      <table class="env-table">
+        <thead><tr><th>Variable</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>VITE_SUPABASE_URL</td><td>Supabase project URL (e.g. <code>https://xxx.supabase.co</code>)</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>VITE_SUPABASE_ANON_KEY</td><td>Public anon key. Safe to expose — used for auth session only.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>VITE_QR_SECRET</td><td>HMAC secret for QR token generation. Must match backend <code>QR_SECRET</code>.</td><td><span class="env-required">Required</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="subsection">Backend (Vercel Environment)</h3>
+      <table class="env-table">
+        <thead><tr><th>Variable</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>SUPABASE_URL</td><td>Same project URL as frontend.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>SUPABASE_ANON_KEY</td><td>Anon key for Supabase client in serverless context.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>SUPABASE_SERVICE_ROLE_KEY</td><td>Service role key. <strong>Never expose to browser.</strong> Used by admin Supabase client for token verification.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>DATABASE_URL</td><td>Prisma session pooler connection string (Supabase, port 5432).</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>DIRECT_URL</td><td>Non-pooled direct connection. Required for Prisma schema migrations.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>SUPABASE_JWT_SECRET</td><td>HS256 secret from Supabase dashboard (API settings). Fallback token verifier.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>QR_SECRET</td><td>Server-side HMAC secret. Must match <code>VITE_QR_SECRET</code>.</td><td><span class="env-required">Required</span></td></tr>
+          <tr><td>SEED_ADMIN_PASSWORD</td><td>Used only when running <code>npm run db:auth-seed</code> locally.</td><td><span class="env-optional">Dev Only</span></td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-danger" style="margin-top:16px;">
+        <strong>Never Prefix SUPABASE_SERVICE_ROLE_KEY with VITE_</strong>
+        The service role key bypasses all Supabase security. If accidentally prefixed with <code>VITE_</code>,
+        it will be embedded in the client bundle and exposed publicly.
+      </div>
+    </div>
+
+    <!-- DEPLOYMENT -->
+    <div class="section">
+      <a class="section-anchor" id="deployment"></a>
+      <h2 class="section-title">&#128640; Deployment</h2>
+      <p class="section-desc">Production on Vercel. All API files in <code>api/</code> auto-deploy as serverless functions.</p>
+
+      <h3 class="subsection">NPM Scripts</h3>
+      <pre><code><span class="cc"># Development</span>
+npm run dev              <span class="cc"># Vite dev server at http://localhost:5173</span>
+
+<span class="cc"># Production build</span>
+npm run build            <span class="cc"># vue-tsc --noEmit && vite build → dist/</span>
+npm run preview          <span class="cc"># Preview dist/ locally</span>
+
+<span class="cc"># Database</span>
+npm run db:migrate       <span class="cc"># prisma migrate dev (creates + applies migration files)</span>
+npm run db:generate      <span class="cc"># prisma generate (regenerate client after schema edit)</span>
+npm run db:studio        <span class="cc"># Prisma Studio GUI at http://localhost:5555</span>
+npm run db:seed          <span class="cc"># Runs prisma/seed.ts</span>
+npm run db:auth-seed     <span class="cc"># Runs prisma/seed_auth.ts (creates Supabase auth accounts)</span></code></pre>
+
+      <h3 class="subsection">Vercel Config (<code>vercel.json</code>)</h3>
+      <pre><code>{
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/$1" }],
+  "headers": [{
+    "source": "/api/(.*)",
+    "headers": [
+      { "key": "Access-Control-Allow-Origin",  "value": "*" },
+      { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+      { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+    ]
+  }]
+}</code></pre>
+      <div class="alert alert-info">
+        <strong>SPA Fallback is Automatic</strong>
+        Vercel handles SPA routing for <code>createWebHistory()</code> automatically.
+        All non-API paths fall back to <code>index.html</code>. No extra config needed.
+      </div>
+    </div>
+
+    <!-- CONVENTIONS -->
+    <div class="section">
+      <a class="section-anchor" id="conventions"></a>
+      <h2 class="section-title">&#128208; Conventions &amp; Rules</h2>
+      <p class="section-desc">Standards every developer must follow. Non-negotiable.</p>
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-title">Vue Components</div>
+          <div class="card-desc">Always <code>&lt;script setup lang="ts"&gt;</code>. No Options API. No <code>defineComponent()</code>. PascalCase filenames. Pages suffixed <code>Page.vue</code>.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pinia Stores</div>
+          <div class="card-desc">Composition style: <code>defineStore('id', () => {})</code>. Located in <code>src/stores/</code>. Named <code>useXxxStore</code>.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">API Handlers</div>
+          <div class="card-desc">Every handler starts with <code>authenticate(req)</code>. Errors with <code>"Access denied"</code> → 403. All other unhandled → 500. No raw SQL.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Security Invariants</div>
+          <div class="card-desc"><strong>Never</strong> trust <code>recordedBy</code> from client. Always set <code>recordedBy = user.id</code>. <strong>Never</strong> skip <code>authenticate()</code>. <strong>Never</strong> trust client lat/lng for geofence.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Timezone Rule</div>
+          <div class="card-desc">UTC stored in DB always. Duty time-window checks use Manila TZ via <code>Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Manila' })</code>. The <code>manilaHHMM()</code> helper — extract to <code>_lib/</code> if needed in a third handler.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">No Over-Engineering</div>
+          <div class="card-desc">This is a lean org project. No middleware chains, no DI frameworks, no abstract service classes. Each API file is a single handler. Keep it simple.</div>
+        </div>
+      </div>
+
+      <div class="alert alert-warning" style="margin-top:24px;">
+        <strong>Known Technical Debt to Address</strong>
+        <code>manilaHHMM()</code> is duplicated in <code>api/attendance/checkout.ts</code> and <code>api/attendance/duty.ts</code>.
+        If a third handler needs it, extract to <code>api/_lib/time.ts</code>.<br>
+        The Haversine formula also exists in both <code>api/attendance/index.ts</code> (server) and <code>src/lib/haversine.ts</code> (client).
+        This duplication is acceptable as the runtimes are isolated.
+      </div>
+    </div>
+
+    <!-- CLAUDE PROMPT -->
+    <div class="section">
+      <a class="section-anchor" id="claude-prompt"></a>
+      <h2 class="section-title">&#129302; Claude AI — Senior Dev Instruction Prompt</h2>
+      <p class="section-desc">
+        Copy the block below and paste it into the <strong>Claude Project Instructions</strong> field
+        (the panel on the right side of any Claude Project). This configures Claude to act as a
+        senior full-stack developer with full context of this codebase.
+      </p>
+
+      <div class="alert alert-success">
+        <strong>How to Use</strong>
+        In Claude.ai, open the "USC" project, click "Instructions" on the right panel, paste the prompt below, and save.
+        Every chat in that project will automatically use this context.
+      </div>
+
+      <pre style="white-space: pre-wrap; word-break: break-word;"><code>You are a senior full-stack developer and technical advisor for the USC ISUFST Dingle Campus web application. You have deep expertise in the following stack and must always respect the architecture, conventions, and constraints documented below.
+
+## ABOUT THE PROJECT
+
+This is a full-stack Progressive Web App built as a monolith deployed on Vercel. It serves two purposes:
+1. **USC Official Website** — Public pages at /, /about, /officers, /projects, /events, /campus-guide, /contact, /privacy, /portal/* 
+2. **Officer Attendance System** — Authenticated pages at /dashboard, /check-in, /qr, /scan, /duty, /manage/events, /manage/schedules, /attendance
+
+**University:** Iloilo Science and Technology University (ISUFST) — Dingle Campus
+**Organization:** University Student Council (USC)
+**Package name:** usc-isufst-website
+
+---
+
+## TECH STACK
+
+### Frontend
+- Vue 3 with Composition API only — no Options API anywhere
+- TypeScript 5.8 (strict) — all .vue files use &lt;script setup lang="ts"&gt;
+- Vue Router 4 with createWebHistory() — no hash routing
+- Pinia 3 (Composition-style stores only)
+- Tailwind CSS 3 with custom USC theme (navy: #142850, gold: #F5A623)
+- @lucide/vue for icons
+- @vueuse/motion for animations
+- html5-qrcode for camera QR scanning
+- Leaflet for interactive campus map
+- vite-plugin-pwa (Workbox) for PWA and service worker
+- idb for IndexedDB offline queue
+- Vite 6 as build tool
+
+### Backend (Vercel Serverless)
+- @vercel/node — each file in api/ is an independent serverless function
+- Prisma 6 with @prisma/client — type-safe PostgreSQL access
+- @supabase/supabase-js — authentication provider
+- jose — JWT HS256 fallback verification
+- PostgreSQL on Supabase (session pooler, port 5432)
+
+---
+
+## ARCHITECTURE OVERVIEW
+
+Single Vercel deployment. Vue SPA handles routing. API routes at /api/* are Vercel Serverless Functions.
+
+Auth flow: Supabase Auth issues JWTs → frontend passes Bearer token → api/_lib/auth.ts validates via supabaseAdmin.auth.getUser() (with jose HS256 fallback) → looks up Prisma User record → returns AuthUser to handler.
+
+Database: Supabase-managed PostgreSQL. Prisma manages the schema (prisma/schema.prisma). RLS is INTENTIONALLY DISABLED on all Prisma tables — the service-role connection bypasses it. All access control is code-level in API handlers.
+
+The User.id in Prisma must exactly match auth.users.id in Supabase — this is the identity bridge.
+
+---
+
+## DATABASE MODELS
+
+- **User**: id(UUID=SupabaseUID), email, name, position, role("super_admin"|"staff"|"client"), mustChangePassword, active, createdAt
+- **Event**: id, title, date(UTC), lat, lng, radiusMeters(default 50), createdBy(FK User), createdAt
+- **Attendance**: id, type("event"|"duty"), eventId?(FK Event), dutyDate?, userId(FK User), method("self"|"manual"|"qr"), lat?, lng?, recordedBy(FK User — always the API caller), createdAt, checkOutAt?
+- **OfficeDuty**: id, userId(FK User), dayOfWeek(0-6), startTime(HH:mm), endTime(HH:mm), active
+- **OrgProfile**: singleton row — dutyCheckInCutoff(HH:mm, default "12:00"), dutyCheckOutStart(HH:mm, default "12:00")
+- **AuditLog**: id, userId?, action(string enum), details?(JSON string), performedBy?, createdAt
+
+---
+
+## ROLES AND ACCESS CONTROL
+
+Three roles enforced SERVER-SIDE only. Frontend guards are UX convenience, not security.
+
+- **super_admin**: Full access. Manage users, events, duty schedules, org profile. Manual override for all.
+- **staff**: Create/edit events. Manual override for others. QR scanner. CSV export. Cannot self-record via manual.
+- **client**: Self check-in (geolocation). Own QR generation. Duty check-in if scheduled. View dashboard only.
+
+Key guards:
+- `requireStaff(user)` — requires super_admin or staff role
+- `requireSuperAdmin(user)` — requires super_admin only
+- Staff cannot manually record their own attendance (if method=manual AND user.id===userId → 403)
+- `recordedBy` is ALWAYS set to the authenticated API caller, never from client input
+
+---
+
+## CHECK-IN METHODS
+
+1. **Self (geolocation)**: Officer submits lat/lng → server recomputes Haversine distance vs event.radiusMeters → 403 if outside fence. Offline: stored in IndexedDB queue via useOfflineQueue composable, replayed on reconnect.
+
+2. **QR Scan**: Officer generates 60-second HMAC-SHA256 token at /qr (using VITE_QR_SECRET + WebCrypto). Staff scans at /scan → POST /api/attendance/qr → server re-signs + timingSafeEqual() compare (using QR_SECRET). Tokens have 60s TTL.
+
+3. **Manual override**: Staff selects officer from roster → POST /api/attendance with method=manual. Server calls requireStaff() and checks user.id !== userId guard.
+
+---
+
+## API ENDPOINTS
+
+All at /api/* as serverless functions.
+
+Auth: GET /api/auth/me, GET /api/auth/users (super_admin only)
+Events: GET|POST /api/events, GET|PUT|DELETE /api/events/:id
+Attendance: GET|POST /api/attendance, POST /api/attendance/checkout, POST /api/attendance/qr, GET|POST /api/attendance/duty, GET /api/attendance/export (CSV)
+Org: /api/org-profile
+Duties: /api/duties (schedules management)
+
+---
+
+## SOURCE STRUCTURE
+
+src/
+  pages/         — 24 route-level components (SPA pages)
+  components/
+    layout/      — AppHeader, AppShell, AppSidebar, BottomNav, PublicLayout
+    ui/          — shared UI primitives
+  composables/   — useGeolocation, useOfflineQueue, useCampusGuide, useEvents
+  stores/        — auth, events, schedules, duties (Pinia)
+  lib/           — api.ts (fetch client), qr.ts (token gen), haversine.ts, utils.ts
+  router/        — index.ts (routes + beforeEach guard)
+  types/         — index.ts (User, USCEvent, Attendance, OfficeDuty, etc)
+
+api/
+  _lib/          — auth.ts, prisma.ts, supabase.ts (shared utilities)
+  attendance/    — index.ts, checkout.ts, qr.ts, duty.ts, export.ts
+  auth/          — me.ts, users.ts
+  events/        — index.ts, [id].ts
+  duties/        — index.ts
+  org-profile/   — (config endpoint)
+
+prisma/
+  schema.prisma  — database schema (source of truth for models)
+  migrations/    — applied migration files
+  seed.ts        — development data seeder
+  seed_auth.ts   — creates Supabase auth accounts for seeded users
+
+---
+
+## CONVENTIONS (STRICT — DO NOT DEVIATE)
+
+1. Always `&lt;script setup lang="ts"&gt;` in Vue files. Never Options API.
+2. Pinia stores: Composition style defineStore('id', () => {}). Never Options style.
+3. Every API handler calls authenticate(req) as the FIRST statement.
+4. recordedBy is always set server-side from the authenticated user — never from client body.
+5. Never bypass or soften authentication checks.
+6. Never add Supabase RLS policies to Prisma-managed tables.
+7. All duty time comparisons use Manila timezone (Asia/Manila) via Intl.DateTimeFormat.
+8. UTC stored in DB — display conversion happens in the frontend.
+9. No raw SQL in handlers — use Prisma client.
+10. No over-engineering: no DI containers, no abstract service layers, no middleware chains. Keep it lean.
+11. VITE_QR_SECRET (frontend) must match QR_SECRET (backend) — both are required in .env.
+12. SUPABASE_SERVICE_ROLE_KEY must NEVER be prefixed with VITE_ or exposed to the browser.
+
+---
+
+## YOUR ROLE AS ADVISOR
+
+When reviewing or writing code for this project:
+- Ensure all additions follow the conventions above
+- Flag any security issues immediately (especially auth bypass risks or role check gaps)
+- Suggest only pragmatic, appropriately-scoped improvements — do not over-engineer
+- When adding new API endpoints, always include the authenticate() call and appropriate requireRole guard
+- When adding new Vue pages, use the correct route meta (requiresAuth, roles, layout)
+- Highlight technical debt when spotted, label it clearly with // TODO: Refactor
+- Be concise. The team values clarity over verbosity.
+</code></pre>
+    </div>
+
+  </div><!-- /content -->
+
+  <div class="footer">
+    <div>
+      <strong style="color:var(--text)">USC ISUFST Dingle Campus</strong> &mdash; Developer Handbook v1.0<br>
+      University Student Council &middot; Iloilo Science and Technology University &middot; Dingle Campus
+    </div>
+    <div style="text-align:right;">
+      Generated July 2026 &middot; Internal Use Only<br>
+      Maintained by the USC Dev Team
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const links = document.querySelectorAll('.nav-link');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0% -75% 0%' });
+  document.querySelectorAll('.section-anchor').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

@@ -86,6 +86,33 @@ function formatDate(iso: string) {
     <!-- Events List -->
     <section class="py-16 md:py-20 bg-paper">
       <div class="px-4 md:px-12">
+        <!-- Pag-Abi-Abi Photo Booth Banner -->
+        <router-link
+          to="/events/pag-abi-abi/photobooth"
+          class="block mb-8 rounded-2xl border border-gold/30 bg-gradient-to-r from-[#0B132B] to-[#162040] p-5 sm:p-6 hover:from-[#0f1a38] hover:to-[#1a2850] transition-all group"
+        >
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gold/15 border border-gold/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div class="text-center sm:text-left">
+              <h3 class="text-white font-bold text-sm sm:text-base mb-1 group-hover:text-gold transition-colors">Pag-Abi-Abi Photo Booth Gallery</h3>
+              <p class="text-white/50 text-xs sm:text-sm">View and download your photo booth pictures from the event.</p>
+            </div>
+            <div class="sm:ml-auto shrink-0">
+              <span class="inline-flex items-center gap-1.5 bg-gold/15 border border-gold/30 rounded-full px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-gold group-hover:bg-gold/25 transition-colors">
+                Open Gallery
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </div>
+          </div>
+        </router-link>
+
         <div class="space-y-5">
           <div
             v-for="event in events"

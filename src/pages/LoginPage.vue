@@ -218,6 +218,7 @@ async function handleLogin() {
         <p class="text-center text-xs text-slate mt-6">
           For authorized USC officers only.
         </p>
+
       </div>
     </div>
   </div>

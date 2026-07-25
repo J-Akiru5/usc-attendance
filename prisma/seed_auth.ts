@@ -11,14 +11,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const adminPassword = process.env.SEED_ADMIN_PASSWORD
-if (!adminPassword) {
-  console.error('SEED_ADMIN_PASSWORD env var is required to seed the admin account')
-  process.exit(1)
-}
+const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'password123'
 
 const OFFICER_PASSWORDS: Record<string, string> = {
   'admin@usc.edu.ph': adminPassword,
+  'staff@usc.edu.ph': 'password123',
+  'officer@usc.edu.ph': 'password123',
   'jdemonteverde@isufst.edu.ph': 'USC2026!EGKJ3G',
   'kbicodo@isufst.edu.ph':      'USC2026!hwLRTq',
   'ndanugrao@isufst.edu.ph':    'USC2026!EJLFDZ',
@@ -37,6 +35,8 @@ const OFFICER_PASSWORDS: Record<string, string> = {
 
 const officers = [
   { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
+  { email: 'staff@usc.edu.ph', name: 'USC Staff Officer', position: 'Officer on Duty', role: 'staff' },
+  { email: 'officer@usc.edu.ph', name: 'USC Student Officer', position: 'USC Officer', role: 'client' },
   { email: 'jdemonteverde@isufst.edu.ph', name: 'Jared S. Demonteverde', position: 'President', role: 'super_admin' },
   { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'staff' },
   { email: 'ndanugrao@isufst.edu.ph', name: 'Nikki Loraine B. Danugrao', position: 'Secretary', role: 'staff' },
@@ -58,6 +58,7 @@ async function main() {
 
   const credentials: { name: string; email: string; password: string; position: string }[] = []
   const skippedMismatches: { email: string; authId: string; dbId: string }[] = []
+  const failedUpdates: { email: string; message: string }[] = []
 
   // Fetch all auth users once to avoid repeated API calls
   const { data: authList, error: listError } = await supabaseAdmin.auth.admin.listUsers()
@@ -79,14 +80,16 @@ async function main() {
 
     if (existingAuthUser) {
       authUserId = existingAuthUser.id
-      status = 'already existed'
 
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingAuthUser.id,
         { password: tempPassword }
       )
       if (updateError) {
-        console.error(`  ✗ Error updating password for ${u.email}: ${updateError.message}`)
+        status = `FAILED — password update rejected: ${updateError.message}`
+        failedUpdates.push({ email: u.email, message: updateError.message })
+      } else {
+        status = 'already existed'
       }
     } else {
       const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -168,6 +171,10 @@ async function main() {
       status = 'created'
     }
 
+    const failedUpdate = failedUpdates.find((f) => f.email === u.email)
+    if (failedUpdate) {
+      status = `FAILED — password update rejected: ${failedUpdate.message}`
+    }
     console.log(`  ${u.email} — ${status}`)
   }
 
@@ -196,6 +203,18 @@ async function main() {
     console.log(`\nTotal new accounts: ${credentials.length}`)
   } else {
     console.log('\nAll officers already have accounts. No new credentials generated.')
+  }
+
+  if (failedUpdates.length > 0) {
+    console.log('\nFAILED PASSWORD UPDATES — these accounts still have their previous passwords:')
+    console.log('-'.repeat(70))
+    for (const f of failedUpdates) {
+      console.log(`  ✗ ${f.email} — ${f.message}`)
+    }
+    console.log('-'.repeat(70))
+    console.log(`Total failed password updates: ${failedUpdates.length}`)
+
+    process.exitCode = 1
   }
 }
 
