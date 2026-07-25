@@ -62,12 +62,23 @@ npx prisma migrate dev
 
 ### 4. Seed test accounts
 
+Login-capable accounts require **both** a Postgres row (`public.users`) and a Supabase Auth identity (`auth.users`) with matching IDs. Two separate scripts exist — you need the second one:
+
 ```bash
-npm run db:seed
 npm run db:auth-seed
 ```
 
-This creates the public user records and Supabase Auth accounts for all officers (see `prisma/seed_auth.ts` for the full list).
+This runs `prisma/seed_auth.ts`, which:
+- Creates (or updates the password of) each officer's Supabase Auth account
+- Syncs the Postgres `users` table row so the ID matches the Auth account
+- Reads passwords from `prisma/seed_auth.ts` (officers) and the `SEED_ADMIN_PASSWORD` env var (admin)
+
+| Script | What it does | Creates Auth accounts? |
+|--------|-------------|----------------------|
+| `npm run db:seed` | Inserts Postgres rows with random UUIDs | No |
+| `npm run db:auth-seed` | Creates Supabase Auth users and syncs Postgres rows | Yes |
+
+**Important:** `prisma migrate dev` (step 3) automatically runs `db:seed` — not `db:auth-seed` — as a side effect of Prisma's seed hook (`"prisma.seed"` in package.json). If you reset your database (e.g. `prisma migrate reset`), the Postgres rows get re-seeded with fresh random UUIDs that won't match any Auth account. Always run `npm run db:auth-seed` afterward to restore login-capable accounts.
 
 ### 5. Start development server
 
