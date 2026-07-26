@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { useCampusGuide } from '@/composables/useCampusGuide'
+import VideoPlayer from '@/components/ui/VideoPlayer.vue'
 
 const { categories, loading, error, searchQuery, filteredCategories } = useCampusGuide()
+
+const campusTourUrl = 'https://lqzrraggcaczwwohbqcb.supabase.co/storage/v1/object/public/videos/Digital%20Tour%20Final%20(1).mp4'
 
 const openItems = ref<Set<string>>(new Set())
 const categoryRefs = ref<Record<string, HTMLElement | null>>({})
@@ -82,6 +85,43 @@ function getColors(color: string) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CAMPUS TOUR VIDEO ========== -->
+    <section v-if="campusTourUrl" class="relative py-16 md:py-20 overflow-hidden">
+      <div class="absolute inset-0 bg-navy" />
+      <div
+        class="absolute inset-0 opacity-[0.03]"
+        style="
+          background-image:
+            linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
+          background-size: 50px 50px;
+        "
+      />
+      <div class="relative px-4 md:px-12">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-4 py-1.5 mb-4">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75" />
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-gold" />
+            </span>
+            <span class="text-xs font-mono uppercase tracking-wider text-gold">Campus Tour</span>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold font-serif text-white mb-2 drop-shadow-lg">
+            Explore ISUFST Dingle Campus
+          </h2>
+          <p class="text-white/50 max-w-lg mx-auto text-sm">
+            Take a virtual tour of the campus and discover its facilities, landmarks, and vibrant student life.
+          </p>
+        </div>
+        <div class="max-w-3xl mx-auto">
+          <VideoPlayer
+            :src="campusTourUrl"
+            title="Campus Tour"
+          />
         </div>
       </div>
     </section>
