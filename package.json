@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:seed": "prisma db seed",
     "db:auth-seed": "tsx prisma/seed_auth.ts",
+    "db:migrate-static": "tsx prisma/migrate-static-content.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
