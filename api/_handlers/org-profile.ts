@@ -2,7 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
 import { authenticate } from '../_lib/auth.js'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// ---------------------------------------------------------------------------
+// GET /api/org-profile
+// ---------------------------------------------------------------------------
+export async function orgProfile(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
