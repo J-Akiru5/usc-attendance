@@ -4,7 +4,11 @@ import { officers } from '../src/data/officers.js'
 
 const prisma = new PrismaClient()
 
-const academicYear = process.argv[2] || '2026-2027'
+const academicYear = process.argv[2]
+if (!academicYear || !/^\d{4}-\d{4}$/.test(academicYear)) {
+  console.error('Usage: tsx prisma/migrate-static-content.ts <YYYY-YYYY>')
+  process.exit(1)
+}
 
 interface EventJson {
   id: string
