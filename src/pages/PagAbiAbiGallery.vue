@@ -14,7 +14,12 @@ interface PhotoRecord {
   createdAt: string
 }
 
-const R2_BASE = import.meta.env.VITE_R2_PUBLIC_URL || ''
+const R2_BASE = import.meta.env.VITE_R2_PUBLIC_URL
+
+if (!R2_BASE) {
+  console.error('Configuration error: VITE_R2_PUBLIC_URL environment variable is not set. The gallery cannot render images.')
+}
+const r2Configured = !!R2_BASE
 
 function photoThumbUrl(photo: PhotoRecord): string {
   return `${R2_BASE}/${photo.storageKeyThumb}`
@@ -176,8 +181,16 @@ onUnmounted(() => {
     <!-- Gallery -->
     <section v-else class="py-16 md:py-20 bg-paper">
       <div class="px-4 md:px-12">
+        <!-- Config error -->
+        <div v-if="!r2Configured" class="text-center py-20">
+          <div class="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-5 py-2 mb-4">
+            <span class="text-sm font-mono uppercase tracking-wider text-red-600">Gallery is not configured</span>
+          </div>
+          <p class="text-navy/50 text-sm">Please set the VITE_R2_PUBLIC_URL environment variable.</p>
+        </div>
+
         <!-- Loading -->
-        <div v-if="loading" class="text-center py-20">
+        <div v-else-if="loading" class="text-center py-20">
           <div class="inline-flex items-center gap-2 text-gold">
             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
