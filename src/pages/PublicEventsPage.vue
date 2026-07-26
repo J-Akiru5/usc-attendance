@@ -1,8 +1,29 @@
 <script setup lang="ts">
-import { useEvents } from '@/composables/useEvents'
+import { ref, computed, onMounted } from 'vue'
 import VideoPlayer from '@/components/ui/VideoPlayer.vue'
+import eventsJson from '../../public/data/events.json'
 
-const { events, featuredEvent } = useEvents()
+interface PublicEvent {
+  id: string
+  title: string
+  date: string
+  endDate?: string | null
+  description: string
+  location: string
+  venue?: string | null
+  status: string
+  featured: boolean
+  coverImage?: string | null
+  gallery?: string[] | null
+  trailerUrl?: string | null
+  tags?: string[] | null
+  icon?: string | null
+}
+
+const events = ref<PublicEvent[]>([])
+const loading = ref(true)
+
+const featuredEvent = computed(() => events.value.find(e => e.featured) ?? null)
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -11,6 +32,22 @@ function formatDate(iso: string) {
     year: 'numeric',
   })
 }
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/cms/events')
+    if (res.ok) {
+      const data: PublicEvent[] = await res.json()
+      events.value = data.length > 0 ? data : (eventsJson as PublicEvent[])
+    } else {
+      events.value = eventsJson as PublicEvent[]
+    }
+  } catch {
+    events.value = eventsJson as PublicEvent[]
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -55,8 +92,8 @@ function formatDate(iso: string) {
         </div>
         <div class="max-w-3xl mx-auto">
           <VideoPlayer
-            :src="featuredEvent.trailerUrl"
-            :poster="featuredEvent.coverImage"
+            :src="featuredEvent.trailerUrl ?? undefined"
+            :poster="featuredEvent.coverImage ?? undefined"
             :title="featuredEvent.title"
           />
         </div>
@@ -113,7 +150,19 @@ function formatDate(iso: string) {
           </div>
         </router-link>
 
-        <div class="space-y-5">
+        <div v-if="loading" class="text-center py-12">
+          <div class="inline-flex items-center gap-2 text-gold">
+            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span class="text-sm font-mono uppercase tracking-wider">Loading events...</span>
+          </div>
+        </div>
+        <div v-else-if="events.length === 0" class="text-center py-12">
+          <p class="text-slate">No events found.</p>
+        </div>
+        <div v-else class="space-y-5">
           <div
             v-for="event in events"
             :key="event.id"

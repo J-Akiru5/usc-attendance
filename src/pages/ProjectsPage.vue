@@ -1,5 +1,26 @@
 <script setup lang="ts">
-import { projects } from '@/data/projects'
+import { ref, onMounted } from 'vue'
+import { projects as staticProjects } from '@/data/projects'
+import type { Project } from '@/data/projects'
+
+const projects = ref<Project[]>([])
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/cms/projects')
+    if (res.ok) {
+      const data = await res.json()
+      projects.value = data.length > 0 ? data : staticProjects
+    } else {
+      projects.value = staticProjects
+    }
+  } catch {
+    projects.value = staticProjects
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -27,7 +48,19 @@ import { projects } from '@/data/projects'
     <!-- Projects Grid -->
     <section class="py-16 md:py-20 bg-paper">
       <div class="max-w-7xl mx-auto px-4 md:px-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-if="loading" class="text-center py-12">
+          <div class="inline-flex items-center gap-2 text-gold">
+            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span class="text-sm font-mono uppercase tracking-wider">Loading projects...</span>
+          </div>
+        </div>
+        <div v-else-if="projects.length === 0" class="text-center py-12">
+          <p class="text-slate">No projects found.</p>
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
             v-for="project in projects"
             :key="project.title"

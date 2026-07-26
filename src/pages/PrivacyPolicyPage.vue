@@ -1,30 +1,46 @@
 <script setup lang="ts">
-const sections = [
-  {
-    title: 'Information We Collect',
-    content: 'We collect information you provide directly when using our portal, such as your name, student ID number, email address, and role. We also collect attendance data and event participation records necessary for council operations.',
-  },
-  {
-    title: 'How We Use Your Information',
-    content: 'Your information is used to manage council events, track attendance, verify officer roles, and communicate council-related announcements. We do not sell, share, or disclose your personal data to third parties except as required by law.',
-  },
-  {
-    title: 'Data Security',
-    content: 'We implement industry-standard security measures including encrypted connections (HTTPS), secure authentication via Supabase, and role-based access controls. Access to sensitive data is limited to authorized council officers and staff.',
-  },
-  {
-    title: 'Data Retention',
-    content: 'We retain your information only as long as necessary for council operations and record-keeping. Attendance records and user accounts may be archived or anonymized after your term of office ends or upon your request.',
-  },
-  {
-    title: 'Your Rights',
-    content: 'You have the right to access, update, or request deletion of your personal data. For inquiries about your data, contact the USC Secretariat through the contact information provided on this website.',
-  },
-  {
-    title: 'Changes to This Policy',
-    content: 'This privacy policy may be updated periodically. Continued use of the website and portal after changes constitutes acceptance of the updated policy.',
-  },
-]
+import { computed } from 'vue'
+import { usePageContent } from '@/composables/usePageContent'
+
+const { content: cms } = usePageContent('privacy')
+
+const heroTitle = computed(() => (cms.value.heroTitle as string) || 'Privacy Policy')
+const heroSubtitle = computed(() => (cms.value.heroSubtitle as string) || 'How the University Student Council handles, protects, and respects your personal information.')
+const introText = computed(() => (cms.value.introText as string) || 'This Privacy Policy explains how the University Student Council (USC) of ISUFST Dingle Campus collects, uses, and protects your personal information when you use our website and Officer Portal. By using this website, you agree to the practices described in this policy.')
+
+interface PolicySection { title: string; content: string }
+
+const sections = computed<PolicySection[]>(() => {
+  if (cms.value.sections && Array.isArray(cms.value.sections)) {
+    return cms.value.sections as PolicySection[]
+  }
+  return [
+    {
+      title: 'Information We Collect',
+      content: 'We collect information you provide directly when using our portal, such as your name, student ID number, email address, and role. We also collect attendance data and event participation records necessary for council operations.',
+    },
+    {
+      title: 'How We Use Your Information',
+      content: 'Your information is used to manage council events, track attendance, verify officer roles, and communicate council-related announcements. We do not sell, share, or disclose your personal data to third parties except as required by law.',
+    },
+    {
+      title: 'Data Security',
+      content: 'We implement industry-standard security measures including encrypted connections (HTTPS), secure authentication via Supabase, and role-based access controls. Access to sensitive data is limited to authorized council officers and staff.',
+    },
+    {
+      title: 'Data Retention',
+      content: 'We retain your information only as long as necessary for council operations and record-keeping. Attendance records and user accounts may be archived or anonymized after your term of office ends or upon your request.',
+    },
+    {
+      title: 'Your Rights',
+      content: 'You have the right to access, update, or request deletion of your personal data. For inquiries about your data, contact the USC Secretariat through the contact information provided on this website.',
+    },
+    {
+      title: 'Changes to This Policy',
+      content: 'This privacy policy may be updated periodically. Continued use of the website and portal after changes constitutes acceptance of the updated policy.',
+    },
+  ]
+})
 </script>
 
 <template>
@@ -43,10 +59,10 @@ const sections = [
         <div class="max-w-3xl">
           <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Privacy</div>
           <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold font-serif mb-4 leading-tight drop-shadow-lg">
-            Privacy Policy
+            {{ heroTitle }}
           </h1>
           <p class="text-white/70 max-w-lg leading-relaxed">
-            How the University Student Council handles, protects, and respects your personal information.
+            {{ heroSubtitle }}
           </p>
         </div>
       </div>
@@ -57,7 +73,7 @@ const sections = [
       <div class="px-4 md:px-12">
         <div class="max-w-3xl mx-auto">
           <p class="text-slate leading-relaxed mb-10">
-            This Privacy Policy explains how the University Student Council (USC) of ISUFST Dingle Campus collects, uses, and protects your personal information when you use our website and Officer Portal. By using this website, you agree to the practices described in this policy.
+            {{ introText }}
           </p>
 
           <div class="space-y-8">
