@@ -3,8 +3,34 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const LAUNCH_TIME = new Date('2026-07-27T21:00:00+08:00').getTime()
 
+interface PhotoRecord {
+  id: string
+  eventSlug: string
+  storageKeyFull: string
+  storageKeyThumb: string
+  batchTag: string | null
+  studentTag: string | null
+  uploadedBy: string
+  createdAt: string
+}
+
+const R2_BASE = import.meta.env.VITE_R2_PUBLIC_URL
+
+if (!R2_BASE) {
+  console.error('Configuration error: VITE_R2_PUBLIC_URL environment variable is not set. The gallery cannot render images.')
+}
+const r2Configured = !!R2_BASE
+
+function photoThumbUrl(photo: PhotoRecord): string {
+  return `${R2_BASE}/${photo.storageKeyThumb}`
+}
+
+function photoFullUrl(photo: PhotoRecord): string {
+  return `${R2_BASE}/${photo.storageKeyFull}`
+}
+
 const now = ref(Date.now())
-const photos = ref<string[]>([])
+const photos = ref<PhotoRecord[]>([])
 const loading = ref(true)
 const lightboxIndex = ref<number | null>(null)
 
@@ -25,7 +51,10 @@ const countdown = computed(() => {
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-const lightboxSrc = computed(() => lightboxIndex.value !== null ? photos.value[lightboxIndex.value] : '')
+const lightboxSrc = computed(() => {
+  if (lightboxIndex.value === null || !photos.value[lightboxIndex.value]) return ''
+  return photoFullUrl(photos.value[lightboxIndex.value])
+})
 
 function openLightbox(index: number) {
   lightboxIndex.value = index
@@ -52,26 +81,20 @@ function onKeydown(e: KeyboardEvent) {
   else if (e.key === 'ArrowRight') nextPhoto()
 }
 
-function downloadPhoto(src: string) {
+function downloadPhoto(url: string) {
   const a = document.createElement('a')
-  a.href = src
-  a.download = src.split('/').pop() || 'photo.jpg'
+  a.href = url
+  a.download = url.split('/').pop() || 'photo.jpg'
   a.click()
 }
 
 async function fetchPhotos() {
   loading.value = true
   try {
-    const res = await fetch('/pag-abi-abi-booth/')
-    const html = await res.text()
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, 'text/html')
-    const links = Array.from(doc.querySelectorAll('a[href]'))
-    const imageExts = /\.(jpe?g|png|webp|gif|avif)(\?[^]*)?$/i
-    photos.value = links
-      .map(a => a.getAttribute('href') || '')
-      .filter(h => imageExts.test(h))
-      .map(h => h.startsWith('http') ? h : '/pag-abi-abi-booth/' + h)
+    const res = await fetch('/api/photos?eventSlug=pag-abi-abi-2026')
+    if (!res.ok) throw new Error('Failed to load photos')
+    const json = await res.json()
+    photos.value = json.data ?? []
   } catch {
     photos.value = []
   } finally {
@@ -159,8 +182,16 @@ onUnmounted(() => {
     <!-- Gallery -->
     <section v-else class="py-16 md:py-20 bg-paper">
       <div class="px-4 md:px-12">
+        <!-- Config error -->
+        <div v-if="!r2Configured" class="text-center py-20">
+          <div class="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-5 py-2 mb-4">
+            <span class="text-sm font-mono uppercase tracking-wider text-red-600">Gallery is not configured</span>
+          </div>
+          <p class="text-navy/50 text-sm">Please set the VITE_R2_PUBLIC_URL environment variable.</p>
+        </div>
+
         <!-- Loading -->
-        <div v-if="loading" class="text-center py-20">
+        <div v-else-if="loading" class="text-center py-20">
           <div class="inline-flex items-center gap-2 text-gold">
             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -182,13 +213,13 @@ onUnmounted(() => {
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           <div
             v-for="(photo, index) in photos"
-            :key="photo"
+            :key="photo.id"
             class="group relative rounded-xl overflow-hidden border border-line bg-white shadow-sm hover:shadow-lg transition-all cursor-pointer"
             @click="openLightbox(index)"
           >
             <div class="aspect-square overflow-hidden">
               <img
-                :src="photo"
+                :src="photoThumbUrl(photo)"
                 :alt="`Photo ${index + 1}`"
                 class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
@@ -196,7 +227,7 @@ onUnmounted(() => {
             </div>
             <button
               class="absolute bottom-2 right-2 bg-[#0B132B]/80 backdrop-blur-sm text-white text-[10px] font-mono uppercase tracking-wider px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gold hover:text-[#0B132B]"
-              @click.stop="downloadPhoto(photo)"
+              @click.stop="downloadPhoto(photoFullUrl(photo))"
             >
               Download HD
             </button>

@@ -20,6 +20,7 @@ model User {
   name      String
   position  String
   role      String   // "super_admin" | "staff" | "client"
+  canManageContent Boolean @default(false)
   mustChangePassword Boolean @default(true)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -110,4 +111,80 @@ model Photo {
 
   @@index([eventSlug])
   @@map("photos")
+}
+
+model PublicEvent {
+  id           String   @id
+  title        String
+  date         DateTime
+  endDate      DateTime?
+  description  String
+  location     String
+  venue        String?
+  status       String   @default("upcoming")
+  featured     Boolean  @default(false)
+  coverImage   String?
+  gallery      Json?
+  trailerUrl   String?
+  tags         Json?
+  icon         String?
+  academicYear String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("public_events")
+}
+
+model Officer {
+  id           String   @id @default(uuid())
+  name         String
+  position     String
+  tier         String
+  email        String?
+  photo        String?
+  academicYear String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("cms_officers")
+}
+
+model Project {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  icon         String
+  category     String
+  academicYear String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("cms_projects")
+}
+
+model SiteContent {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  content   Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_content")
+}
+
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@map("contact_submissions")
+}
+
+model Settings {
+  id                  String   @id @default(uuid())
+  currentAcademicYear String   @default("2026-2027")
+  updatedAt           DateTime @updatedAt
+
+  @@map("settings")
 }

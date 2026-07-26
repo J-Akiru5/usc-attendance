@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const users = await prisma.user.findMany({
         where: { active: true },
-        select: { id: true, email: true, name: true, position: true, role: true },
+        select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
         orderBy: { name: 'asc' },
       })
 

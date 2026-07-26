@@ -77,7 +77,7 @@ export const officers: Officer[] = [
   },
   {
     name: 'Instr. Jonard V. Verdeflor',
-    position: 'Coordinator, Guidance and Testing',
+    position: 'Coordinator, Student Organization and Equity Target Group',
     tier: 'administration',
     photo: '/usc officers/Instr. Jonard V. Verdeflor.webp',
   },
@@ -101,12 +101,12 @@ export const officers: Officer[] = [
   },
   {
     name: 'Ms. Roussel Justinn B. Esmeralda',
-    position: 'Coordinator, Student Organization',
+    position: 'Coordinator, Guidance and Testing',
     tier: 'administration',
     photo: '/usc officers/Ms. Roussel Justinn B. Esmeralda.webp',
   },
   {
-    name: 'Dr. Soceline N. Batisl-Ong',
+    name: 'Dr. Soceline N. Batisla-ong',
     position: 'Coordinator, Scholarship',
     tier: 'administration',
     photo: '/usc officers/Dr. Soceline N. Batisla-ong.webp',
