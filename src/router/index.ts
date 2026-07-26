@@ -36,6 +36,12 @@ const router = createRouter({
       meta: { layout: 'public' },
     },
     {
+      path: '/events/pag-abi-abi/photobooth',
+      name: 'pag-abi-abi-photobooth',
+      component: () => import('@/pages/PagAbiAbiGallery.vue'),
+      meta: { layout: 'public' },
+    },
+    {
       path: '/campus-guide',
       name: 'campus-guide',
       component: () => import('@/pages/CampusGuidePage.vue'),
