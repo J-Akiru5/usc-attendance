@@ -97,3 +97,17 @@ model OrgProfile {
 
   @@map("org_profile")
 }
+
+model Photo {
+  id             String   @id @default(uuid())
+  eventSlug      String
+  storageKeyFull String
+  storageKeyThumb String
+  batchTag       String?
+  studentTag     String?
+  uploadedBy     String
+  createdAt      DateTime @default(now())
+
+  @@index([eventSlug])
+  @@map("photos")
+}
