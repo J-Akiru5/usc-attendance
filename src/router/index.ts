@@ -162,6 +162,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['super_admin'] },
     },
     {
+      path: '/manage/users',
+      name: 'manage-users',
+      component: () => import('@/pages/ManageUsersPage.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'] },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

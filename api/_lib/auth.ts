@@ -9,6 +9,7 @@ export interface AuthUser {
   name: string
   position: string
   role: string
+  canManageContent: boolean
 }
 
 export async function authenticate(req: VercelRequest): Promise<AuthUser> {
@@ -65,4 +66,10 @@ export function requireStaff(user: AuthUser) {
 
 export function requireSuperAdmin(user: AuthUser) {
   requireRole(user, 'super_admin')
+}
+
+export function requireContentAccess(user: AuthUser) {
+  if (user.role !== 'super_admin' && !user.canManageContent) {
+    throw new Error('Access denied. Content management permission required.')
+  }
 }

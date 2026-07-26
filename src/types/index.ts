@@ -9,6 +9,7 @@ export interface User {
   name: string
   position: string
   role: Role
+  canManageContent?: boolean
   createdAt: string
 }
 
