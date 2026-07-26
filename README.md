@@ -64,14 +64,23 @@ npx prisma migrate dev
 
 ```bash
 npm run db:seed
+npm run db:auth-seed
 ```
 
-This creates three test users:
-- `admin@usc.edu.ph` (super_admin)
-- `staff@usc.edu.ph` (staff)
-- `officer@usc.edu.ph` (client)
+This creates the public user records and Supabase Auth accounts for all officers (see `prisma/seed_auth.ts` for the full list).
 
 ### 5. Start development server
+
+```bash
+npm run dev:full
+```
+
+This runs `vercel dev`, which:
+- Proxies the Vite frontend dev server (HMR, Tailwind, etc.)
+- Executes `api/` serverless functions locally (auth, events, attendance)
+- Reads `.env` for Supabase credentials — mirrors production exactly
+
+For frontend-only work (styles, markup, components) where you don't need the API:
 
 ```bash
 npm run dev
