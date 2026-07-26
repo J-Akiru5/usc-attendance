@@ -2,19 +2,22 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
 import { authenticate, requireSuperAdmin } from '../_lib/auth.js'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// ---------------------------------------------------------------------------
+// GET/POST/PUT/DELETE /api/duties
+// ---------------------------------------------------------------------------
+export async function duties(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await authenticate(req)
 
     if (req.method === 'GET') {
-      const duties = await prisma.officeDuty.findMany({
+      const dutiesList = await prisma.officeDuty.findMany({
         include: {
           user: { select: { id: true, name: true, position: true, role: true } },
         },
         orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
       })
 
-      return res.status(200).json(duties)
+      return res.status(200).json(dutiesList)
     }
 
     if (req.method === 'POST') {
