@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { usePageContent } from '@/composables/usePageContent'
+import { api } from '@/lib/api'
 
 const { content: cms } = usePageContent('contact')
 
@@ -20,14 +21,24 @@ const form = ref({
 
 const sending = ref(false)
 const sent = ref(false)
+const error = ref('')
 
 async function handleSubmit() {
   if (!form.value.name || !form.value.email || !form.value.message) return
   sending.value = true
-  // Simulate sending
-  await new Promise(resolve => setTimeout(resolve, 1200))
-  sending.value = false
-  sent.value = true
+  error.value = ''
+  try {
+    await api.post('/contact', {
+      name: form.value.name,
+      email: form.value.email,
+      message: form.value.message,
+    })
+    sent.value = true
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+  } finally {
+    sending.value = false
+  }
 }
 </script>
 
@@ -122,6 +133,11 @@ async function handleSubmit() {
               </div>
               <div class="text-base font-bold text-navy mb-1">Message sent!</div>
               <p class="text-sm text-slate">We'll get back to you as soon as possible.</p>
+            </div>
+
+            <!-- Error state -->
+            <div v-if="error" class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              {{ error }}
             </div>
 
             <!-- Form -->

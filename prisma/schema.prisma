@@ -171,6 +171,16 @@ model SiteContent {
   @@map("site_content")
 }
 
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@map("contact_submissions")
+}
+
 model Settings {
   id                  String   @id @default(uuid())
   currentAcademicYear String   @default("2026-2027")
