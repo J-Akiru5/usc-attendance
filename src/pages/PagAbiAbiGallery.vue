@@ -93,7 +93,8 @@ async function fetchPhotos() {
   try {
     const res = await fetch('/api/photos?eventSlug=pag-abi-abi-2026')
     if (!res.ok) throw new Error('Failed to load photos')
-    photos.value = await res.json()
+    const json = await res.json()
+    photos.value = json.data ?? []
   } catch {
     photos.value = []
   } finally {
