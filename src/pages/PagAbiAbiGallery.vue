@@ -3,8 +3,29 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const LAUNCH_TIME = new Date('2026-07-27T21:00:00+08:00').getTime()
 
+interface PhotoRecord {
+  id: string
+  eventSlug: string
+  storageKeyFull: string
+  storageKeyThumb: string
+  batchTag: string | null
+  studentTag: string | null
+  uploadedBy: string
+  createdAt: string
+}
+
+const R2_BASE = import.meta.env.VITE_R2_PUBLIC_URL || ''
+
+function photoThumbUrl(photo: PhotoRecord): string {
+  return `${R2_BASE}/${photo.storageKeyThumb}`
+}
+
+function photoFullUrl(photo: PhotoRecord): string {
+  return `${R2_BASE}/${photo.storageKeyFull}`
+}
+
 const now = ref(Date.now())
-const photos = ref<string[]>([])
+const photos = ref<PhotoRecord[]>([])
 const loading = ref(true)
 const lightboxIndex = ref<number | null>(null)
 
@@ -25,7 +46,10 @@ const countdown = computed(() => {
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-const lightboxSrc = computed(() => lightboxIndex.value !== null ? photos.value[lightboxIndex.value] : '')
+const lightboxSrc = computed(() => {
+  if (lightboxIndex.value === null || !photos.value[lightboxIndex.value]) return ''
+  return photoFullUrl(photos.value[lightboxIndex.value])
+})
 
 function openLightbox(index: number) {
   lightboxIndex.value = index
@@ -52,26 +76,19 @@ function onKeydown(e: KeyboardEvent) {
   else if (e.key === 'ArrowRight') nextPhoto()
 }
 
-function downloadPhoto(src: string) {
+function downloadPhoto(url: string) {
   const a = document.createElement('a')
-  a.href = src
-  a.download = src.split('/').pop() || 'photo.jpg'
+  a.href = url
+  a.download = url.split('/').pop() || 'photo.jpg'
   a.click()
 }
 
 async function fetchPhotos() {
   loading.value = true
   try {
-    const res = await fetch('/pag-abi-abi-booth/')
-    const html = await res.text()
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, 'text/html')
-    const links = Array.from(doc.querySelectorAll('a[href]'))
-    const imageExts = /\.(jpe?g|png|webp|gif|avif)(\?[^]*)?$/i
-    photos.value = links
-      .map(a => a.getAttribute('href') || '')
-      .filter(h => imageExts.test(h))
-      .map(h => h.startsWith('http') ? h : '/pag-abi-abi-booth/' + h)
+    const res = await fetch('/api/photos?eventSlug=pag-abi-abi-2026')
+    if (!res.ok) throw new Error('Failed to load photos')
+    photos.value = await res.json()
   } catch {
     photos.value = []
   } finally {
@@ -182,13 +199,13 @@ onUnmounted(() => {
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           <div
             v-for="(photo, index) in photos"
-            :key="photo"
+            :key="photo.id"
             class="group relative rounded-xl overflow-hidden border border-line bg-white shadow-sm hover:shadow-lg transition-all cursor-pointer"
             @click="openLightbox(index)"
           >
             <div class="aspect-square overflow-hidden">
               <img
-                :src="photo"
+                :src="photoThumbUrl(photo)"
                 :alt="`Photo ${index + 1}`"
                 class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
@@ -196,7 +213,7 @@ onUnmounted(() => {
             </div>
             <button
               class="absolute bottom-2 right-2 bg-[#0B132B]/80 backdrop-blur-sm text-white text-[10px] font-mono uppercase tracking-wider px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gold hover:text-[#0B132B]"
-              @click.stop="downloadPhoto(photo)"
+              @click.stop="downloadPhoto(photoFullUrl(photo))"
             >
               Download HD
             </button>

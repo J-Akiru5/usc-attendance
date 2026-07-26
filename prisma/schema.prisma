@@ -20,6 +20,7 @@ model User {
   name      String
   position  String
   role      String   // "super_admin" | "staff" | "client"
+  canManageContent Boolean @default(false)
   mustChangePassword Boolean @default(true)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -96,4 +97,18 @@ model OrgProfile {
   dutyCheckOutStart   String @default("12:00") // HH:mm 24hr — duty check-outs must occur at or after this
 
   @@map("org_profile")
+}
+
+model Photo {
+  id             String   @id @default(uuid())
+  eventSlug      String
+  storageKeyFull String
+  storageKeyThumb String
+  batchTag       String?
+  studentTag     String?
+  uploadedBy     String
+  createdAt      DateTime @default(now())
+
+  @@index([eventSlug])
+  @@map("photos")
 }
