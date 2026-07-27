@@ -116,7 +116,6 @@ const executiveOfficers = [
 ]
 
 const previewProjects = projects.slice(0, 3)
-const previewEvents = computed(() => (events.value || []).slice(0, 3))
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -581,52 +580,6 @@ const logos = [
             class="inline-flex items-center gap-2 text-sm font-medium text-navy hover:text-gold-dark transition-colors"
           >
             View all projects
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </router-link>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== EVENTS PREVIEW ========== -->
-    <section class="py-16 md:py-20 bg-paper">
-      <div class="px-4 md:px-12">
-        <div
-          v-motion
-          :initial="{ opacity: 0, y: 30 }"
-          :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
-          class="text-center mb-12"
-        >
-          <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Get Involved</div>
-          <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Upcoming Events</h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div
-            v-for="(event, index) in previewEvents"
-            :key="event.title"
-            v-motion
-            :initial="{ opacity: 0, y: 40 }"
-            :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
-            :hovered="{ scale: 1.03, y: -2 }"
-            class="rounded-xl border border-line bg-paper-panel p-5 shadow-sm transition-all cursor-default"
-          >
-            <div class="flex items-center gap-3 mb-3">
-              <span class="text-xl">{{ event.icon }}</span>
-              <div class="text-[10px] font-mono uppercase tracking-wider text-gold-dark">{{ formatDate(event.date) }}</div>
-            </div>
-            <h3 class="text-sm font-bold text-navy mb-2">{{ event.title }}</h3>
-            <p class="text-xs text-slate leading-relaxed">{{ event.description }}</p>
-          </div>
-        </div>
-
-        <div class="text-center mt-8">
-          <router-link
-            to="/events"
-            class="inline-flex items-center gap-2 text-sm font-medium text-navy hover:text-gold-dark transition-colors"
-          >
-            View all events
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
             </svg>
