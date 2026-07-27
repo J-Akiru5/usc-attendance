@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { officers } from '@/data/officers'
 import { projects } from '@/data/projects'
 import { useEvents } from '@/composables/useEvents'
 import { usePageContent } from '@/composables/usePageContent'
@@ -109,7 +108,13 @@ onUnmounted(() => {
   if (nextEventIntervalId) clearInterval(nextEventIntervalId)
 })
 
-const executiveOfficers = officers.filter(o => o.tier === 'usc_executive').slice(0, 4)
+const executiveOfficers = [
+  { name: 'Jared S. Demonteverde', position: 'President', photo: '/usc officers/Jared S. Demonteverde.webp' },
+  { name: 'Katherine Anne B. Bicodo', position: 'Vice President', photo: '/usc officers/Katherine Anne B. Bicodo.webp' },
+  { name: 'Dein Andrey D. Daguro', position: 'Senate President', photo: '/usc officers/Dein Andrey D. Daguro.webp' },
+  { name: 'Nikki Loraine B. Danugrao', position: 'Secretary', photo: '/usc officers/Nikki Loraine B. Danugrao.webp' },
+]
+
 const previewProjects = projects.slice(0, 3)
 const previewEvents = computed(() => (events.value || []).slice(0, 3))
 
@@ -119,17 +124,6 @@ function formatDate(iso: string) {
     day: 'numeric',
     year: 'numeric',
   })
-}
-
-function getInitials(name?: string) {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .filter(p => !p.endsWith('.'))
-    .map(p => p[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
 }
 
 const logos = [
@@ -516,15 +510,20 @@ const logos = [
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <div
             v-for="(officer, index) in executiveOfficers"
-            :key="officer.email"
+            :key="officer.name"
             v-motion
             :initial="{ opacity: 0, y: 30 }"
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.4, delay: index * 80 } }"
             :hovered="{ scale: 1.03, y: -2 }"
             class="flex flex-col items-center text-center p-5 rounded-xl border border-line bg-paper-panel shadow-sm cursor-default"
           >
-            <div class="w-16 h-16 rounded-full bg-navy border-2 border-gold/40 flex items-center justify-center mb-3">
-              <span class="text-gold font-bold text-base font-serif">{{ getInitials(officer.name) }}</span>
+            <div class="w-16 h-16 rounded-full bg-navy border-2 border-gold/40 overflow-hidden mb-3">
+              <img
+                :src="officer.photo"
+                :alt="officer.name"
+                class="w-full h-full object-cover object-top"
+                style="image-rendering: -webkit-optimize-contrast;"
+              />
             </div>
             <p class="text-xs font-bold text-navy leading-tight">{{ officer.name }}</p>
             <p class="text-[10px] text-gold-dark font-semibold mt-0.5">{{ officer.position }}</p>
