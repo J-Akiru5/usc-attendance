@@ -4,10 +4,21 @@ import { useRouter } from 'vue-router'
 import { officers } from '@/data/officers'
 import { projects } from '@/data/projects'
 import { useEvents } from '@/composables/useEvents'
+import { usePageContent } from '@/composables/usePageContent'
 import EventsCarousel from '@/components/ui/EventsCarousel.vue'
 
 const router = useRouter()
 const { events, loading: eventsLoading, error: eventsError, featuredEvent } = useEvents()
+const { content: cms } = usePageContent('home')
+
+const heroTitle = computed(() => (cms.value.heroTitle as string) || 'University Student Council')
+const heroSubtitle = computed(() => (cms.value.heroSubtitle as string) || 'Official Website')
+const heroTagline = computed(() => (cms.value.heroTagline as string) || 'Serving students. Leading change. Building community.\nThe official digital presence of the University Student Council.')
+const aboutTitle = computed(() => (cms.value.aboutTitle as string) || 'Serving Students. Leading Change.')
+const aboutText1 = computed(() => (cms.value.aboutText1 as string) || 'The University Student Council is the official student governing body of ISUFST Dingle Campus. We represent the student body, organize programs, and advocate for student welfare.')
+const aboutText2 = computed(() => (cms.value.aboutText2 as string) || 'Through leadership, service, and collaboration, the USC works to create a vibrant and inclusive campus community for all students.')
+const ctaTitle = computed(() => (cms.value.ctaTitle as string) || 'USC Officer?')
+const ctaText = computed(() => (cms.value.ctaText as string) || 'Access the Officer Portal for attendance management, event tracking, and digital student council services.')
 
 const showSpotlight = computed(() => {
   return featuredEvent.value && featuredEvent.value.status === 'upcoming'
@@ -215,7 +226,10 @@ const logos = [
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.6, delay: 200 } }"
             class="text-4xl md:text-5xl lg:text-[3.75rem] font-bold font-serif leading-tight mb-3 drop-shadow-lg"
           >
-            University Student<br>Council
+            <template v-for="(line, i) in heroTitle.split('\n')" :key="i">
+              <br v-if="i > 0" />
+              {{ line }}
+            </template>
           </h1>
 
           <p
@@ -224,7 +238,7 @@ const logos = [
             :enter="{ opacity: 1, transition: { duration: 0.5, delay: 300 } }"
             class="text-white/50 text-sm font-mono uppercase tracking-wider mb-5"
           >
-            Official Website
+            {{ heroSubtitle }}
           </p>
 
           <p
@@ -233,8 +247,10 @@ const logos = [
             :enter="{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 400 } }"
             class="text-white/80 text-base md:text-lg leading-relaxed mb-10 max-w-xl"
           >
-            Serving students. Leading change. Building community.<br>
-            The official digital presence of the University Student Council.
+            <template v-for="(line, i) in heroTagline.split('\n')" :key="i">
+              <br v-if="i > 0" />
+              {{ line }}
+            </template>
           </p>
 
           <div
@@ -304,13 +320,13 @@ const logos = [
           >
             <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Who We Are</div>
             <h2 class="text-3xl md:text-4xl font-bold font-serif text-navy mb-6">
-              Serving Students.<br>Leading Change.
+              {{ aboutTitle }}
             </h2>
             <p class="text-slate leading-relaxed mb-4">
-              The University Student Council is the official student governing body of ISUFST Dingle Campus. We represent the student body, organize programs, and advocate for student welfare.
+              {{ aboutText1 }}
             </p>
             <p class="text-slate leading-relaxed mb-8">
-              Through leadership, service, and collaboration, the USC works to create a vibrant and inclusive campus community for all students.
+              {{ aboutText2 }}
             </p>
             <router-link
               to="/about"
@@ -641,10 +657,10 @@ const logos = [
           <span class="text-xs font-mono uppercase tracking-wider text-gold font-semibold">Officer Portal</span>
         </div>
         <h2 class="text-3xl md:text-4xl font-bold font-serif text-white mb-4 drop-shadow-md">
-          USC Officer?
+          {{ ctaTitle }}
         </h2>
         <p class="text-white/80 mb-8 max-w-xl mx-auto leading-relaxed text-sm md:text-base">
-          Access the Officer Portal for attendance management, event tracking, and digital student council services.
+          {{ ctaText }}
         </p>
         <button
           @click="router.push('/portal')"

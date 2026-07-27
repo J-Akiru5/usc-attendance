@@ -1,4 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { usePageContent } from '@/composables/usePageContent'
+
+const { content: cms } = usePageContent('about')
+
+const heroTitle = computed(() => (cms.value.heroTitle as string) || 'University Student Council')
+const heroSubtitle = computed(() => (cms.value.heroSubtitle as string) || 'The official student governing body of ISUFST Dingle Campus, serving the student body through leadership, programs, and advocacy.')
+const missionText = computed(() => (cms.value.missionText as string) || 'To represent, serve, and empower the students of ISUFST Dingle Campus through transparent governance, meaningful programs, and inclusive leadership.')
+const roleTitle = computed(() => (cms.value.roleTitle as string) || 'What We Do')
+const roleText1 = computed(() => (cms.value.roleText1 as string) || 'The University Student Council serves as the bridge between the student body and the administration. We organize campus programs, advocate for student welfare, and provide services that enhance the student experience.')
+const roleText2 = computed(() => (cms.value.roleText2 as string) || 'From environmental campaigns to academic support, leadership seminars to community outreach, the USC works to build a vibrant and inclusive campus community.')
+const digitalText = computed(() => (cms.value.digitalText as string) || 'The University Student Council is embracing digital tools to improve operations, transparency, and service delivery. The Officer Portal provides authorized officers with modern tools for attendance management and council operations.')
+
 const values = [
   { title: 'Service', description: 'Dedicated to serving the student body through responsive and impactful programs.', icon: '🤝' },
   { title: 'Integrity', description: 'Committed to transparency, accountability, and ethical governance.', icon: '⚖️' },
@@ -24,10 +37,10 @@ const values = [
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">About</div>
             <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold font-serif mb-4 leading-tight drop-shadow-lg">
-              University Student Council
+              {{ heroTitle }}
             </h1>
             <p class="text-white/70 max-w-lg leading-relaxed">
-              The official student governing body of ISUFST Dingle Campus, serving the student body through leadership, programs, and advocacy.
+              {{ heroSubtitle }}
             </p>
           </div>
           <div class="hidden lg:flex justify-end">
@@ -50,10 +63,7 @@ const values = [
         <div class="rounded-2xl border border-line bg-paper-panel p-8 md:p-12 shadow-sm text-center">
           <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-4">Mission</div>
           <p class="text-xl md:text-2xl font-serif text-navy leading-relaxed">
-            To represent, serve, and empower the students of ISUFST Dingle Campus through
-            <span class="text-gold-dark font-semibold">transparent governance</span>,
-            <span class="text-gold-dark font-semibold">meaningful programs</span>, and
-            <span class="text-gold-dark font-semibold">inclusive leadership</span>.
+            {{ missionText }}
           </p>
         </div>
       </div>
@@ -65,12 +75,12 @@ const values = [
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-3">Our Role</div>
-            <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy mb-6">What We Do</h2>
+            <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy mb-6">{{ roleTitle }}</h2>
             <p class="text-slate leading-relaxed mb-4">
-              The University Student Council serves as the bridge between the student body and the administration. We organize campus programs, advocate for student welfare, and provide services that enhance the student experience.
+              {{ roleText1 }}
             </p>
             <p class="text-slate leading-relaxed mb-8">
-              From environmental campaigns to academic support, leadership seminars to community outreach, the USC works to build a vibrant and inclusive campus community.
+              {{ roleText2 }}
             </p>
 
             <div class="flex items-center gap-3">
@@ -128,7 +138,7 @@ const values = [
           <h2 class="text-2xl md:text-3xl font-bold font-serif text-navy">Going Digital</h2>
         </div>
         <p class="text-slate leading-relaxed text-center mb-8">
-          The University Student Council is embracing digital tools to improve operations, transparency, and service delivery. The Officer Portal provides authorized officers with modern tools for attendance management and council operations.
+          {{ digitalText }}
         </p>
         <div class="text-center">
           <router-link

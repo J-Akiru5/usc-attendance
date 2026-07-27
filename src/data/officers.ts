@@ -106,7 +106,7 @@ export const officers: Officer[] = [
     photo: '/usc officers/Ms. Roussel Justinn B. Esmeralda.webp',
   },
   {
-    name: 'Dr. Soceline N. Batisl-Ong',
+    name: 'Dr. Soceline N. Batisla-ong',
     position: 'Coordinator, Scholarship',
     tier: 'administration',
     photo: '/usc officers/Dr. Soceline N. Batisla-ong.webp',

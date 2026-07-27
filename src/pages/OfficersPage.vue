@@ -1,7 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { officers, tierLabels } from '@/data/officers'
+import { officers as staticOfficers, tierLabels } from '@/data/officers'
+import type { Officer } from '@/data/officers'
 import OrgChart from '@/components/ui/OrgChart.vue'
+
+interface CmsOfficer {
+  id: string
+  name: string
+  position: string
+  tier: string
+  email: string | null
+  photo: string | null
+  academicYear: string
+}
 
 interface SelectedOfficer {
   name?: string
@@ -9,12 +20,14 @@ interface SelectedOfficer {
   photo?: string
 }
 
+const officers = ref<Officer[]>([])
+const loading = ref(true)
 const selectedOfficer = ref<SelectedOfficer | null>(null)
 
 const selectedTierLabel = computed(() => {
   if (!selectedOfficer.value?.name) return null
-  const officer = officers.find(o => o.name === selectedOfficer.value!.name)
-  return officer ? tierLabels[officer.tier] : null
+  const officer = officers.value.find(o => o.name === selectedOfficer.value!.name)
+  return officer ? tierLabels[officer.tier as keyof typeof tierLabels] : null
 })
 
 function selectOfficer(data: SelectedOfficer) {
@@ -29,7 +42,33 @@ function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') closeModal()
 }
 
-onMounted(() => document.addEventListener('keydown', onKeydown))
+onMounted(async () => {
+  document.addEventListener('keydown', onKeydown)
+  try {
+    const res = await fetch('/api/cms/officers')
+    if (res.ok) {
+      const data: CmsOfficer[] = await res.json()
+      if (data.length > 0) {
+        officers.value = data.map(o => ({
+          name: o.name,
+          position: o.position,
+          tier: o.tier as Officer['tier'],
+          email: o.email ?? undefined,
+          photo: o.photo ?? undefined,
+        }))
+      } else {
+        officers.value = staticOfficers
+      }
+    } else {
+      officers.value = staticOfficers
+    }
+  } catch {
+    officers.value = staticOfficers
+  } finally {
+    loading.value = false
+  }
+})
+
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
@@ -57,7 +96,16 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
     <!-- Org Chart -->
     <section class="bg-[#0B132B] py-6 md:py-10 relative overflow-hidden">
-      <OrgChart :officers="officers" @select="selectOfficer" />
+      <div v-if="loading" class="text-center py-20">
+        <div class="inline-flex items-center gap-2 text-gold">
+          <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span class="text-sm font-mono uppercase tracking-wider">Loading officers...</span>
+        </div>
+      </div>
+      <OrgChart v-else :officers="officers" @select="selectOfficer" />
     </section>
 
     <!-- Profile Modal -->

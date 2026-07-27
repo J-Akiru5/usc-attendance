@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { usePageContent } from '@/composables/usePageContent'
+
+const { content: cms } = usePageContent('contact')
+
+const heroTitle = computed(() => (cms.value.heroTitle as string) || 'Contact Us')
+const heroSubtitle = computed(() => (cms.value.heroSubtitle as string) || "We're here to help. Reach out to the University Student Council for questions, concerns, or suggestions.")
+const contactHeading = computed(() => (cms.value.contactHeading as string) || 'ISUFST Dingle Campus')
+const contactEmail = computed(() => (cms.value.contactEmail as string) || 'usc@isufst.edu.ph')
+const contactOffice = computed(() => (cms.value.contactOffice as string) || 'ISUFST Dingle Campus\nStudent Council Office')
+const contactHours = computed(() => (cms.value.contactHours as string) || 'Monday – Friday\n8:00 AM – 5:00 PM')
 
 const form = ref({
   name: '',
@@ -36,9 +46,9 @@ async function handleSubmit() {
       />
       <div class="relative px-4 md:px-12 text-center">
         <div class="text-xs font-mono uppercase tracking-wider text-gold mb-3">Contact</div>
-        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">Contact Us</h1>
+        <h1 class="text-3xl md:text-4xl font-bold font-serif mb-4">{{ heroTitle }}</h1>
         <p class="text-white/70 max-w-2xl mx-auto leading-relaxed">
-          We're here to help. Reach out to the University Student Council for questions, concerns, or suggestions.
+          {{ heroSubtitle }}
         </p>
       </div>
     </section>
@@ -50,7 +60,7 @@ async function handleSubmit() {
           <!-- Left: Contact Info -->
           <div>
             <div class="text-xs font-mono uppercase tracking-wider text-gold-dark mb-6">University Student Council</div>
-            <h2 class="text-xl font-bold font-serif text-navy mb-6">ISUFST Dingle Campus</h2>
+            <h2 class="text-xl font-bold font-serif text-navy mb-6">{{ contactHeading }}</h2>
 
             <div class="space-y-5">
               <!-- Email -->
@@ -62,8 +72,8 @@ async function handleSubmit() {
                 </div>
                 <div>
                   <div class="text-[10px] font-mono uppercase tracking-wider text-slate mb-1">Email</div>
-                  <a href="mailto:usc@isufst.edu.ph" class="text-sm font-semibold text-navy hover:text-gold-dark transition-colors">
-                    usc@isufst.edu.ph
+                  <a :href="`mailto:${contactEmail}`" class="text-sm font-semibold text-navy hover:text-gold-dark transition-colors">
+                    {{ contactEmail }}
                   </a>
                 </div>
               </div>
@@ -77,8 +87,8 @@ async function handleSubmit() {
                 </div>
                 <div>
                   <div class="text-[10px] font-mono uppercase tracking-wider text-slate mb-1">Office</div>
-                  <div class="text-sm font-semibold text-navy">ISUFST Dingle Campus</div>
-                  <div class="text-sm text-slate">Student Council Office</div>
+                  <div class="text-sm font-semibold text-navy">{{ contactOffice.split('\n')[0] }}</div>
+                  <div class="text-sm text-slate">{{ contactOffice.split('\n')[1] || '' }}</div>
                 </div>
               </div>
 
@@ -91,8 +101,8 @@ async function handleSubmit() {
                 </div>
                 <div>
                   <div class="text-[10px] font-mono uppercase tracking-wider text-slate mb-1">Hours</div>
-                  <div class="text-sm font-semibold text-navy">Monday – Friday</div>
-                  <div class="text-sm text-slate">8:00 AM – 5:00 PM</div>
+                  <div class="text-sm font-semibold text-navy">{{ contactHours.split('\n')[0] }}</div>
+                  <div class="text-sm text-slate">{{ contactHours.split('\n')[1] || '' }}</div>
                 </div>
               </div>
             </div>
