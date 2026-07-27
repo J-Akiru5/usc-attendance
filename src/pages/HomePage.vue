@@ -361,7 +361,7 @@ const logos = [
                   <div class="text-xs text-slate mt-1">Officers</div>
                 </div>
                 <div class="bg-navy/5 rounded-xl p-4 text-center border border-line/50">
-                  <div class="text-2xl font-bold text-navy font-serif">6</div>
+                  <div class="text-2xl font-bold text-navy font-serif">10</div>
                   <div class="text-xs text-slate mt-1">Programs</div>
                 </div>
               </div>
