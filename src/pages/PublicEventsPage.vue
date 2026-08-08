@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import VideoPlayer from '@/components/ui/VideoPlayer.vue'
+import FlagCeremonySection from '@/components/ui/FlagCeremonySection.vue'
 import eventsJson from '../../public/data/events.json'
 
 interface PublicEvent {
@@ -53,6 +54,9 @@ onMounted(async () => {
 
 <template>
   <div>
+    <!-- Flag Raising Ceremony -->
+    <FlagCeremonySection />
+
     <!-- Featured Event Video -->
     <section
       v-if="featuredEvent?.trailerUrl"

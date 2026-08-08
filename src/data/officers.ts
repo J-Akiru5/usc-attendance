@@ -231,4 +231,29 @@ export const officers: Officer[] = [
     tier: 'student_senate',
     photo: '/usc officers/Jona Ross P. Frial.webp',
   },
+  {
+    name: 'Alliah Dace P. Ramos',
+    position: 'USC Representative',
+    tier: 'student_senate',
+  },
+  {
+    name: 'Daraug',
+    position: 'Governor',
+    tier: 'student_senate',
+  },
+  {
+    name: 'Araño',
+    position: 'Governor',
+    tier: 'student_senate',
+  },
+  {
+    name: 'Llabore',
+    position: 'Governor',
+    tier: 'student_senate',
+  },
+  {
+    name: 'Espia',
+    position: 'Governor',
+    tier: 'student_senate',
+  },
 ]
