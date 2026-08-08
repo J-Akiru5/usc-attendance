@@ -5,6 +5,7 @@ import { projects } from '@/data/projects'
 import { useEvents } from '@/composables/useEvents'
 import { usePageContent } from '@/composables/usePageContent'
 import EventsCarousel from '@/components/ui/EventsCarousel.vue'
+import FlagCeremonySection from '@/components/ui/FlagCeremonySection.vue'
 
 const router = useRouter()
 const { events, loading: eventsLoading, error: eventsError, featuredEvent } = useEvents()
@@ -493,6 +494,9 @@ const logos = [
         <EventsCarousel :events="events" :loading="eventsLoading" :error="eventsError" />
       </div>
     </section>
+
+    <!-- ========== FLAG RAISING CEREMONY ========== -->
+    <FlagCeremonySection />
 
     <!-- ========== OFFICERS PREVIEW ========== -->
     <section class="py-16 md:py-20 bg-paper">
