@@ -119,7 +119,7 @@ const programWithPhotos = computed(() =>
       <!-- Ceremony Program -->
       <div class="max-w-2xl mx-auto space-y-3">
         <div
-          v-for="(item, index) in programWithPhotos"
+          v-for="item in programWithPhotos"
           :key="item.role"
           class="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 flex items-center gap-4 hover:bg-white/8 transition-colors"
         >
