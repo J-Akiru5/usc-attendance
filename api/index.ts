@@ -23,6 +23,7 @@ import * as photos from './_handlers/photos.js'
  *   /api/attendance/qr       → attendance.qr
  *   /api/attendance          → attendance.index
  *   /api/auth/me             → auth.me
+ *   /api/auth/password-reset  → auth.requestPasswordReset
  *   /api/auth/change-password → auth.changePassword
  *   /api/auth/profile        → auth.users  (PUT alias used by the frontend store)
  *   /api/auth/users/:id      → auth.userById
@@ -64,6 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Auth routes
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/auth/me') return auth.me(req, res)
+  if (rawPath === '/api/auth/password-reset') return auth.requestPasswordReset(req, res)
   if (rawPath === '/api/auth/change-password') return auth.changePassword(req, res)
   // /api/auth/profile is used by the frontend store for PUT (own profile update)
   if (rawPath === '/api/auth/profile') return auth.users(req, res)
