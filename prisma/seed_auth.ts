@@ -17,11 +17,22 @@ function generatePassword(): string {
   return randomBytes(16).toString('base64url')
 }
 
-const adminPassword = process.env.SEED_ADMIN_PASSWORD || (() => {
+// By default, an account that has already completed its first-login password
+// change (mustChangePassword: false) is left untouched on subsequent runs —
+// no password rotation, no reprinted credential, no mustChangePassword reset.
+// Only brand-new accounts get a generated password. Set ROTATE_ALL=true to
+// force every account (including already-changed ones) back through rotation,
+// e.g. for a deliberate credential-rotation pass:
+//   ROTATE_ALL=true npm run db:auth-seed
+const ROTATE_ALL = process.env.ROTATE_ALL === 'true'
+
+/** Resolve the admin password lazily — only called when the admin account is actually being (re)seeded. */
+function getAdminPassword(): string {
+  if (process.env.SEED_ADMIN_PASSWORD) return process.env.SEED_ADMIN_PASSWORD
   const generated = generatePassword()
   console.log(`\n⚠  SEED_ADMIN_PASSWORD not set — generated admin password:\n   ${generated}\n`)
   return generated
-})()
+}
 
 const officers = [
   { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
@@ -48,6 +59,7 @@ async function main() {
 
   const credentials: { name: string; email: string; password: string; position: string }[] = []
   const skippedMismatches: { email: string; authId: string; dbId: string }[] = []
+  const skippedAlreadyChanged: string[] = []
   const failedUpdates: { email: string; message: string }[] = []
 
   // Fetch all auth users once to avoid repeated API calls
@@ -57,15 +69,27 @@ async function main() {
   }
 
   for (const u of officers) {
-    // Generate a fresh random password for every user each time the seed runs.
+    // Look up the existing Prisma record first — it decides whether this
+    // account gets rotated at all.
+    const existingAuthUser = authList.users.find(user => user.email === u.email)
+    const existingDbUser = await prisma.user.findUnique({ where: { email: u.email } })
+
+    const isNewAccount = !existingAuthUser || !existingDbUser
+    const alreadyChanged = !!existingDbUser && existingDbUser.mustChangePassword === false
+
+    if (!isNewAccount && alreadyChanged && !ROTATE_ALL) {
+      console.log(`  ${u.email} — already changed password, left untouched (mustChangePassword=false)`)
+      skippedAlreadyChanged.push(u.email)
+      continue
+    }
+
+    // Generate a fresh random password for every account being (re)seeded.
     // The admin user (first in the list) uses SEED_ADMIN_PASSWORD if set;
     // all others get a runtime-generated random password.
     const tempPassword = u.email === 'admin@usc.edu.ph'
-      ? adminPassword
+      ? getAdminPassword()
       : generatePassword()
 
-    // 1. Resolve Supabase Auth user (reuse cached list)
-    const existingAuthUser = authList.users.find(user => user.email === u.email)
     let authUserId: string
     let status: string
 
@@ -102,10 +126,7 @@ async function main() {
     credentials.push({ name: u.name, email: u.email, password: tempPassword, position: u.position })
 
     // 2. Upsert Prisma user by EMAIL — repair ID if mismatched
-    const existingDbUser = await prisma.user.findUnique({
-      where: { email: u.email }
-    })
-
+    // (existingDbUser was already resolved above, before the rotation-skip check)
     if (existingDbUser) {
       if (existingDbUser.id === authUserId) {
         // IDs match — just update metadata
@@ -182,6 +203,14 @@ async function main() {
       console.log(`    auth id: ${s.authId}`)
       console.log(`    db   id: ${s.dbId}`)
     }
+  }
+
+  if (skippedAlreadyChanged.length > 0) {
+    console.log(`\nUNTOUCHED (already changed their password — ${skippedAlreadyChanged.length}):`)
+    for (const email of skippedAlreadyChanged) {
+      console.log(`  ${email}`)
+    }
+    console.log('  Re-run with ROTATE_ALL=true to force-rotate these too.')
   }
 
   if (credentials.length > 0) {
