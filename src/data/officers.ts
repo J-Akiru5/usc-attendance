@@ -76,10 +76,10 @@ export const officers: Officer[] = [
     photo: '/usc officers/Dr. Nancy D. Daguro.webp',
   },
   {
-    name: 'Instr. Jonard V. Verdeflor',
-    position: 'Coordinator, Student Organization and Equity Target Group',
+    name: 'Ms. Roussel Justinn B. Esmeralda',
+    position: 'Coordinator, Guidance and Testing',
     tier: 'administration',
-    photo: '/usc officers/Instr. Jonard V. Verdeflor.webp',
+    photo: '/usc officers/Ms. Roussel Justinn B. Esmeralda.webp',
   },
   {
     name: 'Mrs. Kathryn Rose C. Bracamonte',
@@ -100,10 +100,10 @@ export const officers: Officer[] = [
     photo: '/usc officers/Mr. Jilbert B. Tanquerido.webp',
   },
   {
-    name: 'Ms. Roussel Justinn B. Esmeralda',
-    position: 'Coordinator, Guidance and Testing',
+    name: 'Instr. Jonard V. Verdeflor',
+    position: 'Coordinator, Student Organization and Equity Target Group',
     tier: 'administration',
-    photo: '/usc officers/Ms. Roussel Justinn B. Esmeralda.webp',
+    photo: '/usc officers/Instr. Jonard V. Verdeflor.webp',
   },
   {
     name: 'Dr. Soceline N. Batisla-ong',

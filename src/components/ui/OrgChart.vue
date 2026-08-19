@@ -288,12 +288,12 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   variant="institutional"
                 />
               </div>
-              <div class="coord-card" v-if="coordVerdeflorCoord">
+              <div class="coord-card" v-if="coordEsmeralda">
                 <OfficerCard
-                  :name="coordVerdeflorCoord.name"
+                  :name="coordEsmeralda.name"
                   designation="Coordinator, Guidance and Testing"
-                  :photo="coordVerdeflorCoord.photo"
-                  :initials="getInitials(coordVerdeflorCoord.name)"
+                  :photo="coordEsmeralda.photo"
+                  :initials="getInitials(coordEsmeralda.name)"
                   variant="institutional"
                 />
               </div>
@@ -306,12 +306,12 @@ const showPinchHint = computed(() => scaleFactor.value < 0.60)
                   variant="institutional"
                 />
               </div>
-              <div class="coord-card" v-if="coordEsmeralda">
+              <div class="coord-card" v-if="coordVerdeflorCoord">
                 <OfficerCard
-                  :name="coordEsmeralda.name"
+                  :name="coordVerdeflorCoord.name"
                   designation="Coordinator, Student Organization"
-                  :photo="coordEsmeralda.photo"
-                  :initials="getInitials(coordEsmeralda.name)"
+                  :photo="coordVerdeflorCoord.photo"
+                  :initials="getInitials(coordVerdeflorCoord.name)"
                   variant="institutional"
                 />
               </div>
