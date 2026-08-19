@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { api } from '@/lib/api'
 import Toast from '@/components/ui/Toast.vue'
 
 const auth = useAuthStore()
@@ -13,6 +14,7 @@ const rememberMe = ref(false)
 const loading = ref(false)
 const error = ref('')
 const showPassword = ref(false)
+const forgotSent = ref(false)
 const toastRef = ref<InstanceType<typeof Toast>>()
 
 async function handleLogin() {
@@ -31,6 +33,26 @@ async function handleLogin() {
     const msg = err instanceof Error ? err.message : 'Login failed'
     error.value = msg
     toastRef.value?.addToast(msg, 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleForgotPassword() {
+  if (!email.value) {
+    error.value = 'Enter your email above, then click Forgot password?'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    await api.post('/auth/password-reset', { email: email.value })
+    forgotSent.value = true
+  } catch (err: unknown) {
+    // Still show the generic message — don't leak errors
+    forgotSent.value = true
   } finally {
     loading.value = false
   }
@@ -158,7 +180,7 @@ async function handleLogin() {
               <label for="password" class="block text-[10px] font-bold text-navy uppercase tracking-wider">
                 Password
               </label>
-              <span class="text-[10px] text-slate hover:text-navy cursor-pointer transition-colors">Forgot password?</span>
+              <button type="button" @click="handleForgotPassword" :disabled="loading" class="text-[10px] text-slate hover:text-navy cursor-pointer transition-colors disabled:opacity-60">Forgot password?</button>
             </div>
             <div class="relative">
               <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -213,6 +235,11 @@ async function handleLogin() {
             {{ loading ? 'Signing in...' : 'Sign In' }}
           </button>
         </form>
+
+        <!-- Forgot password confirmation -->
+        <div v-if="forgotSent" class="mt-5 rounded-lg border border-gold bg-gold/10 px-4 py-3 text-sm text-navy">
+          If that email exists, we've sent a reset link. Check your inbox (and spam folder).
+        </div>
 
         <!-- Footer note -->
         <p class="text-center text-xs text-slate mt-6">

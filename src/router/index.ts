@@ -100,6 +100,14 @@ const router = createRouter({
       meta: { guest: true },
     },
 
+    // Password reset (from email link)
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/pages/ResetPasswordPage.vue'),
+      meta: { guest: true },
+    },
+
     // Force password change — mustChangePassword gate
     {
       path: '/change-password',
