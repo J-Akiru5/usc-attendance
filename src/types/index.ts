@@ -10,6 +10,7 @@ export interface User {
   position: string
   role: Role
   canManageContent?: boolean
+  mustChangePassword?: boolean
   createdAt: string
 }
 

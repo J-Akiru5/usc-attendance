@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
+import { supabaseAdmin } from '../_lib/supabase.js'
 import { authenticate, requireStaff, requireSuperAdmin } from '../_lib/auth.js'
 
 // ---------------------------------------------------------------------------
@@ -58,6 +59,51 @@ export async function users(req: VercelRequest, res: VercelResponse) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     const status = message.includes('Access denied') ? 403 : 500
+    return res.status(status).json({ error: message })
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/change-password
+// ---------------------------------------------------------------------------
+export async function changePassword(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  try {
+    const authUser = await authenticate(req)
+    const { newPassword } = req.body
+
+    if (!newPassword || typeof newPassword !== 'string') {
+      return res.status(400).json({ error: 'newPassword is required' })
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' })
+    }
+
+    // Update the password in Supabase Auth
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      authUser.id,
+      { password: newPassword }
+    )
+
+    if (updateError) {
+      console.error('[change-password] Supabase update failed:', updateError.message)
+      return res.status(500).json({ error: 'Failed to update password' })
+    }
+
+    // Clear mustChangePassword flag in Prisma
+    await prisma.user.update({
+      where: { id: authUser.id },
+      data: { mustChangePassword: false },
+    })
+
+    return res.status(200).json({ success: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    const status = message.includes('Access denied') ? 403 : message.includes('Unauthorized') ? 401 : 500
     return res.status(status).json({ error: message })
   }
 }

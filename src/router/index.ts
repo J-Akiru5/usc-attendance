@@ -100,6 +100,14 @@ const router = createRouter({
       meta: { guest: true },
     },
 
+    // Force password change — mustChangePassword gate
+    {
+      path: '/change-password',
+      name: 'change-password',
+      component: () => import('@/pages/ChangePasswordPage.vue'),
+      meta: { requiresAuth: true },
+    },
+
     // Authenticated app
     {
       path: '/dashboard',
@@ -194,6 +202,11 @@ router.beforeEach(async (to) => {
 
   if (to.meta.guest && auth.isAuthenticated) {
     return { name: 'dashboard' }
+  }
+
+  // Force password change — block everything except /change-password and logout
+  if (auth.isAuthenticated && auth.user?.mustChangePassword && to.name !== 'change-password') {
+    return { name: 'change-password' }
   }
 
   if (to.meta.roles && auth.user) {
