@@ -12,7 +12,10 @@ export interface AuthUser {
   canManageContent: boolean
 }
 
-export async function authenticate(req: VercelRequest): Promise<AuthUser> {
+export async function authenticate(
+  req: VercelRequest,
+  options?: { allowMustChangePassword?: boolean }
+): Promise<AuthUser> {
   const authHeader = req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
     throw new Error('Missing or invalid authorization header')
@@ -23,9 +26,14 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
 
   if (user) {
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (dbUser) return dbUser as AuthUser
-    console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
-    throw new Error('User not found in database')
+    if (!dbUser) {
+      console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
+      throw new Error('User not found in database')
+    }
+    if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
+      throw new Error('Access denied. Password change required.')
+    }
+    return dbUser as AuthUser
   }
 
   // Fallback: verify JWT signature using project's HS256 secret
@@ -46,9 +54,12 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
       console.error('[auth] JWT fallback: no Prisma user for id:', userId, 'email:', payload.email)
       throw new Error('User not found in database')
     }
+    if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
+      throw new Error('Access denied. Password change required.')
+    }
     return dbUser as AuthUser
   } catch (jwtErr) {
-    if (jwtErr instanceof Error && jwtErr.message === 'User not found in database') throw jwtErr
+    if (jwtErr instanceof Error && (jwtErr.message === 'User not found in database' || jwtErr.message === 'Access denied. Password change required.')) throw jwtErr
     console.error('[auth] JWT verification failed:', jwtErr)
     throw new Error('Invalid or expired token')
   }

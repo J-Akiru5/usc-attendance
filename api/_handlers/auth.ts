@@ -13,7 +13,7 @@ export async function me(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const user = await authenticate(req)
+    const user = await authenticate(req, { allowMustChangePassword: true })
     return res.status(200).json(user)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unauthorized'
@@ -153,7 +153,7 @@ export async function changePassword(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const authUser = await authenticate(req)
+    const authUser = await authenticate(req, { allowMustChangePassword: true })
     const { newPassword } = req.body
 
     if (!newPassword || typeof newPassword !== 'string') {
