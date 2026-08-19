@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { randomBytes } from 'crypto'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -11,27 +12,16 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'password123'
-
-const OFFICER_PASSWORDS: Record<string, string> = {
-  'admin@usc.edu.ph': adminPassword,
-  'staff@usc.edu.ph': 'password123',
-  'officer@usc.edu.ph': 'password123',
-  'jdemonteverde@isufst.edu.ph': 'USC2026!EGKJ3G',
-  'kbicodo@isufst.edu.ph':      'USC2026!hwLRTq',
-  'ndanugrao@isufst.edu.ph':    'USC2026!EJLFDZ',
-  'ddaguro@isufst.edu.ph':      'USC2026!VcKuMB',
-  'lparcia@isufst.edu.ph':      'USC2026!Jkcbru',
-  'raquino@isufst.edu.ph':      'USC2026!feSSKx',
-  'cmanderico@isufst.edu.ph':   'USC2026!NYwzMM',
-  'ndeang@isufst.edu.ph':       'USC2026!FgAkpM',
-  'jnatalio@isufst.edu.ph':     'USC2026!nmBMAS',
-  'jbalinas@isufst.edu.ph':     'USC2026!qU4D2N',
-  'jmartinez@isufst.edu.ph':    'USC2026!atwgVf',
-  'aperisme@isufst.edu.ph':     'USC2026!qXJWSD',
-  'ralmirante@isufst.edu.ph':   'USC2026!QVj3be',
-  'jfrial@isufst.edu.ph':       'USC2026!xUcMMf',
+/** Generate a cryptographically random password (16 bytes → 22-char base64url). */
+function generatePassword(): string {
+  return randomBytes(16).toString('base64url')
 }
+
+const adminPassword = process.env.SEED_ADMIN_PASSWORD || (() => {
+  const generated = generatePassword()
+  console.log(`\n⚠  SEED_ADMIN_PASSWORD not set — generated admin password:\n   ${generated}\n`)
+  return generated
+})()
 
 const officers = [
   { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
@@ -67,11 +57,12 @@ async function main() {
   }
 
   for (const u of officers) {
-    const tempPassword = OFFICER_PASSWORDS[u.email]
-    if (!tempPassword) {
-      console.error(`  ✗ No password defined for ${u.email} — skipping`)
-      continue
-    }
+    // Generate a fresh random password for every user each time the seed runs.
+    // The admin user (first in the list) uses SEED_ADMIN_PASSWORD if set;
+    // all others get a runtime-generated random password.
+    const tempPassword = u.email === 'admin@usc.edu.ph'
+      ? adminPassword
+      : generatePassword()
 
     // 1. Resolve Supabase Auth user (reuse cached list)
     const existingAuthUser = authList.users.find(user => user.email === u.email)
@@ -105,8 +96,10 @@ async function main() {
 
       authUserId = createData.user.id
       status = 'created'
-      credentials.push({ name: u.name, email: u.email, password: tempPassword, position: u.position })
     }
+
+    // Always push credentials so the table shows every rotated password
+    credentials.push({ name: u.name, email: u.email, password: tempPassword, position: u.position })
 
     // 2. Upsert Prisma user by EMAIL — repair ID if mismatched
     const existingDbUser = await prisma.user.findUnique({
@@ -200,9 +193,7 @@ async function main() {
       console.log(c.name.padEnd(30) + c.email.padEnd(35) + c.password)
     }
     console.log('-'.repeat(70))
-    console.log(`\nTotal new accounts: ${credentials.length}`)
-  } else {
-    console.log('\nAll officers already have accounts. No new credentials generated.')
+    console.log(`\nTotal accounts: ${credentials.length}`)
   }
 
   if (failedUpdates.length > 0) {
