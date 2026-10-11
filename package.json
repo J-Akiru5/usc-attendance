@@ -7,6 +7,7 @@
     "dev:full": "vercel dev",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
@@ -52,6 +53,7 @@
     "vercel": "^57.0.0",
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^0.21.0",
+    "vitest": "^5.0.3",
     "vue-tsc": "^2.0.0"
   }
 }

@@ -2,6 +2,7 @@ import type { VercelRequest } from '@vercel/node'
 import { jwtVerify } from 'jose'
 import { supabaseAdmin } from './supabase.js'
 import { prisma } from './prisma.js'
+import { HttpError } from './http.js'
 
 export interface AuthUser {
   id: string
@@ -18,7 +19,7 @@ export async function authenticate(
 ): Promise<AuthUser> {
   const authHeader = req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
-    throw new Error('Missing or invalid authorization header')
+    throw new HttpError(401, 'Missing or invalid authorization header')
   }
 
   const token = authHeader.slice(7)
@@ -28,10 +29,10 @@ export async function authenticate(
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) {
       console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
-      throw new Error('User not found in database')
+      throw new HttpError(401, 'User not found in database')
     }
     if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
-      throw new Error('Access denied. Password change required.')
+      throw new HttpError(403, 'Access denied. Password change required.')
     }
     return dbUser as AuthUser
   }
@@ -41,33 +42,33 @@ export async function authenticate(
   const jwtSecret = process.env.SUPABASE_JWT_SECRET
   if (!jwtSecret) {
     console.error('[auth] No SUPABASE_JWT_SECRET set — cannot verify token')
-    throw new Error('Invalid or expired token')
+    throw new HttpError(401, 'Invalid or expired token')
   }
 
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret))
     const userId = payload.sub
-    if (!userId) throw new Error('Token has no sub claim')
+    if (!userId) throw new HttpError(401, 'Token has no sub claim')
 
     const dbUser = await prisma.user.findUnique({ where: { id: userId } })
     if (!dbUser) {
       console.error('[auth] JWT fallback: no Prisma user for id:', userId, 'email:', payload.email)
-      throw new Error('User not found in database')
+      throw new HttpError(401, 'User not found in database')
     }
     if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
-      throw new Error('Access denied. Password change required.')
+      throw new HttpError(403, 'Access denied. Password change required.')
     }
     return dbUser as AuthUser
   } catch (jwtErr) {
-    if (jwtErr instanceof Error && (jwtErr.message === 'User not found in database' || jwtErr.message === 'Access denied. Password change required.')) throw jwtErr
+    if (jwtErr instanceof HttpError) throw jwtErr
     console.error('[auth] JWT verification failed:', jwtErr)
-    throw new Error('Invalid or expired token')
+    throw new HttpError(401, 'Invalid or expired token')
   }
 }
 
 export function requireRole(user: AuthUser, ...roles: string[]) {
   if (!roles.includes(user.role)) {
-    throw new Error(`Access denied. Required role: ${roles.join(' or ')}`)
+    throw new HttpError(403, `Access denied. Required role: ${roles.join(' or ')}`)
   }
 }
 
@@ -81,6 +82,6 @@ export function requireSuperAdmin(user: AuthUser) {
 
 export function requireContentAccess(user: AuthUser) {
   if (user.role !== 'super_admin' && !user.canManageContent) {
-    throw new Error('Access denied. Content management permission required.')
+    throw new HttpError(403, 'Access denied. Content management permission required.')
   }
 }

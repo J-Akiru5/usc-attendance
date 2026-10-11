@@ -47,15 +47,13 @@ export const useDutyStore = defineStore('duties', () => {
       userId,
       lat,
       lng,
-      recordedBy: userId,
       dutyDate: new Date().toISOString(),
     })
   }
 
-  async function manualDutyCheckIn(userId: string, recordedBy: string) {
+  async function manualDutyCheckIn(userId: string) {
     return api.post<Attendance>('/attendance/duty', {
       userId,
-      recordedBy,
       dutyDate: new Date().toISOString(),
     })
   }

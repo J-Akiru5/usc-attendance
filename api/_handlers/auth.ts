@@ -3,66 +3,55 @@ import { prisma } from '../_lib/prisma.js'
 import { supabaseAdmin } from '../_lib/supabase.js'
 import { resend } from '../_lib/resend.js'
 import { authenticate, requireStaff, requireSuperAdmin } from '../_lib/auth.js'
+import { badRequest, handle, HttpError } from '../_lib/http.js'
 
 // ---------------------------------------------------------------------------
 // GET /api/auth/me
 // ---------------------------------------------------------------------------
-export async function me(req: VercelRequest, res: VercelResponse) {
+export const me = handle(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  try {
-    const user = await authenticate(req, { allowMustChangePassword: true })
-    return res.status(200).json(user)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unauthorized'
-    const status = message.includes('Access denied') ? 403 : 401
-    return res.status(status).json({ error: message })
-  }
-}
+  const user = await authenticate(req, { allowMustChangePassword: true })
+  return res.status(200).json(user)
+})
 
 // ---------------------------------------------------------------------------
 // GET/PUT /api/auth/users  (also handles PUT /api/auth/profile alias)
 // ---------------------------------------------------------------------------
-export async function users(req: VercelRequest, res: VercelResponse) {
-  try {
-    const user = await authenticate(req)
+export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
+  const user = await authenticate(req)
 
-    if (req.method === 'GET') {
-      requireStaff(user)
+  if (req.method === 'GET') {
+    requireStaff(user)
 
-      const allUsers = await prisma.user.findMany({
-        where: { active: true },
-        select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
-        orderBy: { name: 'asc' },
-      })
+    const allUsers = await prisma.user.findMany({
+      where: { active: true },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
+      orderBy: { name: 'asc' },
+    })
 
-      return res.status(200).json(allUsers)
-    }
-
-    if (req.method === 'PUT') {
-      const { name, position } = req.body
-
-      if (!name || !position) {
-        return res.status(400).json({ error: 'Name and position are required' })
-      }
-
-      const updatedUser = await prisma.user.update({
-        where: { id: user.id },
-        data: { name, position },
-      })
-
-      return res.status(200).json({ user: updatedUser })
-    }
-
-    return res.status(405).json({ error: 'Method not allowed' })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
+    return res.status(200).json(allUsers)
   }
-}
+
+  if (req.method === 'PUT') {
+    const { name, position } = req.body
+
+    if (!name || !position) {
+      throw badRequest('Name and position are required')
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { name, position },
+    })
+
+    return res.status(200).json({ user: updatedUser })
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' })
+})
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/password-reset
@@ -147,76 +136,64 @@ export async function requestPasswordReset(req: VercelRequest, res: VercelRespon
 // ---------------------------------------------------------------------------
 // POST /api/auth/change-password
 // ---------------------------------------------------------------------------
-export async function changePassword(req: VercelRequest, res: VercelResponse) {
+export const changePassword = handle(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  try {
-    const authUser = await authenticate(req, { allowMustChangePassword: true })
-    const { newPassword } = req.body
+  const authUser = await authenticate(req, { allowMustChangePassword: true })
+  const { newPassword } = req.body
 
-    if (!newPassword || typeof newPassword !== 'string') {
-      return res.status(400).json({ error: 'newPassword is required' })
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' })
-    }
-
-    // Update the password in Supabase Auth
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      authUser.id,
-      { password: newPassword }
-    )
-
-    if (updateError) {
-      console.error('[change-password] Supabase update failed:', updateError.message)
-      return res.status(500).json({ error: 'Failed to update password' })
-    }
-
-    // Clear mustChangePassword flag in Prisma
-    await prisma.user.update({
-      where: { id: authUser.id },
-      data: { mustChangePassword: false },
-    })
-
-    return res.status(200).json({ success: true })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : message.includes('Unauthorized') ? 401 : 500
-    return res.status(status).json({ error: message })
+  if (!newPassword || typeof newPassword !== 'string') {
+    throw badRequest('newPassword is required')
   }
-}
+
+  if (newPassword.length < 8) {
+    throw badRequest('Password must be at least 8 characters')
+  }
+
+  // Update the password in Supabase Auth
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+    authUser.id,
+    { password: newPassword }
+  )
+
+  if (updateError) {
+    console.error('[change-password] Supabase update failed:', updateError.message)
+    throw new HttpError(500, 'Failed to update password')
+  }
+
+  // Clear mustChangePassword flag in Prisma
+  await prisma.user.update({
+    where: { id: authUser.id },
+    data: { mustChangePassword: false },
+  })
+
+  return res.status(200).json({ success: true })
+})
 
 // ---------------------------------------------------------------------------
 // PATCH /api/auth/users/:id
 // ---------------------------------------------------------------------------
-export async function userById(req: VercelRequest, res: VercelResponse, id: string) {
-  try {
-    const user = await authenticate(req)
+export const userById = handle(async (req: VercelRequest, res: VercelResponse, id: string) => {
+  const user = await authenticate(req)
 
-    if (req.method === 'PATCH') {
-      requireSuperAdmin(user)
+  if (req.method === 'PATCH') {
+    requireSuperAdmin(user)
 
-      const { canManageContent } = req.body
-      if (typeof canManageContent !== 'boolean') {
-        return res.status(400).json({ error: 'canManageContent (boolean) is required' })
-      }
-
-      const updated = await prisma.user.update({
-        where: { id },
-        data: { canManageContent },
-        select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
-      })
-
-      return res.status(200).json(updated)
+    const { canManageContent } = req.body
+    if (typeof canManageContent !== 'boolean') {
+      throw badRequest('canManageContent (boolean) is required')
     }
 
-    return res.status(405).json({ error: 'Method not allowed' })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { canManageContent },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
+    })
+
+    return res.status(200).json(updated)
   }
-}
+
+  return res.status(405).json({ error: 'Method not allowed' })
+})

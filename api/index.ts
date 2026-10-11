@@ -20,6 +20,7 @@ import * as photos from './_handlers/photos.js'
  *   /api/attendance/export   → attendance.exportCsv
  *   /api/attendance/checkout → attendance.checkout
  *   /api/attendance/duty     → attendance.duty
+ *   /api/attendance/qr-token → attendance.qrToken
  *   /api/attendance/qr       → attendance.qr
  *   /api/attendance          → attendance.index
  *   /api/auth/me             → auth.me
@@ -58,6 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (rawPath === '/api/attendance/export') return attendance.exportCsv(req, res)
   if (rawPath === '/api/attendance/checkout') return attendance.checkout(req, res)
   if (rawPath === '/api/attendance/duty') return attendance.duty(req, res)
+  if (rawPath === '/api/attendance/qr-token') return attendance.qrToken(req, res)
   if (rawPath === '/api/attendance/qr') return attendance.qr(req, res)
   if (rawPath === '/api/attendance') return attendance.index(req, res)
 

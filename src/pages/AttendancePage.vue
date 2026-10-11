@@ -64,7 +64,7 @@ async function exportCSV() {
 async function handleManualOverride() {
   if (!manualUserId.value || !auth.user) return
   try {
-    await events.manualCheckIn(eventId.value, manualUserId.value, auth.user.id)
+    await events.manualCheckIn(eventId.value, manualUserId.value)
     await events.fetchAttendance(eventId.value)
     manualUserId.value = ''
     showManualOverride.value = false

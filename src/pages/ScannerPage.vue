@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
-import type { QRToken } from '@/types'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
@@ -22,15 +21,8 @@ async function handleScan(decodedText: string) {
   result.value = null
 
   try {
-    const token: QRToken = JSON.parse(decodedText)
-
     const response = await api.post('/attendance/qr', {
-      userId: token.userId,
-      eventId: token.eventId,
-      issuedAt: token.issuedAt,
-      exp: token.exp,
-      sig: token.sig,
-      recordedBy: auth.user.id,
+      token: decodedText.trim(),
     })
 
     result.value = { success: true, message: `Check-in recorded for ${(response as any).user?.name || 'officer'}` }

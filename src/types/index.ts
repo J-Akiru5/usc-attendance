@@ -70,11 +70,3 @@ export interface OfficeDuty {
   active: boolean
   user?: User
 }
-
-export interface QRToken {
-  userId: string
-  eventId: string
-  issuedAt: number
-  exp: number
-  sig: string
-}
