@@ -70,8 +70,8 @@
 
     <div class="grid" style="margin-top:22px">
       <div class="stat"><b>3</b><span>phases built, 3 branches pushed</span></div>
-      <div class="stat"><b>74</b><span>unit tests passing</span></div>
-      <div class="stat"><b>63</b><span>live end-to-end checks passing (23 + 10 + 30)</span></div>
+      <div class="stat"><b>79</b><span>unit tests passing</span></div>
+      <div class="stat"><b>77</b><span>live end-to-end checks passing (26 + 10 + 41)</span></div>
       <div class="stat"><b>0</b><span>test rows left in the live database</span></div>
     </div>
   </div>
@@ -87,23 +87,24 @@
           <li>President (Jared) and Secretary (Nikki) can give another officer <strong>temporary, per-event access</strong> (scan, record, view list, export). It expires at event-day end and can be revoked instantly.</li>
           <li>Attendance exports as <strong>PDF, Excel and CSV</strong>, each with an <strong>E-Signature column</strong>.</li>
           <li>Students <strong>register themselves</strong> (school email + student ID + email verification), show a rotating QR, an officer scans it, and the student <strong>signs on their phone</strong>.</li>
+          <li>The scanning officer's phone must be <strong>at the venue</strong>; a scan from elsewhere is refused. A super admin can <strong>correct or deactivate</strong> a student.</li>
         </ul>
       </div>
       <div class="card">
         <h3><span class="tag t-warn">YOUR CALL</span>What needs you</h3>
         <ul>
           <li>Review and merge the branches (order below), then let Vercel deploy.</li>
-          <li>Confirm <code>RESEND_API_KEY</code>, <code>RESEND_FROM_EMAIL</code>, <code>SITE_URL</code> and <code>QR_SECRET</code> are set in Vercel.</li>
-          <li>Confirm the Supabase redirect allow-list includes <code>/reset-password</code>.</li>
-          <li>Update the Data Privacy page for location + signatures before students sign up.</li>
+          <li>Confirm the Supabase redirect allow-list includes <code>https://usc.syntaxure.dev/reset-password</code>.</li>
+          <li>Confirm Resend can deliver to <code>@isufst.edu.ph</code>, then do one real sign-up.</li>
+          <li>Decide how long signatures and location data are kept, and add it to the Data Privacy page.</li>
         </ul>
       </div>
       <div class="card">
         <h3><span class="tag t-bad">NOT BUILT</span>Honest gaps</h3>
         <ul>
-          <li>The <strong>officer-device GPS check</strong> is not built: the QR scan does not verify the officer is at the venue.</li>
           <li>The real <strong>email-link click</strong> was simulated, not tested with a real inbox.</li>
-          <li>No admin screen to fix or deactivate a student; no signature retention rule yet.</li>
+          <li>No <strong>retention period</strong> for signatures yet (your decision).</li>
+          <li>No event <strong>check-in window</strong>; the delegate panel is staff-only.</li>
         </ul>
       </div>
     </div>
@@ -140,6 +141,16 @@
       <p>One report model feeds all three formats, so the columns are identical everywhere: No., Name, Position, Time In, Time Out, Method, Recorded By, Location, E-Signature. Times are in Philippine time. PDF and Excel embed the signature image; CSV can only hold text, so it carries the <code>SIG-XXXXXXXXXX</code> reference. Every text cell is protected against spreadsheet formula injection (a name starting with <code>=</code> cannot run as a formula). The PDF uses a pure-JavaScript library with no font files, so it runs on Vercel without extra setup, and it paginates large lists.</p>
     </div>
 
+    <h3>Follow-up fixes made after the first report <span class="tag t-ok">tested live</span></h3>
+    <div class="prose">
+      <ul>
+        <li><strong>Wrong site address.</strong> The code defaulted to <code>uscattendance.syntaxure.dev</code>, which returns 404; the live site is <code>usc.syntaxure.dev</code>. Password-reset and verification links would have led to a dead page. I added <code>SITE_URL=https://usc.syntaxure.dev</code> in Vercel Production and corrected the default in code.</li>
+        <li><strong>Scanner must be at the venue.</strong> A QR scan (or a delegate's manual entry) now needs the scanner's coordinates and is refused outside the event radius, widened by the phone's reported GPS accuracy (capped at 100 m). The scanner's position is saved and shows in the export's Location column. Staff manual overrides stay exempt.</li>
+        <li><strong>Student administration.</strong> Super admins get a Students page to search, correct a name, student ID or program, and deactivate or reactivate an account. Deactivation locks the student out immediately.</li>
+        <li><strong>Privacy page.</strong> Now describes student accounts, the officer location check and signatures.</li>
+      </ul>
+    </div>
+
     <h3>Phase 3 — Students and signatures <span class="tag t-ok">tested live</span></h3>
     <div class="prose">
       <p>Registration accepts only <code>@isufst.edu.ph</code> addresses and answers identically whether or not the email or student ID already exists, so it cannot be used to find out who has an account. It is rate-limited per IP and per email. No password is taken at sign-up: the student sets it after clicking the emailed link. This closes a real hole I found while testing, where someone could pre-register a classmate's email with a password they knew and wait for the classmate to verify it.</p>
@@ -153,16 +164,16 @@
     <h2>Proof it works</h2>
     <p class="prose">Unit tests cover the rules in isolation. The three live scripts run the real handlers against the real database using throwaway users and a throwaway event, then delete everything and confirm nothing is left. The mail sender is stubbed in the student test, so no real email was sent.</p>
     <div class="bar">
-      <div style="width:23%;background:#1f3157">Delegation 23</div>
-      <div style="width:10%;background:#6b5a2a">Export 10</div>
-      <div style="width:30%;background:#1f8a4c">Students 30</div>
+      <div style="width:34%;background:#1f3157">Delegation 26</div>
+      <div style="width:13%;background:#6b5a2a">Export 10</div>
+      <div style="width:53%;background:#1f8a4c">Students 41</div>
     </div>
     <div class="tablewrap"><table>
       <thead><tr><th>Area</th><th>What was exercised</th></tr></thead>
       <tbody>
-        <tr><td>Delegation (23)</td><td>Non-delegators blocked, no self-grant, bad scopes rejected, scan/manual/roster/export each gated by their own permission, widening a grant, one live grant per officer, revoke is immediate, expiry blocks, audit rows written.</td></tr>
+        <tr><td>Delegation (26)</td><td>Scan without location, from far away, and delegated manual entry without location are refused. Non-delegators blocked, no self-grant, bad scopes rejected, scan/manual/roster/export each gated by their own permission, widening a grant, one live grant per officer, revoke is immediate, expiry blocks, audit rows written.</td></tr>
         <tr><td>Exports (10)</td><td>CSV/Excel/PDF produced from real rows; correct content types and safe filenames; formula text neutralised; unknown format 400; no-permission 403; missing event 404.</td></tr>
-        <tr><td>Students (30)</td><td>Domain and consent rules, generic answers, retry replaces an unverified sign-up, verified accounts can't be overwritten, email rate limit, unverified refused, student restrictions, QR scan by officer, blank/non-PNG/foreign signatures rejected, double-sign 409, signature appears in CSV, Excel and PDF, deactivated officer refused.</td></tr>
+        <tr><td>Students (41)</td><td>Super admin can search, correct, deactivate and reactivate students; duplicate IDs and invalid names refused; non-admins blocked. Domain and consent rules, generic answers, retry replaces an unverified sign-up, verified accounts can't be overwritten, email rate limit, unverified refused, student restrictions, QR scan by officer, blank/non-PNG/foreign signatures rejected, double-sign 409, signature appears in CSV, Excel and PDF, deactivated officer refused.</td></tr>
         <tr><td>Browser</td><td>Sign-up page renders; the signature pad produced a valid 600×220 PNG (about 17 KB) that fits the server limits.</td></tr>
       </tbody>
     </table></div>
@@ -207,10 +218,10 @@
   <div class="wide">
     <h2>Risks and gaps, stated plainly</h2>
     <div class="cards">
-      <div class="card"><h3><span class="tag t-bad">GAP</span>Officer location is not checked</h3><p>You originally wanted GPS so people can't attend remotely. With officer-recorded check-in, the strongest check is the officer being at the venue, and I did not build it. Today a valid QR scan works from anywhere. This is the first thing I'd add next.</p></div>
+      <div class="card"><h3><span class="tag t-ok">FIXED</span>Officer location is now checked</h3><p>A scan from outside the venue is refused. Limits: the phone's GPS can be faked, and a student's own phone is deliberately not tracked. Staff manual overrides are exempt so an admin can always correct a record.</p></div>
       <div class="card"><h3><span class="tag t-warn">UNTESTED</span>Real email delivery</h3><p>The verification link was simulated through the Supabase admin API. Please do one real sign-up with a school email to confirm Resend delivers to <code>@isufst.edu.ph</code> and the link lands on the password page.</p></div>
-      <div class="card"><h3><span class="tag t-warn">GAP</span>Privacy and retention</h3><p>The Data Privacy page has not been updated for location checks and signatures, and signatures are kept indefinitely. Both should be settled before students are invited, and are worth raising with the President.</p></div>
-      <div class="card"><h3><span class="tag t-warn">GAP</span>No student admin screen</h3><p>Students cannot edit their own name, so a typo needs an officer with database access. A small "manage students" page (fix name or ID, deactivate) is the natural next piece.</p></div>
+      <div class="card"><h3><span class="tag t-warn">DECISION</span>Retention period</h3><p>The privacy page now covers signatures and location, but no retention period is stated, because that is the USC's policy to set. Worth raising with the President.</p></div>
+      <div class="card"><h3><span class="tag t-warn">LIMIT</span>Delegates cannot record manually from the UI</h3><p>The "manual override" button on the attendance list is staff-only, so an officer with a temporary grant can scan but would need the API for manual entry. Scanning is the main flow, so this is low priority.</p></div>
       <div class="card"><h3><span class="tag t-warn">LIMIT</span>No check-in time window</h3><p>A student's QR can be generated for any event and scanned at any time. An event open/close window would be a small addition.</p></div>
       <div class="card"><h3><span class="tag t-warn">LIMIT</span>Delegate with a "client" role</h3><p>The grant panel lives on the event page, which is staff-only. Jared (admin) and Nikki (staff) can use it; a future Secretary with the client role could not.</p></div>
     </div>
@@ -226,13 +237,13 @@
       <div class="tracker-pct" id="pct">0% complete</div>
       <ul class="tracker-list" id="list">
         <li><label><input type="checkbox"><span>Review the three branches on GitHub (or just <code>feat/students-signatures</code>, which contains them all)</span></label></li>
-        <li><label><input type="checkbox"><span>Vercel env vars set: <code>RESEND_API_KEY</code>, <code>RESEND_FROM_EMAIL</code>, <code>SITE_URL</code>, <code>QR_SECRET</code>, <code>VITE_QR_SECRET</code></span></label></li>
-        <li><label><input type="checkbox"><span>Supabase → Auth → URL configuration lists <code>https://uscattendance.syntaxure.dev/reset-password</code></span></label></li>
+        <li><label><input type="checkbox" checked><span>Vercel env vars: <code>RESEND_API_KEY</code>, <code>RESEND_FROM_EMAIL</code>, <code>QR_SECRET</code> and <code>SITE_URL</code> are set (<code>VITE_QR_SECRET</code> is no longer used)</span></label></li>
+        <li><label><input type="checkbox"><span>Supabase → Auth → URL configuration lists <code>https://usc.syntaxure.dev/reset-password</code></span></label></li>
         <li><label><input type="checkbox"><span>Resend sending domain verified and able to deliver to <code>@isufst.edu.ph</code></span></label></li>
         <li><label><input type="checkbox"><span>Merge, let Vercel deploy, then do one real student sign-up end to end</span></label></li>
         <li><label><input type="checkbox"><span>Check Jared and Nikki see the "Event access" panel on an event page</span></label></li>
-        <li><label><input type="checkbox"><span>Update the Data Privacy page (location + signatures) and decide a signature retention period</span></label></li>
-        <li><label><input type="checkbox"><span>Decide on the officer-location check and the event check-in window</span></label></li>
+        <li><label><input type="checkbox"><span>Decide a retention period for signatures and location data and add it to the Data Privacy page</span></label></li>
+        <li><label><input type="checkbox"><span>Decide whether you want an event check-in window (open/close times)</span></label></li>
         <li><label><input type="checkbox"><span>Pilot at one real event with a small group before opening to everyone</span></label></li>
       </ul>
     </div>
@@ -254,7 +265,7 @@
     document.getElementById('pct').textContent=pct+'% complete';
   }
   boxes.forEach(function(b,i){
-    b.checked=!!saved[i];
+    b.checked=(i in saved)?!!saved[i]:b.defaultChecked;
     b.addEventListener('change',function(){
       var s={};try{s=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
       s[i]=b.checked;
