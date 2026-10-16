@@ -34,21 +34,24 @@ function getAdminPassword(): string {
   return generated
 }
 
+// 2026 roster (USC org chart). Senate Press is currently vacant.
+// Access flags (canDelegate for President/VP/Secretary, canConfigure for the Officer in Charge)
+// are set in Manage Users and are not touched by this script.
 const officers = [
   { email: 'admin@usc.edu.ph', name: 'USC Admin', position: 'System Administrator', role: 'super_admin' },
   { email: 'staff@usc.edu.ph', name: 'USC Staff Officer', position: 'Officer on Duty', role: 'staff' },
   { email: 'officer@usc.edu.ph', name: 'USC Student Officer', position: 'USC Officer', role: 'client' },
   { email: 'jdemonteverde@isufst.edu.ph', name: 'Jared S. Demonteverde', position: 'President', role: 'super_admin' },
-  { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'staff' },
+  { email: 'kbicodo@isufst.edu.ph', name: 'Katherine Anne B. Bicodo', position: 'Vice President', role: 'super_admin' },
   { email: 'ndanugrao@isufst.edu.ph', name: 'Nikki Loraine B. Danugrao', position: 'Secretary', role: 'staff' },
-  { email: 'ddaguro@isufst.edu.ph', name: 'Dein Andrey D. Daguro', position: 'Senate Press', role: 'staff' },
+  { email: 'ddaguro@isufst.edu.ph', name: 'Dein Andrey D. Daguro', position: 'Senate President', role: 'staff' },
   { email: 'lparcia@isufst.edu.ph', name: 'Lianne B. Parcia', position: 'Auditor', role: 'staff' },
   { email: 'raquino@isufst.edu.ph', name: 'Rena Grace B. Aquiño', position: 'Spokesperson', role: 'staff' },
-  { email: 'cmanderico@isufst.edu.ph', name: 'Chene D. Manderico', position: 'Senator', role: 'client' },
+  { email: 'cmanderico@isufst.edu.ph', name: 'Chene D. Manderico', position: 'Treasurer', role: 'staff' },
   { email: 'ndeang@isufst.edu.ph', name: 'Nezie Ann A. Deang', position: 'Senator', role: 'client' },
   { email: 'jnatalio@isufst.edu.ph', name: 'John David A. Natalio', position: 'Senator', role: 'client' },
   { email: 'jbalinas@isufst.edu.ph', name: 'John Emiel P. Balinas', position: 'Senator', role: 'client' },
-  { email: 'jmartinez@isufst.edu.ph', name: 'Jeff Edrick C. Martinez', position: 'Senator', role: 'client' },
+  { email: 'jmartinez@isufst.edu.ph', name: 'Jeff Edrick C. Martinez', position: 'Officer in Charge', role: 'staff' },
   { email: 'aperisme@isufst.edu.ph', name: 'Andro Renz D. Perisme', position: 'Senator', role: 'client' },
   { email: 'ralmirante@isufst.edu.ph', name: 'Reynald S. Almirante', position: 'Senator', role: 'client' },
   { email: 'jfrial@isufst.edu.ph', name: 'Jona Ross P. Frial', position: 'Senator', role: 'client' },
