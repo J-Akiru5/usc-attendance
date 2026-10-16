@@ -93,7 +93,7 @@ async function main() {
   check('scan-only delegate cannot record manually (403)', r._s === 403, `${r._s}`)
   r = res(); await A.index(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
   check('scan-only delegate cannot view roster (403)', r._s === 403, `${r._s}`)
-  r = res(); await A.exportCsv(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
+  r = res(); await A.exportAttendance(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
   check('scan-only delegate cannot export (403)', r._s === 403, `${r._s}`)
   r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(delegate) }), r)
   check('delegate cannot scan their own QR (403)', r._s === 403, `${r._s}`)
@@ -109,7 +109,7 @@ async function main() {
   check('cannot manually record yourself (403)', r._s === 403, `${r._s}`)
   r = res(); await A.index(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
   check('view_roster works (200, 2 records)', r._s === 200 && r._b.length === 2, `${r._s} ${JSON.stringify(r._b)?.slice(0, 120)}`)
-  r = res(); await A.exportCsv(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
+  r = res(); await A.exportAttendance(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
   check('export works (200, csv)', r._s === 200 && String(r._b).includes('Name,Position'), `${r._s}`)
 
   console.log('\n--- my grants ---')

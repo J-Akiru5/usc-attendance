@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDelegationStore } from '@/stores/delegations'
-import { supabase } from '@/lib/api'
+import { downloadAttendance, type ExportFormat } from '@/lib/download'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Button from '@/components/ui/Button.vue'
@@ -22,22 +22,10 @@ onMounted(async () => {
 
 const has = (g: EventDelegate, scope: DelegationScope) => g.scopes.includes(scope)
 
-async function exportCsv(g: EventDelegate) {
+async function exportAs(g: EventDelegate, format: ExportFormat) {
   error.value = ''
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const res = await fetch(`/api/attendance/export?eventId=${encodeURIComponent(g.eventId)}`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
-    })
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Export failed')
-    const url = URL.createObjectURL(await res.blob())
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${g.event?.title || 'attendance'}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    await downloadAttendance(g.eventId, format, g.event?.title)
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : 'Export failed'
   }
@@ -77,7 +65,11 @@ function until(iso: string) {
             >
               Attendance list
             </Button>
-            <Button v-if="has(g, 'export')" variant="outline" @click="exportCsv(g)">Export CSV</Button>
+            <template v-if="has(g, 'export')">
+              <Button variant="outline" @click="exportAs(g, 'pdf')">PDF</Button>
+              <Button variant="outline" @click="exportAs(g, 'xlsx')">Excel</Button>
+              <Button variant="outline" @click="exportAs(g, 'csv')">CSV</Button>
+            </template>
           </div>
         </CardContent>
       </Card>

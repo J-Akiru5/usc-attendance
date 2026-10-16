@@ -3,6 +3,7 @@ import { onMounted, computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEventStore } from '@/stores/events'
 import { useAuthStore } from '@/stores/auth'
+import { downloadAttendance, type ExportFormat } from '@/lib/download'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
@@ -46,19 +47,12 @@ function formatTime(dateStr: string) {
   })
 }
 
-async function exportCSV() {
-  const { supabase } = await import('@/lib/api')
-  const { data: { session } } = await supabase.auth.getSession()
-  const res = await fetch(`/api/attendance/export?eventId=${eventId.value}`, {
-    headers: { Authorization: `Bearer ${session?.access_token}` },
-  })
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${events.currentEvent?.title || 'attendance'}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+async function exportAs(format: ExportFormat) {
+  try {
+    await downloadAttendance(eventId.value, format, events.currentEvent?.title)
+  } catch (err: unknown) {
+    alert(err instanceof Error ? err.message : 'Export failed')
+  }
 }
 
 async function handleManualOverride() {
@@ -109,7 +103,9 @@ function methodLabel(method: string) {
           <p class="text-sm text-slate">{{ events.currentEvent.title }}</p>
         </div>
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" @click="exportCSV">Export CSV</Button>
+          <Button variant="outline" size="sm" @click="exportAs('pdf')">PDF</Button>
+          <Button variant="outline" size="sm" @click="exportAs('xlsx')">Excel</Button>
+          <Button variant="outline" size="sm" @click="exportAs('csv')">CSV</Button>
           <Button v-if="auth.isStaff" variant="gold" size="sm" @click="showManualOverride = !showManualOverride">
             {{ showManualOverride ? 'Cancel' : 'Manual Override' }}
           </Button>

@@ -15,6 +15,7 @@ import {
 } from '../_lib/attendance-rules.js'
 import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
 import { issueQrToken, verifyQrToken } from '../_lib/qr.js'
+import { buildReport, fileStem, formatManila, parseFormat, type ReportModel } from '../_lib/report.js'
 import { manilaDayRange, manilaDow, manilaHHMM } from '../_lib/time.js'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
@@ -368,9 +369,9 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
 })
 
 // ---------------------------------------------------------------------------
-// GET /api/attendance/export
+// GET /api/attendance/export?eventId=&format=csv|xlsx|pdf   (default csv)
 // ---------------------------------------------------------------------------
-export const exportCsv = handle(async (req: VercelRequest, res: VercelResponse) => {
+export const exportAttendance = handle(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -392,6 +393,11 @@ export const exportCsv = handle(async (req: VercelRequest, res: VercelResponse) 
     await auditDelegationUse(prisma, user, eventId, 'export')
   }
 
+  const format = parseFormat(req.query.format)
+  if (!format) {
+    throw badRequest('format must be one of: csv, xlsx, pdf')
+  }
+
   const records = await prisma.attendance.findMany({
     where: { eventId },
     include: {
@@ -401,31 +407,34 @@ export const exportCsv = handle(async (req: VercelRequest, res: VercelResponse) 
     orderBy: { createdAt: 'asc' },
   })
 
-  const header = 'Name,Position,Method,Latitude,Longitude,Recorded By,Checked In At,Checked Out At\n'
-  const rows = records
-    .map((r: { user: { name: string; position: string }; method: string; lat: number | null; lng: number | null; recorder: { name: string }; createdAt: Date; checkOutAt: Date | null }) =>
-      [
-        `"${r.user.name}"`,
-        `"${r.user.position}"`,
-        r.method,
-        r.lat ?? '',
-        r.lng ?? '',
-        `"${r.recorder.name}"`,
-        r.createdAt.toISOString(),
-        r.checkOutAt ? r.checkOutAt.toISOString() : '',
-      ].join(',')
-    )
-    .join('\n')
+  const METHOD_LABEL: Record<string, string> = { self: 'Self', qr: 'QR', manual: 'Manual' }
+  const model: ReportModel = {
+    title: event.title,
+    eventDate: formatManila(event.date).slice(0, 10),
+    venue: `${event.lat.toFixed(5)}, ${event.lng.toFixed(5)} (${event.radiusMeters} m radius)`,
+    generatedAt: formatManila(new Date()),
+    generatedBy: user.name,
+    rows: records.map((r, i) => ({
+      no: i + 1,
+      name: r.user.name,
+      position: r.user.position,
+      timeIn: formatManila(r.createdAt),
+      timeOut: r.checkOutAt ? formatManila(r.checkOutAt) : '',
+      method: METHOD_LABEL[r.method] ?? r.method,
+      recordedBy: r.recorder.name,
+      location: r.lat != null && r.lng != null ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}` : '',
+      signatureRef: null,
+      signaturePng: null,
+    })),
+  }
 
-  const csv = header + rows
+  const report = await buildReport(model, format)
 
-  res.setHeader('Content-Type', 'text/csv')
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="${event.title.replace(/[^a-zA-Z0-9 ]/g, '')}-attendance.csv"`
-  )
+  res.setHeader('Content-Type', report.contentType)
+  res.setHeader('Content-Disposition', `attachment; filename="${fileStem(event.title)}.${report.extension}"`)
+  res.setHeader('Cache-Control', 'no-store')
 
-  return res.status(200).send(csv)
+  return res.status(200).send(report.body)
 })
 
 // ---------------------------------------------------------------------------

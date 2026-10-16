@@ -18,7 +18,7 @@ import * as photos from './_handlers/photos.js'
  * within the Hobby plan's 12-function limit.
  *
  * Route table (most-specific first to avoid false matches):
- *   /api/attendance/export   → attendance.exportCsv
+ *   /api/attendance/export   → attendance.exportAttendance
  *   /api/attendance/checkout → attendance.checkout
  *   /api/attendance/duty     → attendance.duty
  *   /api/attendance/qr-token → attendance.qrToken
@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ---------------------------------------------------------------------------
   // Attendance routes (most specific first)
   // ---------------------------------------------------------------------------
-  if (rawPath === '/api/attendance/export') return attendance.exportCsv(req, res)
+  if (rawPath === '/api/attendance/export') return attendance.exportAttendance(req, res)
   if (rawPath === '/api/attendance/checkout') return attendance.checkout(req, res)
   if (rawPath === '/api/attendance/duty') return attendance.duty(req, res)
   if (rawPath === '/api/attendance/qr-token') return attendance.qrToken(req, res)
