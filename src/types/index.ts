@@ -10,6 +10,7 @@ export interface User {
   position: string
   role: Role
   canManageContent?: boolean
+  canDelegate?: boolean
   mustChangePassword?: boolean
   createdAt: string
 }
@@ -69,4 +70,20 @@ export interface OfficeDuty {
   endTime: string
   active: boolean
   user?: User
+}
+
+export type DelegationScope = 'scan' | 'manual_checkin' | 'view_roster' | 'export'
+
+export interface EventDelegate {
+  id: string
+  eventId: string
+  userId: string
+  scopes: DelegationScope[]
+  grantedBy: string
+  expiresAt: string
+  revokedAt: string | null
+  createdAt: string
+  user?: Pick<User, 'id' | 'name' | 'position'>
+  granter?: Pick<User, 'id' | 'name' | 'position'>
+  event?: Pick<USCEvent, 'id' | 'title' | 'date'>
 }

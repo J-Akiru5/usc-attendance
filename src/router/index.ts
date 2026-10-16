@@ -157,7 +157,7 @@ const router = createRouter({
       path: '/scan',
       name: 'scanner',
       component: () => import('@/pages/ScannerPage.vue'),
-      meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff'], allowDelegates: true },
     },
     {
       path: '/duty',
@@ -169,7 +169,7 @@ const router = createRouter({
       path: '/attendance/:eventId',
       name: 'attendance',
       component: () => import('@/pages/AttendancePage.vue'),
-      meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff'], allowDelegates: true },
     },
     {
       path: '/manage/schedules',
@@ -219,7 +219,9 @@ router.beforeEach(async (to) => {
 
   if (to.meta.roles && auth.user) {
     const allowed = to.meta.roles as string[]
-    if (!allowed.includes(auth.user.role)) {
+    // Pages flagged allowDelegates are open to any officer; the API decides
+    // per event whether they hold an active grant.
+    if (!allowed.includes(auth.user.role) && !to.meta.allowDelegates) {
       return { name: 'dashboard' }
     }
   }

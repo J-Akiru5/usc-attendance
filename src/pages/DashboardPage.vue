@@ -7,6 +7,7 @@ import { useDutyStore } from '@/stores/duties'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
+import MyEventAccess from '@/components/MyEventAccess.vue'
 import type { USCEvent } from '@/types'
 
 const auth = useAuthStore()
@@ -121,6 +122,8 @@ function formatTime(dateStr: string) {
         </Badge>
       </div>
     </div>
+
+    <MyEventAccess />
 
     <!-- Today's Events -->
     <div>

@@ -7,10 +7,13 @@ import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
 import LocationPicker from '@/components/ui/LocationPicker.vue'
+import EventAccessPanel from '@/components/EventAccessPanel.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const events = useEventStore()
+const auth = useAuthStore()
 
 const eventId = computed(() => route.params.id as string)
 
@@ -119,6 +122,12 @@ function methodBadgeVariant(method: string) {
           Full List
         </Button>
       </div>
+
+      <EventAccessPanel
+        v-if="auth.user?.canDelegate || auth.isSuperAdmin"
+        :event-id="eventId"
+        :can-grant="!!auth.user?.canDelegate"
+      />
 
       <!-- Attendance Summary -->
       <Card>
