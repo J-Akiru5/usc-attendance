@@ -14,6 +14,7 @@ const navItems = [
   { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Scan QR', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
   { label: 'Students', to: '/manage/students', icon: '🎓', roles: ['super_admin'] },
+  { label: 'Settings', to: '/manage/settings', icon: '⚙', roles: ['super_admin', 'staff', 'client'], managers: true },
   { label: 'Schedules', to: '/manage/schedules', icon: '📋', roles: ['super_admin'] },
 ]
 
@@ -37,7 +38,7 @@ function isActive(to: string) {
     <nav class="flex-1 p-4 space-y-1">
       <template v-for="item in navItems" :key="item.to">
         <button
-          v-if="item.roles.includes(auth.user?.role || '')"
+          v-if="item.roles.includes(auth.user?.role || '') && (!item.managers || auth.canManageSettings)"
           @click="router.push(item.to)"
           :class="cn(
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',

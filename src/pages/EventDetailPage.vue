@@ -9,6 +9,7 @@ import Badge from '@/components/ui/Badge.vue'
 import LocationPicker from '@/components/ui/LocationPicker.vue'
 import { downloadAttendance, type ExportFormat } from '@/lib/download'
 import EventAccessPanel from '@/components/EventAccessPanel.vue'
+import CheckInWindowPanel from '@/components/CheckInWindowPanel.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -132,6 +133,13 @@ function methodBadgeVariant(method: string) {
           Full List
         </Button>
       </div>
+
+      <CheckInWindowPanel
+        v-if="auth.canManageSettings"
+        :event-id="eventId"
+        :opens-at="events.currentEvent.checkInOpensAt"
+        :closes-at="events.currentEvent.checkInClosesAt"
+      />
 
       <EventAccessPanel
         v-if="auth.user?.canDelegate || auth.isSuperAdmin"

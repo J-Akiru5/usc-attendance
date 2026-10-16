@@ -12,6 +12,7 @@ export interface AuthUser {
   role: string
   canManageContent: boolean
   canDelegate: boolean
+  canConfigure: boolean
 }
 
 /**

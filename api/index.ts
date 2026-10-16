@@ -5,6 +5,7 @@ import * as auth from './_handlers/auth.js'
 import * as cms from './_handlers/cms.js'
 import * as contact from './_handlers/contact.js'
 import * as delegations from './_handlers/delegations.js'
+import * as settings from './_handlers/settings.js'
 import * as signatures from './_handlers/signatures.js'
 import * as studentAdmin from './_handlers/student-admin.js'
 import * as students from './_handlers/students.js'
@@ -29,6 +30,11 @@ import * as photos from './_handlers/photos.js'
  *   /api/attendance/qr-token → attendance.qrToken
  *   /api/attendance/qr       → attendance.qr
  *   /api/attendance          → attendance.index
+ *   /api/settings/retention  → settings.retention
+ *   /api/settings/purge-signatures → settings.purgeNow
+ *   /api/semesters(/:id)     → settings.semesters / semesterById
+ *   /api/cron/purge-signatures → settings.cronPurge (Vercel Cron)
+ *   /api/events/:id/window   → settings.eventWindow
  *   /api/students/:id        → studentAdmin.studentById
  *   /api/students            → studentAdmin.students
  *   /api/auth/me             → auth.me
@@ -104,6 +110,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Contact
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/contact') return contact.contact(req, res)
+
+  // ---------------------------------------------------------------------------
+  // Settings: retention, semesters, check-in windows, cron
+  // ---------------------------------------------------------------------------
+  if (rawPath === '/api/settings/retention') return settings.retention(req, res)
+  if (rawPath === '/api/settings/purge-signatures') return settings.purgeNow(req, res)
+  if (rawPath === '/api/cron/purge-signatures') return settings.cronPurge(req, res)
+  if (rawPath === '/api/semesters') return settings.semesters(req, res)
+  const semesterIdMatch = rawPath.match(/^\/api\/semesters\/([^/]+)$/)
+  if (semesterIdMatch) return settings.semesterById(req, res, semesterIdMatch[1])
+  const eventWindowMatch = rawPath.match(/^\/api\/events\/([^/]+)\/window$/)
+  if (eventWindowMatch) return settings.eventWindow(req, res, eventWindowMatch[1])
 
   // ---------------------------------------------------------------------------
   // Student administration (super_admin)

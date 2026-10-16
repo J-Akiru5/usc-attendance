@@ -16,6 +16,8 @@ export interface ReportRow {
   signatureRef: string | null
   /** PNG bytes of the drawn signature, embedded in PDF and Excel. */
   signaturePng: Uint8Array | null
+  /** The signature was captured but its image has been deleted under the retention rule. */
+  signatureExpired?: boolean
 }
 
 export interface ReportModel {
@@ -147,6 +149,7 @@ export async function buildXlsx(model: ReportModel): Promise<Buffer> {
     const rowNumber = 6 + i
     const row = ws.getRow(rowNumber)
     const values = rowValues(r).map(safeCell)
+    if (r.signatureExpired && r.signatureRef) values[values.length - 1] = `${r.signatureRef} (image removed)`
     // The reference is shown under the image; with no image it is the cell value.
     row.values = values
     row.alignment = { vertical: 'middle', wrapText: true }
@@ -251,6 +254,9 @@ export async function buildPdf(model: ReportModel): Promise<Buffer> {
           } catch {
             page!.drawText('(unreadable)', { x: x + 4, y: y - 18, size: 7, font, color: rgb(0.7, 0.2, 0.2) })
           }
+        } else if (r.signatureExpired) {
+          page!.drawText('image removed', { x: x + 4, y: y - 14, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
+          page!.drawText(fit(r.signatureRef ?? '', font, 7, COL_W[i] - 8), { x: x + 4, y: y - 24, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
         } else {
           page!.drawText('-', { x: x + 4, y: y - 18, size: 8, font, color: rgb(0.6, 0.6, 0.6) })
         }

@@ -15,6 +15,7 @@ import {
   authorizeScanLocation,
 } from '../_lib/attendance-rules.js'
 import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
+import { assertCheckInOpen } from '../_lib/retention.js'
 import { issueQrToken, verifyQrToken } from '../_lib/qr.js'
 import { signatureRef } from '../_lib/signature.js'
 import { buildReport, fileStem, formatManila, parseFormat, type ReportModel } from '../_lib/report.js'
@@ -83,6 +84,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
         if (!event) {
           throw notFound('Event not found')
         }
+        assertCheckInOpen(event)
         resolved = authorizeEventSelfCheckIn({
           actor: user,
           targetUserId: userId,
@@ -105,6 +107,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
           // A temporary helper must be at the venue; staff overrides stay exempt.
           const event = await prisma.event.findUnique({ where: { id: eventId } })
           if (!event) throw notFound('Event not found')
+          assertCheckInOpen(event)
           const here = authorizeScanLocation(event, lat, lng, accuracy)
           resolved = { lat: here.lat, lng: here.lng }
         }
@@ -445,7 +448,8 @@ export const exportAttendance = handle(async (req: VercelRequest, res: VercelRes
       recordedBy: r.recorder.name,
       location: r.lat != null && r.lng != null ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}` : '',
       signatureRef: sigById.has(r.id) ? signatureRef(sigById.get(r.id)!.sha256) : null,
-      signaturePng: sigById.has(r.id) ? new Uint8Array(sigById.get(r.id)!.png) : null,
+      signaturePng: sigById.get(r.id)?.png ? new Uint8Array(sigById.get(r.id)!.png!) : null,
+      signatureExpired: sigById.has(r.id) && !sigById.get(r.id)!.png,
     })),
   }
 
@@ -508,6 +512,7 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
   // The scanner must physically be at the venue.
   const scanEvent = await prisma.event.findUnique({ where: { id: payload.e } })
   if (!scanEvent) throw notFound('Event not found')
+  assertCheckInOpen(scanEvent)
   const scannedAt = authorizeScanLocation(scanEvent, lat, lng, accuracy)
 
   // Check for open (not-yet-checked-out) record

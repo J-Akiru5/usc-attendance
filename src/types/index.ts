@@ -11,6 +11,7 @@ export interface User {
   role: Role
   canManageContent?: boolean
   canDelegate?: boolean
+  canConfigure?: boolean
   mustChangePassword?: boolean
   createdAt: string
 }
@@ -22,6 +23,8 @@ export interface USCEvent {
   lat: number
   lng: number
   radiusMeters: number
+  checkInOpensAt?: string | null
+  checkInClosesAt?: string | null
   createdBy: string
   creator?: User
   attendance?: Attendance[]

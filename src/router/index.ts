@@ -188,6 +188,13 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['super_admin'] },
     },
     {
+      path: '/manage/settings',
+      name: 'settings',
+      component: () => import('@/pages/SettingsPage.vue'),
+      // The API decides who may change settings (admin, President, Secretary, or flagged managers).
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
+    },
+    {
       path: '/manage/students',
       name: 'manage-students',
       component: () => import('@/pages/ManageStudentsPage.vue'),

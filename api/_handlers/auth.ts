@@ -29,7 +29,7 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     const allUsers = await prisma.user.findMany({
       where: { active: true },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
       orderBy: { name: 'asc' },
     })
 
@@ -185,15 +185,18 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
   if (req.method === 'PATCH') {
     requireSuperAdmin(user)
 
-    const { canManageContent, canDelegate } = req.body
+    const { canManageContent, canDelegate, canConfigure } = req.body
     if (canManageContent !== undefined && typeof canManageContent !== 'boolean') {
       throw badRequest('canManageContent must be a boolean')
     }
     if (canDelegate !== undefined && typeof canDelegate !== 'boolean') {
       throw badRequest('canDelegate must be a boolean')
     }
-    if (canManageContent === undefined && canDelegate === undefined) {
-      throw badRequest('canManageContent or canDelegate (boolean) is required')
+    if (canConfigure !== undefined && typeof canConfigure !== 'boolean') {
+      throw badRequest('canConfigure must be a boolean')
+    }
+    if (canManageContent === undefined && canDelegate === undefined && canConfigure === undefined) {
+      throw badRequest('canManageContent, canDelegate or canConfigure (boolean) is required')
     }
 
     const updated = await prisma.user.update({
@@ -201,9 +204,20 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
       data: {
         ...(canManageContent !== undefined && { canManageContent }),
         ...(canDelegate !== undefined && { canDelegate }),
+        ...(canConfigure !== undefined && { canConfigure }),
       },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
     })
+
+    if (canConfigure !== undefined) {
+      await prisma.auditLog.create({
+        data: {
+          userId: id,
+          action: canConfigure ? 'settings_access_granted' : 'settings_access_removed',
+          performedBy: user.id,
+        },
+      })
+    }
 
     if (canDelegate !== undefined) {
       await prisma.auditLog.create({
