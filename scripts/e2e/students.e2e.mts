@@ -14,6 +14,7 @@ import * as G from '../../api/_handlers/signatures.js'
 import * as A from '../../api/_handlers/attendance.js'
 import * as U from '../../api/_handlers/auth.js'
 import * as Du from '../../api/_handlers/duties.js'
+import * as SA from '../../api/_handlers/student-admin.js'
 
 process.env.QR_SECRET ||= 'e2e-' + randomBytes(8).toString('hex')
 process.env.RESEND_FROM_EMAIL ||= 'e2e@example.invalid'
@@ -47,12 +48,12 @@ const rq = (token: string | null, method: string, body: any = {}, query: any = {
 const ids: string[] = []
 let eventId = ''
 
-async function mkStaff() {
-  const email = `${tag}-staff@example.invalid`
+async function mkStaff(key = 'staff', role = 'staff') {
+  const email = `${tag}-${key}@example.invalid`
   const password = randomBytes(12).toString('base64url') + 'aA1!'
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true })
   if (error) throw error
-  await prisma.user.create({ data: { id: data.user.id, email, name: 'E2E Staff', position: 'Staff', role: 'staff', mustChangePassword: false, active: true } })
+  await prisma.user.create({ data: { id: data.user.id, email, name: 'E2E ' + key, position: 'Staff', role, mustChangePassword: false, active: true } })
   const { data: s } = await anon().auth.signInWithPassword({ email, password })
   ids.push(data.user.id)
   return { id: data.user.id, token: s.session!.access_token }
@@ -162,7 +163,8 @@ async function main() {
   check('non-PNG rejected (400)', r._s === 400, `${r._s}`)
 
   const emailC = mail('c'), passC = pw()
-  await S.register(rq(null, 'POST', { email: emailC, name: 'Maria Santos', studentNo: 'E2E-C' + Date.now().toString().slice(-6), consent: true }, {}, { 'x-forwarded-for': '9.9.9.7' }), res())
+  const noC = 'E2E-C' + Date.now().toString().slice(-6)
+  await S.register(rq(null, 'POST', { email: emailC, name: 'Maria Santos', studentNo: noC, consent: true }, {}, { 'x-forwarded-for': '9.9.9.7' }), res())
   const rowC = await prisma.user.findUnique({ where: { email: emailC } })
   if (rowC) { ids.push(rowC.id); await admin.auth.admin.updateUserById(rowC.id, { password: passC, email_confirm: true }) }
   const { data: sC } = await anon().auth.signInWithPassword({ email: emailC, password: passC })
@@ -187,6 +189,31 @@ async function main() {
   check('Excel embeds the signature image', wb.getWorksheet('Attendance')!.getImages().length === 1)
   r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId, format: 'pdf' }), r)
   check('PDF export succeeds', r._s === 200 && Buffer.from(r._b).subarray(0, 5).toString() === '%PDF-', `${r._s}`)
+
+  console.log('\n--- student administration (super_admin) ---')
+  const sa = await mkStaff('superadmin', 'super_admin')
+  r = res(); await SA.students(rq(staff.token, 'GET'), r)
+  check('plain staff cannot list students (403)', r._s === 403, `${r._s}`)
+  r = res(); await SA.students(rq(st, 'GET'), r)
+  check('a student cannot list students (403)', r._s === 403, `${r._s}`)
+  r = res(); await SA.students(rq(sa.token, 'GET', {}, { q: 'Juan' }), r)
+  check('super_admin can search students (200)', r._s === 200 && r._b.students.some((x: any) => x.id === rowA3!.id), `${r._s} ${JSON.stringify(r._b)?.slice(0, 160)}`)
+  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { name: 'Juan D. Cruz', program: 'BSCS' }), r, rowA3!.id)
+  check('super_admin can correct name/program (200)', r._s === 200 && r._b.name === 'Juan D. Cruz' && r._b.studentProfile.program === 'BSCS', `${r._s} ${JSON.stringify(r._b)}`)
+  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { studentNo: noC }), r, rowA3!.id)
+  check('duplicate student ID is refused (409)', r._s === 409, `${r._s} ${JSON.stringify(r._b)}`)
+  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { name: '<b>x</b>' }), r, rowA3!.id)
+  check('invalid name is refused (400)', r._s === 400, `${r._s}`)
+  r = res(); await SA.studentById(rq(st, 'PATCH', { name: 'Self Edit' }), r, rowA3!.id)
+  check('a student cannot edit students (403)', r._s === 403, `${r._s}`)
+  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { active: false }), r, rowA3!.id)
+  check('super_admin can deactivate (200)', r._s === 200 && r._b.active === false, `${r._s}`)
+  r = res(); await A.qrToken(rq(st, 'POST', { eventId }), r)
+  check('deactivated student is locked out immediately (403)', r._s === 403 && /deactivated/.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
+  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { active: true }), r, rowA3!.id)
+  check('reactivation works (200)', r._s === 200 && r._b.active === true, `${r._s}`)
+  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { name: 'x' }), r, staff.id)
+  check('cannot use the student endpoint on an officer (404)', r._s === 404, `${r._s}`)
 
   console.log('\n--- deactivated accounts are refused ---')
   await prisma.user.update({ where: { id: staff.id }, data: { active: false } })

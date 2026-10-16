@@ -6,6 +6,7 @@ import * as cms from './_handlers/cms.js'
 import * as contact from './_handlers/contact.js'
 import * as delegations from './_handlers/delegations.js'
 import * as signatures from './_handlers/signatures.js'
+import * as studentAdmin from './_handlers/student-admin.js'
 import * as students from './_handlers/students.js'
 import * as duties from './_handlers/duties.js'
 import * as events from './_handlers/events.js'
@@ -28,6 +29,8 @@ import * as photos from './_handlers/photos.js'
  *   /api/attendance/qr-token → attendance.qrToken
  *   /api/attendance/qr       → attendance.qr
  *   /api/attendance          → attendance.index
+ *   /api/students/:id        → studentAdmin.studentById
+ *   /api/students            → studentAdmin.students
  *   /api/auth/me             → auth.me
  *   /api/auth/register       → students.register
  *   /api/auth/password-reset  → auth.requestPasswordReset
@@ -101,6 +104,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Contact
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/contact') return contact.contact(req, res)
+
+  // ---------------------------------------------------------------------------
+  // Student administration (super_admin)
+  // ---------------------------------------------------------------------------
+  const studentIdMatch = rawPath.match(/^\/api\/students\/([^/]+)$/)
+  if (studentIdMatch) return studentAdmin.studentById(req, res, studentIdMatch[1])
+  if (rawPath === '/api/students') return studentAdmin.students(req, res)
 
   // ---------------------------------------------------------------------------
   // Event delegation (temporary per-event access)
