@@ -70,8 +70,8 @@
 
     <div class="grid" style="margin-top:22px">
       <div class="stat"><b>3</b><span>phases built, 3 branches pushed</span></div>
-      <div class="stat"><b>79</b><span>unit tests passing</span></div>
-      <div class="stat"><b>77</b><span>live end-to-end checks passing (26 + 10 + 41)</span></div>
+      <div class="stat"><b>92</b><span>unit tests passing</span></div>
+      <div class="stat"><b>113</b><span>live end-to-end checks passing (26 + 10 + 41 + 36)</span></div>
       <div class="stat"><b>0</b><span>test rows left in the live database</span></div>
     </div>
   </div>
@@ -87,6 +87,7 @@
           <li>President (Jared) and Secretary (Nikki) can give another officer <strong>temporary, per-event access</strong> (scan, record, view list, export). It expires at event-day end and can be revoked instantly.</li>
           <li>Attendance exports as <strong>PDF, Excel and CSV</strong>, each with an <strong>E-Signature column</strong>.</li>
           <li>Students <strong>register themselves</strong> (school email + student ID + email verification), show a rotating QR, an officer scans it, and the student <strong>signs on their phone</strong>.</li>
+          <li><strong>Signature retention is per semester</strong> and each event can have a <strong>check-in window</strong>. The admin, officer in charge, President, Secretary and adviser can set both.</li>
           <li>The scanning officer's phone must be <strong>at the venue</strong>; a scan from elsewhere is refused. A super admin can <strong>correct or deactivate</strong> a student.</li>
         </ul>
       </div>
@@ -103,8 +104,8 @@
         <h3><span class="tag t-bad">NOT BUILT</span>Honest gaps</h3>
         <ul>
           <li>The real <strong>email-link click</strong> was simulated, not tested with a real inbox.</li>
-          <li>No <strong>retention period</strong> for signatures yet (your decision).</li>
-          <li>No event <strong>check-in window</strong>; the delegate panel is staff-only.</li>
+          <li>Semesters must be <strong>entered by hand</strong>; until they are, no signature is ever deleted.</li>
+          <li>The adviser and officer in charge need <strong>accounts</strong> and the Settings switch.</li>
         </ul>
       </div>
     </div>
@@ -147,6 +148,9 @@
         <li><strong>Wrong site address.</strong> The code defaulted to <code>uscattendance.syntaxure.dev</code>, which returns 404; the live site is <code>usc.syntaxure.dev</code>. Password-reset and verification links would have led to a dead page. I added <code>SITE_URL=https://usc.syntaxure.dev</code> in Vercel Production and corrected the default in code.</li>
         <li><strong>Scanner must be at the venue.</strong> A QR scan (or a delegate's manual entry) now needs the scanner's coordinates and is refused outside the event radius, widened by the phone's reported GPS accuracy (capped at 100 m). The scanner's position is saved and shows in the export's Location column. Staff manual overrides stay exempt.</li>
         <li><strong>Student administration.</strong> Super admins get a Students page to search, correct a name, student ID or program, and deactivate or reactivate an account. Deactivation locks the student out immediately.</li>
+        <li><strong>Signature retention per semester.</strong> Authorized people define each semester's dates and choose how many semesters to keep a signature (default 1) plus a grace period (default 30 days). After that, the signature image is deleted automatically each night by a Vercel cron job; the attendance record, hash and SIG- reference stay, and PDF/Excel show "image removed". Signatures outside every defined semester are never deleted, and nothing expires until the later semesters exist. There is also a "Run cleanup now" button and a count of uncovered signatures.</li>
+        <li><strong>Check-in window.</strong> Each event can have an opening and closing time (none by default, so nothing changes until someone sets one). It applies to QR scans, self check-ins and delegates' manual entries; a staff manual override is exempt so an admin can always correct a record.</li>
+        <li><strong>Who can change them.</strong> A super admin, the President and Secretary, or anyone with the new <em>Settings</em> switch in Manage Users (for the adviser and officer in charge). Every change is audit-logged.</li>
         <li><strong>Privacy page.</strong> Now describes student accounts, the officer location check and signatures.</li>
       </ul>
     </div>
@@ -174,6 +178,7 @@
         <tr><td>Delegation (26)</td><td>Scan without location, from far away, and delegated manual entry without location are refused. Non-delegators blocked, no self-grant, bad scopes rejected, scan/manual/roster/export each gated by their own permission, widening a grant, one live grant per officer, revoke is immediate, expiry blocks, audit rows written.</td></tr>
         <tr><td>Exports (10)</td><td>CSV/Excel/PDF produced from real rows; correct content types and safe filenames; formula text neutralised; unknown format 400; no-permission 403; missing event 404.</td></tr>
         <tr><td>Students (41)</td><td>Super admin can search, correct, deactivate and reactivate students; duplicate IDs and invalid names refused; non-admins blocked. Domain and consent rules, generic answers, retry replaces an unverified sign-up, verified accounts can't be overwritten, email rate limit, unverified refused, student restrictions, QR scan by officer, blank/non-PNG/foreign signatures rejected, double-sign 409, signature appears in CSV, Excel and PDF, deactivated officer refused.</td></tr>
+        <tr><td>Retention + windows (36)</td><td>Only the right people can change settings; semester overlap refused; keep=2 vs keep=1 deletes the right semesters; signatures outside any semester and the attendance record, hash and reference survive; a second run deletes nothing; cron needs the right secret; CSV/Excel/PDF still work after a purge; scans before opening, after closing and self check-ins outside the window are refused while staff overrides still work.</td></tr>
         <tr><td>Browser</td><td>Sign-up page renders; the signature pad produced a valid 600×220 PNG (about 17 KB) that fits the server limits.</td></tr>
       </tbody>
     </table></div>
@@ -220,9 +225,9 @@
     <div class="cards">
       <div class="card"><h3><span class="tag t-ok">FIXED</span>Officer location is now checked</h3><p>A scan from outside the venue is refused. Limits: the phone's GPS can be faked, and a student's own phone is deliberately not tracked. Staff manual overrides are exempt so an admin can always correct a record.</p></div>
       <div class="card"><h3><span class="tag t-warn">UNTESTED</span>Real email delivery</h3><p>The verification link was simulated through the Supabase admin API. Please do one real sign-up with a school email to confirm Resend delivers to <code>@isufst.edu.ph</code> and the link lands on the password page.</p></div>
-      <div class="card"><h3><span class="tag t-warn">DECISION</span>Retention period</h3><p>The privacy page now covers signatures and location, but no retention period is stated, because that is the USC's policy to set. Worth raising with the President.</p></div>
+      <div class="card"><h3><span class="tag t-warn">TODO</span>State the retention on the privacy page</h3><p>The setting exists and defaults to one semester, but the public privacy page does not yet quote a number. Once the USC settles it, add the sentence to the page.</p></div>
       <div class="card"><h3><span class="tag t-warn">LIMIT</span>Delegates cannot record manually from the UI</h3><p>The "manual override" button on the attendance list is staff-only, so an officer with a temporary grant can scan but would need the API for manual entry. Scanning is the main flow, so this is low priority.</p></div>
-      <div class="card"><h3><span class="tag t-warn">LIMIT</span>No check-in time window</h3><p>A student's QR can be generated for any event and scanned at any time. An event open/close window would be a small addition.</p></div>
+      <div class="card"><h3><span class="tag t-ok">FIXED</span>Check-in window</h3><p>Built. Students can still open their QR at any time; the scan is what is limited.</p></div>
       <div class="card"><h3><span class="tag t-warn">LIMIT</span>Delegate with a "client" role</h3><p>The grant panel lives on the event page, which is staff-only. Jared (admin) and Nikki (staff) can use it; a future Secretary with the client role could not.</p></div>
     </div>
     <div class="callout">One file is not mine: <code>src/pages/AboutPage.vue</code> has an uncommitted edit that was already in your working folder. I left it out of every commit.</div>
@@ -242,8 +247,11 @@
         <li><label><input type="checkbox"><span>Resend sending domain verified and able to deliver to <code>@isufst.edu.ph</code></span></label></li>
         <li><label><input type="checkbox"><span>Merge, let Vercel deploy, then do one real student sign-up end to end</span></label></li>
         <li><label><input type="checkbox"><span>Check Jared and Nikki see the "Event access" panel on an event page</span></label></li>
-        <li><label><input type="checkbox"><span>Decide a retention period for signatures and location data and add it to the Data Privacy page</span></label></li>
-        <li><label><input type="checkbox"><span>Decide whether you want an event check-in window (open/close times)</span></label></li>
+        <li><label><input type="checkbox" checked><span>Vercel <code>CRON_SECRET</code> set (done) — the nightly cleanup runs once this is deployed</span></label></li>
+        <li><label><input type="checkbox"><span>Create accounts for the adviser and officer in charge, then switch on <em>Settings</em> for them in Manage Users</span></label></li>
+        <li><label><input type="checkbox"><span>Settings → enter this academic year's semesters (first and last day) and confirm the retention (default: 1 semester, 30 days grace)</span></label></li>
+        <li><label><input type="checkbox"><span>Add the agreed retention period to the Data Privacy page</span></label></li>
+        <li><label><input type="checkbox"><span>Set a check-in window on each event if you want one (default: no limit)</span></label></li>
         <li><label><input type="checkbox"><span>Pilot at one real event with a small group before opening to everyone</span></label></li>
       </ul>
     </div>
