@@ -4,6 +4,7 @@ import { useOfflineQueue } from '@/composables/useOfflineQueue'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import BottomNav from './BottomNav.vue'
+import PendingSignature from '@/components/PendingSignature.vue'
 
 const auth = useAuthStore()
 const { queueLength } = useOfflineQueue()
@@ -26,5 +27,6 @@ const { queueLength } = useOfflineQueue()
     </div>
 
     <BottomNav v-if="auth.isAuthenticated" />
+    <PendingSignature v-if="auth.isAuthenticated && !auth.user?.mustChangePassword" />
   </div>
 </template>

@@ -12,6 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
   const isStaff = computed(() => user.value?.role === 'staff' || user.value?.role === 'super_admin')
   const isClient = computed(() => user.value?.role === 'client')
+  const isStudent = computed(() => user.value?.role === 'student')
   const role = computed(() => user.value?.role as Role | undefined)
 
   async function fetchUser() {
@@ -71,6 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isStaff,
     isClient,
+    isStudent,
     role,
     fetchUser,
     login,

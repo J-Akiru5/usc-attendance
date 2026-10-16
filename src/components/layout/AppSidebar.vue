@@ -8,7 +8,7 @@ const router = useRouter()
 const route = useRoute()
 
 const navItems = [
-  { label: 'Dashboard', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Dashboard', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client', 'student'] },
   { label: 'Events', to: '/manage/events', icon: '📅', roles: ['super_admin', 'staff'] },
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },

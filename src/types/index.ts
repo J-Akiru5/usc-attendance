@@ -1,4 +1,4 @@
-export type Role = 'super_admin' | 'staff' | 'client'
+export type Role = 'super_admin' | 'staff' | 'client' | 'student'
 
 export type AttendanceType = 'event' | 'duty'
 export type CheckInMethod = 'self' | 'manual' | 'qr'
@@ -43,6 +43,7 @@ export interface Attendance {
   event?: USCEvent
   user?: User
   recorder?: User
+  signature?: { signedAt: string } | null
 }
 
 export interface OrgProfile {

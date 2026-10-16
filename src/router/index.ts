@@ -100,12 +100,22 @@ const router = createRouter({
       meta: { guest: true },
     },
 
+    // Student self-registration
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/pages/RegisterPage.vue'),
+      meta: { guest: true },
+    },
+
     // Password reset (from email link)
     {
       path: '/reset-password',
       name: 'reset-password',
       component: () => import('@/pages/ResetPasswordPage.vue'),
-      meta: { guest: true },
+      // Not guest-only: opening the emailed link signs the person in (recovery /
+      // email-verification session) before this page loads, and they must still see it.
+      meta: {},
     },
 
     // Force password change — mustChangePassword gate
@@ -139,13 +149,13 @@ const router = createRouter({
       path: '/check-in',
       name: 'check-in',
       component: () => import('@/pages/CheckInPage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
     },
     {
       path: '/check-in/:eventId',
       name: 'check-in-event',
       component: () => import('@/pages/CheckInPage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
     },
     {
       path: '/qr',
@@ -163,7 +173,7 @@ const router = createRouter({
       path: '/duty',
       name: 'duty',
       component: () => import('@/pages/DutyCheckInPage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
     },
     {
       path: '/attendance/:eventId',

@@ -188,6 +188,9 @@ function methodLabel(method: string) {
                 <Badge :variant="methodBadgeVariant(record.method)">
                   {{ methodLabel(record.method) }}
                 </Badge>
+                <Badge :variant="record.signature ? 'success' : 'warning'" class="ml-1">
+                  {{ record.signature ? 'Signed' : 'Unsigned' }}
+                </Badge>
                 <div class="text-xs text-slate text-right min-w-[80px]">
                   <div>{{ formatTime(record.createdAt) }}</div>
                   <div v-if="record.checkOutAt" class="text-success font-medium">
