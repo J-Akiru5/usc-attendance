@@ -21,6 +21,7 @@ model User {
   position  String
   role      String   // "super_admin" | "staff" | "client"
   canManageContent Boolean @default(false)
+  canDelegate Boolean @default(false) // may grant temporary per-event access (President/Secretary)
   mustChangePassword Boolean @default(true)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -29,6 +30,9 @@ model User {
   attendance    Attendance[]
   recorded      Attendance[]  @relation("RecordedBy")
   officeDuties  OfficeDuty[]
+  delegations        EventDelegate[] @relation("DelegateUser")
+  grantedDelegations EventDelegate[] @relation("DelegateGranter")
+  revokedDelegations EventDelegate[] @relation("DelegateRevoker")
 
   @@map("users")
 }
@@ -43,6 +47,7 @@ model Event {
   createdBy    String
   creator      User     @relation("EventCreator", fields: [createdBy], references: [id])
   attendance   Attendance[]
+  delegates    EventDelegate[]
   createdAt    DateTime @default(now())
 
   @@map("events")
@@ -66,6 +71,29 @@ model Attendance {
   recorder User    @relation("RecordedBy", fields: [recordedBy], references: [id])
 
   @@map("attendance")
+}
+
+/// Temporary, per-event access granted by an officer with canDelegate.
+/// Valid only while revokedAt is null and expiresAt is in the future.
+model EventDelegate {
+  id        String    @id @default(uuid())
+  eventId   String
+  userId    String    // the officer receiving access
+  scopes    String[]  // "scan" | "manual_checkin" | "view_roster" | "export"
+  grantedBy String
+  expiresAt DateTime
+  revokedAt DateTime?
+  revokedBy String?
+  createdAt DateTime  @default(now())
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User  @relation("DelegateUser", fields: [userId], references: [id])
+  granter User  @relation("DelegateGranter", fields: [grantedBy], references: [id])
+  revoker User? @relation("DelegateRevoker", fields: [revokedBy], references: [id])
+
+  @@index([eventId, userId])
+  @@index([userId, expiresAt])
+  @@map("event_delegates")
 }
 
 model OfficeDuty {
