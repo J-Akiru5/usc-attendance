@@ -33,6 +33,7 @@ model User {
   delegations        EventDelegate[] @relation("DelegateUser")
   grantedDelegations EventDelegate[] @relation("DelegateGranter")
   revokedDelegations EventDelegate[] @relation("DelegateRevoker")
+  studentProfile     StudentProfile?
 
   @@map("users")
 }
@@ -69,8 +70,34 @@ model Attendance {
   event    Event?  @relation(fields: [eventId], references: [id])
   user     User    @relation(fields: [userId], references: [id])
   recorder User    @relation("RecordedBy", fields: [recordedBy], references: [id])
+  signature AttendanceSignature?
 
   @@map("attendance")
+}
+
+/// Extra identity data for self-registered students (role = "student").
+model StudentProfile {
+  userId    String   @id
+  studentNo String   @unique
+  program   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+/// The attendee's own drawn signature for one attendance record (PNG), kept
+/// apart from "attendance" so roster queries never pull image bytes.
+model AttendanceSignature {
+  attendanceId String   @id
+  png          Bytes
+  sha256       String
+  signedAt     DateTime @default(now())
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_signatures")
 }
 
 /// Temporary, per-event access granted by an officer with canDelegate.

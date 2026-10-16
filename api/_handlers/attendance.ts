@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
-import { authenticate } from '../_lib/auth.js'
+import { authenticate, forbidStudents } from '../_lib/auth.js'
 import {
   badRequest,
   forbidden,
@@ -15,6 +15,7 @@ import {
 } from '../_lib/attendance-rules.js'
 import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
 import { issueQrToken, verifyQrToken } from '../_lib/qr.js'
+import { signatureRef } from '../_lib/signature.js'
 import { buildReport, fileStem, formatManila, parseFormat, type ReportModel } from '../_lib/report.js'
 import { manilaDayRange, manilaDow, manilaHHMM } from '../_lib/time.js'
 
@@ -38,6 +39,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
       include: {
         user: { select: { id: true, name: true, position: true, role: true } },
         recorder: { select: { id: true, name: true, position: true } },
+        signature: { select: { signedAt: true } },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -53,6 +55,11 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
     }
 
     const attendanceType = type || 'event'
+
+    // Students are checked in by an officer scanning their QR - never by themselves.
+    if (method === 'self' && user.role === 'student') {
+      throw forbidden('Students are checked in by an officer. Show your QR code at the venue.')
+    }
 
     if (attendanceType === 'event' && !eventId) {
       throw badRequest('eventId is required for event check-ins')
@@ -180,6 +187,7 @@ export const checkout = handle(async (req: VercelRequest, res: VercelResponse) =
 
   // Determine self-checkout vs manual checkout
   const isSelf = user.id === userId
+  if (isSelf) forbidStudents(user)
   let delegatedCheckout = false
   if (!isSelf) {
     if (eventId) {
@@ -407,6 +415,12 @@ export const exportAttendance = handle(async (req: VercelRequest, res: VercelRes
     orderBy: { createdAt: 'asc' },
   })
 
+  const sigs = await prisma.attendanceSignature.findMany({
+    where: { attendanceId: { in: records.map((r) => r.id) } },
+    select: { attendanceId: true, png: true, sha256: true },
+  })
+  const sigById = new Map(sigs.map((s) => [s.attendanceId, s]))
+
   const METHOD_LABEL: Record<string, string> = { self: 'Self', qr: 'QR', manual: 'Manual' }
   const model: ReportModel = {
     title: event.title,
@@ -423,8 +437,8 @@ export const exportAttendance = handle(async (req: VercelRequest, res: VercelRes
       method: METHOD_LABEL[r.method] ?? r.method,
       recordedBy: r.recorder.name,
       location: r.lat != null && r.lng != null ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}` : '',
-      signatureRef: null,
-      signaturePng: null,
+      signatureRef: sigById.has(r.id) ? signatureRef(sigById.get(r.id)!.sha256) : null,
+      signaturePng: sigById.has(r.id) ? new Uint8Array(sigById.get(r.id)!.png) : null,
     })),
   }
 

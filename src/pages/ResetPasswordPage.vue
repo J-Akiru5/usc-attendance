@@ -5,6 +5,7 @@ import { supabase, api } from '@/lib/api'
 import Toast from '@/components/ui/Toast.vue'
 
 const router = useRouter()
+const welcome = new URLSearchParams(window.location.search).get('welcome') === '1'
 
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -112,7 +113,7 @@ async function handleResetPassword() {
       <div class="relative z-10">
         <div class="text-xs font-mono uppercase tracking-widest text-gold mb-4">Password Recovery</div>
         <h1 class="text-4xl font-bold font-serif text-white mb-2 leading-tight">
-          Reset Your Password
+          {{ welcome ? 'Welcome to USC Attendance' : 'Reset Your Password' }}
         </h1>
         <p class="text-white/60 text-base leading-relaxed">
           Click the link in your email to set a new password. The link expires in 1 hour.
@@ -164,7 +165,7 @@ async function handleResetPassword() {
         <!-- Password reset form -->
         <template v-else>
           <div class="mb-8">
-            <h2 class="text-2xl font-bold font-serif text-navy mb-1">Set New Password</h2>
+            <h2 class="text-2xl font-bold font-serif text-navy mb-1">{{ welcome ? 'Choose Your Password' : 'Set New Password' }}</h2>
             <p class="text-sm text-slate">Choose a strong, unique password</p>
           </div>
 
@@ -248,7 +249,7 @@ async function handleResetPassword() {
               :disabled="loading"
               class="w-full py-3 rounded-lg bg-gold text-navy font-bold text-sm hover:brightness-110 transition-all shadow-md shadow-gold/20 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
-              {{ loading ? 'Resetting...' : 'Reset Password' }}
+              {{ loading ? 'Saving...' : welcome ? 'Save Password' : 'Reset Password' }}
             </button>
           </form>
 

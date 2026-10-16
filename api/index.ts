@@ -5,6 +5,8 @@ import * as auth from './_handlers/auth.js'
 import * as cms from './_handlers/cms.js'
 import * as contact from './_handlers/contact.js'
 import * as delegations from './_handlers/delegations.js'
+import * as signatures from './_handlers/signatures.js'
+import * as students from './_handlers/students.js'
 import * as duties from './_handlers/duties.js'
 import * as events from './_handlers/events.js'
 import * as orgProfile from './_handlers/org-profile.js'
@@ -19,12 +21,15 @@ import * as photos from './_handlers/photos.js'
  *
  * Route table (most-specific first to avoid false matches):
  *   /api/attendance/export   → attendance.exportAttendance
+ *   /api/attendance/sign              → signatures.sign
+ *   /api/attendance/pending-signature → signatures.pendingSignature
  *   /api/attendance/checkout → attendance.checkout
  *   /api/attendance/duty     → attendance.duty
  *   /api/attendance/qr-token → attendance.qrToken
  *   /api/attendance/qr       → attendance.qr
  *   /api/attendance          → attendance.index
  *   /api/auth/me             → auth.me
+ *   /api/auth/register       → students.register
  *   /api/auth/password-reset  → auth.requestPasswordReset
  *   /api/auth/change-password → auth.changePassword
  *   /api/auth/profile        → auth.users  (PUT alias used by the frontend store)
@@ -62,6 +67,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Attendance routes (most specific first)
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/attendance/export') return attendance.exportAttendance(req, res)
+  if (rawPath === '/api/attendance/sign') return signatures.sign(req, res)
+  if (rawPath === '/api/attendance/pending-signature') return signatures.pendingSignature(req, res)
   if (rawPath === '/api/attendance/checkout') return attendance.checkout(req, res)
   if (rawPath === '/api/attendance/duty') return attendance.duty(req, res)
   if (rawPath === '/api/attendance/qr-token') return attendance.qrToken(req, res)
@@ -72,6 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Auth routes
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/auth/me') return auth.me(req, res)
+  if (rawPath === '/api/auth/register') return students.register(req, res)
   if (rawPath === '/api/auth/password-reset') return auth.requestPasswordReset(req, res)
   if (rawPath === '/api/auth/change-password') return auth.changePassword(req, res)
   // /api/auth/profile is used by the frontend store for PUT (own profile update)

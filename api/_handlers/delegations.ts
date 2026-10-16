@@ -49,6 +49,7 @@ export const delegations = handle(async (req: VercelRequest, res: VercelResponse
 
     const target = await prisma.user.findUnique({ where: { id: userId } })
     if (!target || !target.active) throw notFound('Officer not found or inactive')
+    if (target.role === 'student') throw badRequest('Students cannot be given officer access')
 
     const expiresAt = computeExpiry(event.date, req.body.expiresAt)
     const now = new Date()
@@ -110,7 +111,7 @@ export const delegationCandidates = handle(async (req: VercelRequest, res: Verce
   requireCanDelegate(actor)
 
   const officers = await prisma.user.findMany({
-    where: { active: true, id: { not: actor.id } },
+    where: { active: true, id: { not: actor.id }, role: { not: 'student' } },
     select: PERSON,
     orderBy: { name: 'asc' },
   })

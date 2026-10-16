@@ -36,6 +36,9 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
   }
 
   if (req.method === 'PUT') {
+    if (user.role === 'student') {
+      throw new HttpError(403, 'Access denied. Students cannot edit their name; contact the USC.')
+    }
     const { name, position } = req.body
 
     if (!name || !position) {
