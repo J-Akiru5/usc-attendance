@@ -6,6 +6,7 @@ import {
   authorizeEventSelfCheckIn,
   authorizeManualCheckIn,
   authorizeQrScan,
+  authorizeScanLocation,
   haversine,
   isStaff,
   requireStaffRole,
@@ -218,5 +219,30 @@ describe('isStaff / requireStaffRole', () => {
 
   it('requireStaffRole throws 403 for client', () => {
     expectHttpError(() => requireStaffRole(officer), 403)
+  })
+})
+
+describe('authorizeScanLocation', () => {
+  it('accepts a scanner inside the radius and returns its coordinates', () => {
+    expect(authorizeScanLocation(venue, 10.7202, 122.5621)).toEqual({ lat: 10.7202, lng: 122.5621 })
+  })
+  it('requires coordinates', () => {
+    expectHttpError(() => authorizeScanLocation(venue, undefined, undefined), 400, 'Location is required')
+    expectHttpError(() => authorizeScanLocation(venue, 'abc', 122.5), 400)
+    expectHttpError(() => authorizeScanLocation(venue, 95, 122.5), 400)
+  })
+  it('rejects a scanner outside the radius (403)', () => {
+    // ~220 m north of the venue
+    expectHttpError(() => authorizeScanLocation(venue, 10.7222, 122.5621), 403, 'from the venue')
+  })
+  it('forgives GPS inaccuracy, capped at 100 m', () => {
+    // ~111 m away: outside 50 m, inside 50 + 100 when accuracy is poor
+    expect(() => authorizeScanLocation(venue, 10.7212, 122.5621, 80)).not.toThrow()
+    expectHttpError(() => authorizeScanLocation(venue, 10.7212, 122.5621, 5), 403)
+    // a huge reported accuracy cannot widen the fence past +100 m
+    expectHttpError(() => authorizeScanLocation(venue, 10.7222, 122.5621, 10_000), 403)
+  })
+  it('accepts numeric strings', () => {
+    expect(() => authorizeScanLocation(venue, '10.7202', '122.5621')).not.toThrow()
   })
 })

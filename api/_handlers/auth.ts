@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../_lib/supabase.js'
 import { resend } from '../_lib/resend.js'
 import { authenticate, requireStaff, requireSuperAdmin } from '../_lib/auth.js'
 import { badRequest, handle, HttpError } from '../_lib/http.js'
+import { siteUrl } from '../_lib/site.js'
 
 // ---------------------------------------------------------------------------
 // GET /api/auth/me
@@ -28,7 +29,7 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     const allUsers = await prisma.user.findMany({
       where: { active: true },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
       orderBy: { name: 'asc' },
     })
 
@@ -36,6 +37,9 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
   }
 
   if (req.method === 'PUT') {
+    if (user.role === 'student') {
+      throw new HttpError(403, 'Access denied. Students cannot edit their name; contact the USC.')
+    }
     const { name, position } = req.body
 
     if (!name || !position) {
@@ -81,7 +85,7 @@ export async function requestPasswordReset(req: VercelRequest, res: VercelRespon
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${process.env.SITE_URL || 'https://uscattendance.syntaxure.dev'}/reset-password`,
+        redirectTo: `${siteUrl()}/reset-password`,
       },
     })
 
@@ -181,16 +185,49 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
   if (req.method === 'PATCH') {
     requireSuperAdmin(user)
 
-    const { canManageContent } = req.body
-    if (typeof canManageContent !== 'boolean') {
-      throw badRequest('canManageContent (boolean) is required')
+    const { canManageContent, canDelegate, canConfigure } = req.body
+    if (canManageContent !== undefined && typeof canManageContent !== 'boolean') {
+      throw badRequest('canManageContent must be a boolean')
+    }
+    if (canDelegate !== undefined && typeof canDelegate !== 'boolean') {
+      throw badRequest('canDelegate must be a boolean')
+    }
+    if (canConfigure !== undefined && typeof canConfigure !== 'boolean') {
+      throw badRequest('canConfigure must be a boolean')
+    }
+    if (canManageContent === undefined && canDelegate === undefined && canConfigure === undefined) {
+      throw badRequest('canManageContent, canDelegate or canConfigure (boolean) is required')
     }
 
     const updated = await prisma.user.update({
       where: { id },
-      data: { canManageContent },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
+      data: {
+        ...(canManageContent !== undefined && { canManageContent }),
+        ...(canDelegate !== undefined && { canDelegate }),
+        ...(canConfigure !== undefined && { canConfigure }),
+      },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
     })
+
+    if (canConfigure !== undefined) {
+      await prisma.auditLog.create({
+        data: {
+          userId: id,
+          action: canConfigure ? 'settings_access_granted' : 'settings_access_removed',
+          performedBy: user.id,
+        },
+      })
+    }
+
+    if (canDelegate !== undefined) {
+      await prisma.auditLog.create({
+        data: {
+          userId: id,
+          action: canDelegate ? 'delegate_power_granted' : 'delegate_power_removed',
+          performedBy: user.id,
+        },
+      })
+    }
 
     return res.status(200).json(updated)
   }

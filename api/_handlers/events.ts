@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
 import { authenticate, requireStaff } from '../_lib/auth.js'
 import { badRequest, handle } from '../_lib/http.js'
+import { hasEventScope } from '../_lib/delegation.js'
 
 // ---------------------------------------------------------------------------
 // GET/POST /api/events
@@ -56,17 +57,22 @@ export const eventById = handle(async (req: VercelRequest, res: VercelResponse, 
   const user = await authenticate(req)
 
   if (req.method === 'GET') {
+    // The attendance roster is only included for staff or a "view_roster" grant.
+    const { allowed: canViewRoster } = await hasEventScope(prisma, user, id, 'view_roster')
+
     const event = await prisma.event.findUnique({
       where: { id },
       include: {
         creator: { select: { id: true, name: true, position: true, role: true } },
-        attendance: {
-          include: {
-            user: { select: { id: true, name: true, position: true, role: true } },
-            recorder: { select: { id: true, name: true, position: true } },
+        ...(canViewRoster && {
+          attendance: {
+            include: {
+              user: { select: { id: true, name: true, position: true, role: true } },
+              recorder: { select: { id: true, name: true, position: true } },
+            },
+            orderBy: { createdAt: 'desc' as const },
           },
-          orderBy: { createdAt: 'desc' },
-        },
+        }),
       },
     })
 

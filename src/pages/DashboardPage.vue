@@ -7,6 +7,7 @@ import { useDutyStore } from '@/stores/duties'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
+import MyEventAccess from '@/components/MyEventAccess.vue'
 import type { USCEvent } from '@/types'
 
 const auth = useAuthStore()
@@ -52,8 +53,36 @@ function formatTime(dateStr: string) {
       <p class="text-white/60 text-sm mt-1">{{ auth.user?.position }}</p>
     </div>
 
+    <!-- Student view: show your QR at the venue; an officer scans it -->
+    <div v-if="auth.isStudent" class="space-y-4">
+      <div class="rounded-xl border border-gold/30 bg-paper-panel p-4 text-sm text-navy">
+        An officer records your attendance by scanning your QR code at the venue. Pick the event below to show it,
+        then sign on your phone when asked.
+      </div>
+      <h2 class="text-lg font-semibold text-navy font-serif">Events</h2>
+      <div v-if="events.events.length === 0" class="text-sm text-slate bg-paper-panel rounded-xl border border-line p-6 text-center">
+        No events yet
+      </div>
+      <div v-else class="space-y-3">
+        <Card
+          v-for="event in events.events.slice(0, 8)"
+          :key="event.id"
+          class="cursor-pointer hover:shadow-md transition-shadow"
+          @click="router.push({ path: '/qr', query: { eventId: event.id } })"
+        >
+          <CardContent class="p-4 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-bold text-navy truncate">{{ event.title }}</div>
+              <div class="text-xs text-slate">{{ new Date(event.date).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }) }}</div>
+            </div>
+            <Badge variant="success">Show my QR</Badge>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div v-if="!auth.isStudent" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <Card
         v-if="auth.isClient || auth.isStaff"
         class="cursor-pointer hover:shadow-md transition-shadow"
@@ -104,7 +133,7 @@ function formatTime(dateStr: string) {
 
     <!-- Duty Status (if has duty today) -->
     <div
-      v-if="dutyStore.hasDutyToday(auth.user?.id || '')"
+      v-if="!auth.isStudent && dutyStore.hasDutyToday(auth.user?.id || '')"
       class="bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
       @click="router.push('/duty')"
     >
@@ -122,8 +151,10 @@ function formatTime(dateStr: string) {
       </div>
     </div>
 
+    <MyEventAccess v-if="!auth.isStudent" />
+
     <!-- Today's Events -->
-    <div>
+    <div v-if="!auth.isStudent">
       <h2 class="text-lg font-semibold text-navy mb-4 font-serif">Today's Sessions</h2>
       <div v-if="todayEvents.length === 0" class="text-sm text-slate bg-paper-panel rounded-xl border border-line p-6 text-center">
         No events scheduled for today

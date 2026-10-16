@@ -3,12 +3,14 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { useGeolocation } from '@/composables/useGeolocation'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const geo = useGeolocation()
 const scanning = ref(false)
 const result = ref<{ success: boolean; message: string } | null>(null)
 const scannerRef = ref<HTMLDivElement | null>(null)
@@ -21,8 +23,20 @@ async function handleScan(decodedText: string) {
   result.value = null
 
   try {
+    // The server only records a scan from someone standing at the venue.
+    let lat = geo.latitude.value
+    let lng = geo.longitude.value
+    if (lat === null || lng === null) {
+      const here = await geo.getPosition()
+      lat = here.lat
+      lng = here.lng
+    }
+
     const response = await api.post('/attendance/qr', {
       token: decodedText.trim(),
+      lat,
+      lng,
+      accuracy: geo.accuracy.value,
     })
 
     result.value = { success: true, message: `Check-in recorded for ${(response as any).user?.name || 'officer'}` }
@@ -34,6 +48,7 @@ async function handleScan(decodedText: string) {
 }
 
 onMounted(async () => {
+  geo.startWatching()
   try {
     const { Html5Qrcode } = await import('html5-qrcode')
 
@@ -71,7 +86,7 @@ onUnmounted(() => {
       <div class="absolute -right-8 -top-8 w-32 h-32 border border-white/10 rounded-full" />
       <div class="text-xs tracking-widest uppercase text-gold font-bold mb-1">Scanner</div>
       <h1 class="text-2xl font-bold">Scan officer QR</h1>
-      <p class="text-white/50 text-sm mt-1">Point camera at officer's QR code</p>
+      <p class="text-white/50 text-sm mt-1">Point camera at the QR code. Location must be on — you have to be at the venue.</p>
     </div>
 
     <!-- Camera viewport -->

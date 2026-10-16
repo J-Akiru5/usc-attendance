@@ -243,7 +243,8 @@ async function handleForgotPassword() {
 
         <!-- Footer note -->
         <p class="text-center text-xs text-slate mt-6">
-          For authorized USC officers only.
+          USC officers sign in above. Student?
+          <router-link to="/register" class="underline text-navy">Create your account</router-link>
         </p>
 
       </div>

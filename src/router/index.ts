@@ -100,12 +100,22 @@ const router = createRouter({
       meta: { guest: true },
     },
 
+    // Student self-registration
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/pages/RegisterPage.vue'),
+      meta: { guest: true },
+    },
+
     // Password reset (from email link)
     {
       path: '/reset-password',
       name: 'reset-password',
       component: () => import('@/pages/ResetPasswordPage.vue'),
-      meta: { guest: true },
+      // Not guest-only: opening the emailed link signs the person in (recovery /
+      // email-verification session) before this page loads, and they must still see it.
+      meta: {},
     },
 
     // Force password change — mustChangePassword gate
@@ -139,13 +149,13 @@ const router = createRouter({
       path: '/check-in',
       name: 'check-in',
       component: () => import('@/pages/CheckInPage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
     },
     {
       path: '/check-in/:eventId',
       name: 'check-in-event',
       component: () => import('@/pages/CheckInPage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
     },
     {
       path: '/qr',
@@ -157,24 +167,37 @@ const router = createRouter({
       path: '/scan',
       name: 'scanner',
       component: () => import('@/pages/ScannerPage.vue'),
-      meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff'], allowDelegates: true },
     },
     {
       path: '/duty',
       name: 'duty',
       component: () => import('@/pages/DutyCheckInPage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
     },
     {
       path: '/attendance/:eventId',
       name: 'attendance',
       component: () => import('@/pages/AttendancePage.vue'),
-      meta: { requiresAuth: true, roles: ['super_admin', 'staff'] },
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff'], allowDelegates: true },
     },
     {
       path: '/manage/schedules',
       name: 'schedules',
       component: () => import('@/pages/ManageSchedulesPage.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'] },
+    },
+    {
+      path: '/manage/settings',
+      name: 'settings',
+      component: () => import('@/pages/SettingsPage.vue'),
+      // The API decides who may change settings (admin, President, Secretary, or flagged managers).
+      meta: { requiresAuth: true, roles: ['super_admin', 'staff', 'client'] },
+    },
+    {
+      path: '/manage/students',
+      name: 'manage-students',
+      component: () => import('@/pages/ManageStudentsPage.vue'),
       meta: { requiresAuth: true, roles: ['super_admin'] },
     },
     {
@@ -219,7 +242,9 @@ router.beforeEach(async (to) => {
 
   if (to.meta.roles && auth.user) {
     const allowed = to.meta.roles as string[]
-    if (!allowed.includes(auth.user.role)) {
+    // Pages flagged allowDelegates are open to any officer; the API decides
+    // per event whether they hold an active grant.
+    if (!allowed.includes(auth.user.role) && !to.meta.allowDelegates) {
       return { name: 'dashboard' }
     }
   }

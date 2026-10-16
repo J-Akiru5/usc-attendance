@@ -12,6 +12,11 @@ export const useAuthStore = defineStore('auth', () => {
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
   const isStaff = computed(() => user.value?.role === 'staff' || user.value?.role === 'super_admin')
   const isClient = computed(() => user.value?.role === 'client')
+  const isStudent = computed(() => user.value?.role === 'student')
+  // Super admin, President/Secretary (canDelegate) or anyone flagged canConfigure (adviser, officer in charge)
+  const canManageSettings = computed(
+    () => user.value?.role === 'super_admin' || user.value?.canDelegate === true || user.value?.canConfigure === true
+  )
   const role = computed(() => user.value?.role as Role | undefined)
 
   async function fetchUser() {
@@ -71,6 +76,8 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isStaff,
     isClient,
+    isStudent,
+    canManageSettings,
     role,
     fetchUser,
     login,

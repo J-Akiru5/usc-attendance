@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
-import { authenticate, requireSuperAdmin } from '../_lib/auth.js'
+import { authenticate, forbidStudents, requireSuperAdmin } from '../_lib/auth.js'
 import { badRequest, handle, notFound } from '../_lib/http.js'
 
 // ---------------------------------------------------------------------------
@@ -8,6 +8,7 @@ import { badRequest, handle, notFound } from '../_lib/http.js'
 // ---------------------------------------------------------------------------
 export const duties = handle(async (req: VercelRequest, res: VercelResponse) => {
   const user = await authenticate(req)
+  forbidStudents(user)
 
   if (req.method === 'GET') {
     const dutiesList = await prisma.officeDuty.findMany({

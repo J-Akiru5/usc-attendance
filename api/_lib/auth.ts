@@ -11,6 +11,29 @@ export interface AuthUser {
   position: string
   role: string
   canManageContent: boolean
+  canDelegate: boolean
+  canConfigure: boolean
+}
+
+/**
+ * Checks that apply once the database row is known: deactivated accounts are
+ * refused everywhere, and a self-registered student must have verified their
+ * email (enforced here so it never depends on a dashboard setting).
+ */
+function assertAccountUsable(
+  dbUser: { active: boolean; role: string; mustChangePassword: boolean },
+  emailConfirmed: boolean,
+  options?: { allowMustChangePassword?: boolean }
+) {
+  if (!dbUser.active) {
+    throw new HttpError(403, 'Access denied. This account is deactivated.')
+  }
+  if (dbUser.role === 'student' && !emailConfirmed) {
+    throw new HttpError(403, 'Access denied. Please verify your email address first - check your inbox for the link.')
+  }
+  if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
+    throw new HttpError(403, 'Access denied. Password change required.')
+  }
 }
 
 export async function authenticate(
@@ -31,9 +54,7 @@ export async function authenticate(
       console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
       throw new HttpError(401, 'User not found in database')
     }
-    if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
-      throw new HttpError(403, 'Access denied. Password change required.')
-    }
+    assertAccountUsable(dbUser, !!user.email_confirmed_at, options)
     return dbUser as AuthUser
   }
 
@@ -55,9 +76,12 @@ export async function authenticate(
       console.error('[auth] JWT fallback: no Prisma user for id:', userId, 'email:', payload.email)
       throw new HttpError(401, 'User not found in database')
     }
-    if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
-      throw new HttpError(403, 'Access denied. Password change required.')
+    let confirmed = true
+    if (dbUser.role === 'student') {
+      const { data: au } = await supabaseAdmin.auth.admin.getUserById(userId)
+      confirmed = !!au?.user?.email_confirmed_at
     }
+    assertAccountUsable(dbUser, confirmed, options)
     return dbUser as AuthUser
   } catch (jwtErr) {
     if (jwtErr instanceof HttpError) throw jwtErr
@@ -83,5 +107,12 @@ export function requireSuperAdmin(user: AuthUser) {
 export function requireContentAccess(user: AuthUser) {
   if (user.role !== 'super_admin' && !user.canManageContent) {
     throw new HttpError(403, 'Access denied. Content management permission required.')
+  }
+}
+
+/** Students may only use their own QR/signature flows; block them from officer features. */
+export function forbidStudents(user: { role: string }) {
+  if (user.role === 'student') {
+    throw new HttpError(403, 'Access denied. This feature is for officers only.')
   }
 }
