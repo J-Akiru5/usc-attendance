@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../_lib/supabase.js'
 import { resend } from '../_lib/resend.js'
 import { authenticate, requireStaff, requireSuperAdmin } from '../_lib/auth.js'
 import { badRequest, handle, HttpError } from '../_lib/http.js'
+import { siteUrl } from '../_lib/site.js'
 
 // ---------------------------------------------------------------------------
 // GET /api/auth/me
@@ -84,7 +85,7 @@ export async function requestPasswordReset(req: VercelRequest, res: VercelRespon
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${process.env.SITE_URL || 'https://uscattendance.syntaxure.dev'}/reset-password`,
+        redirectTo: `${siteUrl()}/reset-password`,
       },
     })
 

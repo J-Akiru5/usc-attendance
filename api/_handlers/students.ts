@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../_lib/supabase.js'
 import { resend } from '../_lib/resend.js'
 import { randomBytes } from 'crypto'
 import { handle, HttpError } from '../_lib/http.js'
+import { siteUrl } from '../_lib/site.js'
 import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../_lib/students.js'
 
 const GENERIC =
@@ -14,10 +15,6 @@ const ONE_HOUR = 60 * 60 * 1000
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
-}
-
-function siteUrl(): string {
-  return process.env.SITE_URL || 'https://uscattendance.syntaxure.dev'
 }
 
 async function audit(action: string, key: string, extra: Record<string, unknown> = {}, userId?: string) {
