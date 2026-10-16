@@ -25,6 +25,7 @@ const prisma = new PrismaClient()
 const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
 const anon = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
 
+const AT = { lat: 10.72, lng: 122.56, accuracy: 10 } // at the throwaway event's venue
 const tag = 'e2estu' + Date.now()
 let pass = 0, fail = 0
 const check = (label: string, ok: boolean, detail = '') => {
@@ -149,7 +150,7 @@ async function main() {
   r = res(); await A.qrToken(rq(st, 'POST', { eventId }), r)
   check('student gets a QR token (200)', r._s === 200 && !!r._b?.token, `${r._s}`)
   const qr = r._b.token
-  r = res(); await A.qr(rq(staff.token, 'POST', { token: qr }), r)
+  r = res(); await A.qr(rq(staff.token, 'POST', { ...AT, token: qr }), r)
   check('officer scan records the student (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   const attendanceId = r._b?.id as string
 

@@ -34,6 +34,37 @@ export function assertWithinGeofence(geofence: Geofence, lat: number, lng: numbe
   }
 }
 
+/** GPS accuracy (metres) we are willing to forgive on top of the venue radius. */
+export const MAX_ACCURACY_ALLOWANCE_M = 100
+
+/**
+ * The person recording attendance (scanning a QR / delegated manual entry) must be
+ * at the venue. Coordinates are required; the venue radius is widened by the
+ * device's reported accuracy (capped) so indoor GPS drift does not lock out the door.
+ */
+export function authorizeScanLocation(
+  geofence: Geofence,
+  lat: unknown,
+  lng: unknown,
+  accuracy?: unknown
+): { lat: number; lng: number } {
+  const la = toNumber(lat)
+  const ln = toNumber(lng)
+  if (la === null || ln === null || Math.abs(la) > 90 || Math.abs(ln) > 180) {
+    throw new HttpError(400, 'Location is required to record attendance. Turn on location and try again.')
+  }
+  const acc = toNumber(accuracy)
+  const allowance = acc === null ? 0 : Math.min(Math.max(acc, 0), MAX_ACCURACY_ALLOWANCE_M)
+  const distance = haversine(la, ln, geofence.lat, geofence.lng)
+  if (distance > geofence.radiusMeters + allowance) {
+    throw new HttpError(
+      403,
+      `You are ${Math.round(distance)}m from the venue. You must be within ${geofence.radiusMeters}m to record attendance.`
+    )
+  }
+  return { lat: la, lng: ln }
+}
+
 export function isStaff(actor: Actor): boolean {
   return actor.role === 'super_admin' || actor.role === 'staff'
 }

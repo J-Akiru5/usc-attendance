@@ -13,6 +13,7 @@ const prisma = new PrismaClient()
 const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
 const anon = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
 
+const AT = { lat: 10.72, lng: 122.56, accuracy: 10 } // at the throwaway event's venue
 const tag = 'e2edel' + Date.now()
 let pass = 0, fail = 0
 const check = (label: string, ok: boolean, detail = '') => {
@@ -85,9 +86,9 @@ async function main() {
   check('President/Secretary can grant scan (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
 
   console.log('\n--- scope enforcement for the delegate ---')
-  r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(s1) }), r)
+  r = res(); await A.qr(rq(delegate.token, 'POST', { ...AT, token: await qrFor(s1) }), r)
   check('delegate with scan can scan a QR (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
-  r = res(); await A.qr(rq(outsider.token, 'POST', { token: await qrFor(s2) }), r)
+  r = res(); await A.qr(rq(outsider.token, 'POST', { ...AT, token: await qrFor(s2) }), r)
   check('officer without any grant cannot scan (403)', r._s === 403, `${r._s}`)
   r = res(); await A.index(rq(delegate.token, 'POST', { type: 'event', eventId: ev.id, userId: s2.id, method: 'manual' }), r)
   check('scan-only delegate cannot record manually (403)', r._s === 403, `${r._s}`)
@@ -95,7 +96,7 @@ async function main() {
   check('scan-only delegate cannot view roster (403)', r._s === 403, `${r._s}`)
   r = res(); await A.exportAttendance(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
   check('scan-only delegate cannot export (403)', r._s === 403, `${r._s}`)
-  r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(delegate) }), r)
+  r = res(); await A.qr(rq(delegate.token, 'POST', { ...AT, token: await qrFor(delegate) }), r)
   check('delegate cannot scan their own QR (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- replacing a grant widens scope ---')
@@ -103,7 +104,7 @@ async function main() {
   check('re-grant with all scopes (201)', r._s === 201, `${r._s}`)
   const live = await prisma.eventDelegate.count({ where: { eventId: ev.id, userId: delegate.id, revokedAt: null } })
   check('only one live grant per officer per event', live === 1, `live=${live}`)
-  r = res(); await A.index(rq(delegate.token, 'POST', { type: 'event', eventId: ev.id, userId: s2.id, method: 'manual' }), r)
+  r = res(); await A.index(rq(delegate.token, 'POST', { type: 'event', eventId: ev.id, userId: s2.id, method: 'manual', ...AT }), r)
   check('manual_checkin works (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = res(); await A.index(rq(delegate.token, 'POST', { type: 'event', eventId: ev.id, userId: delegate.id, method: 'manual' }), r)
   check('cannot manually record yourself (403)', r._s === 403, `${r._s}`)
@@ -111,6 +112,14 @@ async function main() {
   check('view_roster works (200, 2 records)', r._s === 200 && r._b.length === 2, `${r._s} ${JSON.stringify(r._b)?.slice(0, 120)}`)
   r = res(); await A.exportAttendance(rq(delegate.token, 'GET', {}, { eventId: ev.id }), r)
   check('export works (200, csv)', r._s === 200 && String(r._b).includes('Name,Position'), `${r._s}`)
+
+  console.log('\n--- scanner must be at the venue ---')
+  r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(s3) }), r)
+  check('scan without location rejected (400)', r._s === 400, `${r._s}`)
+  r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(s3), lat: 10.80, lng: 122.56, accuracy: 10 }), r)
+  check('scan from far away rejected (403)', r._s === 403 && /from the venue/.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
+  r = res(); await A.index(rq(delegate.token, 'POST', { type: 'event', eventId: ev.id, userId: s3.id, method: 'manual' }), r)
+  check('delegated manual entry without location rejected (400)', r._s === 400, `${r._s}`)
 
   console.log('\n--- my grants ---')
   r = res(); await D.myDelegations(rq(delegate.token, 'GET'), r)
@@ -122,14 +131,14 @@ async function main() {
   check('non-delegator cannot revoke (403)', r._s === 403, `${r._s}`)
   r = res(); await D.delegationById(rq(granter.token, 'DELETE'), r, g!.id)
   check('President/Secretary can revoke (200)', r._s === 200, `${r._s}`)
-  r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(s3) }), r)
+  r = res(); await A.qr(rq(delegate.token, 'POST', { ...AT, token: await qrFor(s3) }), r)
   check('scan after revoke is blocked (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- expiry ---')
   r = await grant(granter, delegate.id, ['scan'])
   check('new grant after revoke (201)', r._s === 201, `${r._s}`)
   await prisma.eventDelegate.updateMany({ where: { eventId: ev.id, userId: delegate.id, revokedAt: null }, data: { expiresAt: new Date(Date.now() - 1000) } })
-  r = res(); await A.qr(rq(delegate.token, 'POST', { token: await qrFor(s3) }), r)
+  r = res(); await A.qr(rq(delegate.token, 'POST', { ...AT, token: await qrFor(s3) }), r)
   check('scan after expiry is blocked (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- audit trail ---')

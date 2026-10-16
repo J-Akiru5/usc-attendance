@@ -12,6 +12,7 @@ import {
   authorizeDutySelfCheckIn,
   authorizeEventSelfCheckIn,
   authorizeManualCheckIn,
+  authorizeScanLocation,
 } from '../_lib/attendance-rules.js'
 import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
 import { issueQrToken, verifyQrToken } from '../_lib/qr.js'
@@ -48,7 +49,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
   }
 
   if (req.method === 'POST') {
-    const { type, eventId, dutyDate, userId, method, lat, lng } = req.body
+    const { type, eventId, dutyDate, userId, method, lat, lng, accuracy } = req.body
 
     if (!userId || !method) {
       throw badRequest('Missing required fields')
@@ -74,7 +75,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
     }
 
     // Resolve who may record whom, how, and where — all server-side.
-    let resolved: { lat: number | null; lng: number | null }
+    let resolved: { lat: number | null; lng: number | null } = { lat: null, lng: null }
     let delegatedScope: 'manual_checkin' | null = null
     if (method === 'self') {
       if (attendanceType === 'event') {
@@ -100,10 +101,16 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
           throw forbidden('You cannot manually record your own attendance.')
         }
         delegatedScope = viaDelegation ? 'manual_checkin' : null
+        if (viaDelegation) {
+          // A temporary helper must be at the venue; staff overrides stay exempt.
+          const event = await prisma.event.findUnique({ where: { id: eventId } })
+          if (!event) throw notFound('Event not found')
+          const here = authorizeScanLocation(event, lat, lng, accuracy)
+          resolved = { lat: here.lat, lng: here.lng }
+        }
       } else {
         authorizeManualCheckIn(user, userId)
       }
-      resolved = { lat: null, lng: null }
     }
 
     // Check for open (not-yet-checked-out) record
@@ -484,7 +491,7 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
   }
 
   const user = await authenticate(req)
-  const { token } = req.body
+  const { token, lat, lng, accuracy } = req.body
 
   if (!token || typeof token !== 'string') {
     throw badRequest('token is required')
@@ -497,6 +504,11 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
   if (payload.u === user.id) {
     throw forbidden('You cannot check in with your own QR code')
   }
+
+  // The scanner must physically be at the venue.
+  const scanEvent = await prisma.event.findUnique({ where: { id: payload.e } })
+  if (!scanEvent) throw notFound('Event not found')
+  const scannedAt = authorizeScanLocation(scanEvent, lat, lng, accuracy)
 
   // Check for open (not-yet-checked-out) record
   const existing = await prisma.attendance.findFirst({
@@ -513,6 +525,8 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
         eventId: payload.e,
         userId: payload.u,
         method: 'qr',
+        lat: scannedAt.lat,
+        lng: scannedAt.lng,
         recordedBy: user.id,
       },
       include: {
