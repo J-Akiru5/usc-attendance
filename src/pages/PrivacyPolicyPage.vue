@@ -21,7 +21,7 @@ const sections = computed<PolicySection[]>(() => {
     },
     {
       title: 'Location and Signatures',
-      content: 'When an officer scans your QR code, the officer's device location is checked and saved to confirm that attendance was recorded at the venue. Your own device location is not tracked. The signature you draw after check-in is stored as an image together with a fingerprint of that image, and it appears on attendance reports exported by authorized officers. These are used only to confirm event attendance.',
+      content: 'When an officer scans your QR code, the location of the scanning officer phone is checked and saved to confirm that attendance was recorded at the venue. Your own device location is not tracked. The signature you draw after check-in is stored as an image together with a fingerprint of that image, and it appears on attendance reports exported by authorized officers. These are used only to confirm event attendance.',
     },
     {
       title: 'Student Accounts',
