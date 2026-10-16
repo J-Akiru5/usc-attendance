@@ -1,6 +1,6 @@
 # USC Attendance → Professional USC Platform — Master Plan
 
-> **Status:** Draft v1 · 2026-10-17 · Owner: Jeff (Syntaxure Labs) · Audience: Jeff, the USC President, and any AI coding agent working in this repo.
+> **Status:** Draft v1.1 (USC answers folded in) · 2026-10-17 · Owner: Jeff (Syntaxure Labs) · Audience: Jeff, the USC President, and any AI coding agent working in this repo.
 >
 > **For agents:** this is the source of truth for scope, order and conventions. Read [§13 Agent working agreement](#13-agent-working-agreement) before writing code, and tick the [§14 tracker](#14-progress-tracker) as phases land. Do not start a phase whose open questions in [§12](#12-open-questions-for-jeff--the-usc) are still unanswered without asking.
 
@@ -12,11 +12,12 @@
 |---|---|
 | **Goal** | Turn the current attendance app into a complete, professional platform for the ISUFST Dingle Campus University Student Council (USC). |
 | **Decided stack** | **Nuxt 4 + Nuxt UI v4** (free, MIT, includes a free Dashboard template), Prisma + Supabase Postgres + Supabase Auth, deployed on Vercel. |
-| **Scope** | USC only (single organization). Modules: events calendar + registration, attendance analytics & reports, announcements & notifications, student-ID barcode scanning, absence fines & clearance, elections, finance & liquidation, documents & resolutions archive. |
+| **Scope** | USC only (single organization), English only. Modules: events calendar + registration, attendance analytics & reports, announcements & notifications, student-number scanning (ID barcode once MIS adds it), absence fines & clearance (default ₱50 absent / ₱25 late), finance & liquidation, documents & resolutions archive. **Elections are deferred** (COMELEC exists; not election season). |
 | **Strategy** | Incremental "strangler" rebuild on a branch: scaffold Nuxt, port the existing hardened API logic and pages to parity, then add modules one phase at a time. Database stays; nothing already built is thrown away. |
 | **Benchmarks** | CampusGroups (Ready Education), Anthology Engage, Presence (Modern Campus): rosters, events, swipe/QR check-in, refreshing QR, elections, org finance, analytics. Research on fraud-resistant attendance backs our approach of refreshing QR + geofence + officer-recorded check-in. |
-| **Rough effort** | ~16–24 weeks for one developer working with AI agents (ranges per phase in [§9](#9-phased-roadmap)). Parity alone ≈ 3–5 weeks. |
-| **Biggest risks** | Free-tier limits (Supabase paused once already; Vercel Hobby is non-commercial), election integrity, student data privacy (Data Privacy Act of 2012), and scope creep. |
+| **Rough effort** | ~14–21 weeks for one developer working with AI agents with elections deferred (ranges per phase in [§9](#9-phased-roadmap)). Parity alone ≈ 3–5 weeks. |
+| **Budget** | **₱0 hosting budget for now** — everything is designed to fit free tiers (see [§11.1](#111-free-tier-constraints-no-hosting-budget)). |
+| **Biggest risks** | Free-tier limits (Supabase paused once already; Vercel Hobby is non-commercial; email sending is capped), student data privacy (Data Privacy Act of 2012), and scope creep. |
 
 ---
 
@@ -140,6 +141,12 @@ Legend: ✅ have · 🟡 partial · ❌ missing · 🎯 planned phase
 | D5 | Database & auth | **Keep** Supabase Postgres + Supabase Auth + Prisma | Schema already migrated; no data migration needed. |
 | D6 | Hosting | **Keep** Vercel (Nitro `vercel` preset) | Cron already configured. |
 | D7 | Check-in model | Officer records students (scan QR / ID barcode); students sign afterwards | Already built; keep. |
+| D8 | Elections | **Deferred** to the backlog | A COMELEC exists but it's not election season; spec kept in §8.6 for later. |
+| D9 | Language | **English only** | No i18n layer needed in v1 (keep strings in components tidy so it can be added). |
+| D10 | Hosting budget | **₱0 — free tiers only** for now | Constraints in §11.1; revisit if the USC funds a proposal. |
+| D11 | Academic reference data | **Editable by admins**: colleges, programs, year levels, sections | Seed the 4 colleges; programs default to 4 year levels, editable (e.g., a 5-year program). Sections are encoded by the admin. |
+| D12 | Fines defaults | **₱50 per absence, ₱25 per late**, editable by admin | Per-event overrides allowed. |
+| D13 | ID barcode | **Not on school IDs yet** | Build scanning of the student number (QR/barcode) so it works the day MIS adds barcodes; the USC will propose it to MIS/Admin. Student QR remains the main path. |
 
 ---
 
@@ -217,9 +224,29 @@ tests/            Vitest unit (ported from api/_lib/*.test.ts) + e2e (ported scr
 
 ## 7. Roles and permissions
 
+### 7.1 Current officers (2026 org chart) and their access
+
+| Person | Position | System access today |
+|---|---|---|
+| Jonard V. Verdeflor | Adviser | **No account yet** (needs a school email) → Settings manager |
+| Rowena S. Borcelo | Co-Adviser | **No account yet** (needs a school email) → Settings manager |
+| Jared S. Demonteverde | President | super_admin + delegate + settings |
+| Katherine Anne B. Bicodo | Vice President | **same as President**: super_admin + delegate + settings (applied 2026-10-17) |
+| Dein Andrey D. Daguro | Senate President | staff |
+| Nikki Loraine B. Danugrao | Secretary | staff + delegate + settings |
+| Chene D. Manderico | Treasurer | staff (applied 2026-10-17); treasurer capabilities arrive with fines/finance |
+| Lianne B. Parcia | Auditor | staff |
+| Rena Grace B. Aquiño | Spokesperson | staff |
+| Jeff Edrick C. Martinez | **Officer in Charge** | staff + settings (applied 2026-10-17) |
+| — | Senate Press | **vacant** |
+| Senators (Nezie Ann A. Deang, John David A. Natalio, John Emiel P. Balinas, Andro Renz D. Perisme, Reynald S. Almirante, Jona Ross P. Frial) | Senator | client |
+| University Accountant, Campus Administrator | external signatories (finance) | no accounts (see §8.7) |
+
+### 7.2 Capability matrix (target)
+
 Today permissions are a mix of `role` + flags (`canDelegate`, `canConfigure`, `canManageContent`). Phase 1 replaces this with a **capability-based RBAC** table so new modules don't add new booleans.
 
-| Capability | Super admin | President | Secretary | Treasurer | Auditor | Adviser | Officer in charge | Officers (staff) | Officers (client) | Delegate (per event) | Student |
+| Capability | Super admin | President / VP | Secretary | Treasurer | Auditor | Adviser | Officer in charge | Officers (staff) | Officers (client) | Delegate (per event) | Student |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Manage users / roles | ✅ | 🟡 view | | | | | | | | | |
 | Create/edit events | ✅ | ✅ | ✅ | | | ✅ | ✅ | ✅ | | | |
@@ -248,7 +275,12 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 
 - Nuxt 4 scaffold from the Nuxt UI Dashboard template; Tailwind theme with USC navy/gold.
 - Port all existing pages and API routes to parity (see §1).
-- **Student profile extension:** `college`, `program`, `yearLevel`, `section`, `contactNumber?` on `student_profiles`; registration form and admin edit updated. *Needed for every filter and analytics view.*
+- **Academic reference data (all editable by admins):**
+  - `colleges` — code + name. Seed: **CICI** College of Informatics and Computing Innovations · **CoAg** College of Agriculture · **CBMSD** College of Business Management and Sustainable Development · **CoEd** College of Education.
+  - `programs` — belongs to a college; code, name, **`yearLevels` (default 4, editable, e.g. 5)**; programs are added by the admin.
+  - `sections` — belongs to a program + year level; name encoded by the admin (they vary per term).
+  - Renaming a college/program updates everywhere (foreign keys, not copied text); deleting is blocked while students reference it (archive instead).
+- **Student profile extension:** `collegeId`, `programId`, `yearLevel` (1…program.yearLevels), `sectionId?`, `contactNumber?` on `student_profiles`; registration form uses dropdowns from the reference data; admin can correct any field. *Needed for every filter and analytics view.*
 - **RBAC:** `roles`, `role_capabilities`, `user_roles` (a user can hold several, e.g. Secretary + Officer); migrate existing flags.
 - **`useDataTable`**: server-side paging/sort/filter, URL-synced, saved views per user, column chooser, CSV/Excel/PDF export of the current filter.
 - QR refresh 60 s → 30 s (benchmark parity).
@@ -259,7 +291,7 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 - Event fields: description, venue + geofence, start/end, check-in window, **required audience** (all / college / year level / section), capacity, registration required?, waitlist, attachments, cover image.
 - **Registration/RSVP**: students register; capacity + waitlist with auto-promotion; reminders (see 8.4).
 - **Recurring events** (e.g., weekly flag ceremony) via RRULE.
-- **Student-ID barcode scanning** in the scanner: reads the printed ID's barcode → looks up `studentNo` → records attendance (no phone needed for the student). Signature step is skipped or done on the officer's device for these students (see Q5).
+- **Student-number scanning** in the scanner: reads a QR/1D barcode that encodes the student number → looks up `studentNo` → records attendance (no phone needed). **ISUFST IDs have no barcode yet**; the USC will propose adding one to MIS/Admin, so this ships ready but secondary to the student QR. Until then, officers can also search a student by number/name as a manual fallback. Signature for phone-less students: sign on the officer's device (default; see Q5).
 - **Offline scanner queue**: scans saved locally and synced when online (signed tokens verified server-side on sync, with original scan time + location).
 - *Acceptance:* create recurring event → calendar shows instances; register beyond capacity → waitlisted; barcode scan of a test ID records the right student; offline scans sync once.
 
@@ -280,14 +312,17 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 
 ### 8.5 Absence fines & clearance (Phase 4)
 
-- **Fine rules** per event or category: amount, applies to required audience, grace (e.g., late = half fine).
+- **Fine rules**: global defaults **₱50 per absence** and **₱25 per late** (admin-editable), with optional per-event or per-category overrides; applies to the event's required audience; a configurable late threshold (minutes after the window opens).
 - After an event's window closes (cron), **no-shows** among the required audience get a fine; late arrivals get the late rate.
 - **Excuse requests** with attachment (medical, academic conflict) → approve/deny → fine waived.
 - **Payments** recorded by the Treasurer (cash; OR number; optional GCash reference) — *no online payment collection in v1*.
 - **Clearance**: a student is cleared when they have no unpaid fines; printable clearance PDF with a **verification QR** that anyone can check at `/verify/<code>`.
 - *Acceptance:* event closes → correct fines generated; approved excuse waives; payment clears; verification page confirms authenticity and tamper attempts fail.
 
-### 8.6 Elections / voting (Phase 5)
+### 8.6 Elections / voting — **DEFERRED** (backlog)
+
+> Not in the current roadmap: a COMELEC exists but it isn't election season. The spec below is kept so it can be picked up later; review it with the COMELEC first.
+
 
 - Election setup: positions, number of seats, eligibility (e.g., all enrolled students; college-specific positions), filing period, campaign period, voting window.
 - Candidate filing with requirements upload; COMELEC review.
@@ -298,7 +333,20 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 ### 8.7 Finance, budget & liquidation (Phase 6)
 
 - Budget per semester with line items; income (e.g., collected fines, fees) and expenses.
-- **Disbursement requests** with approval chain (Treasurer → President → Adviser), receipt uploads (R2), liquidation report per event/project (PDF/Excel).
+- **Budget proposal workflow (rough sketch from the USC, to be verified with the school):**
+
+```mermaid
+flowchart LR
+  A["Decided by the body<br/>in a meeting<br/>(link minutes)"] --> B["Treasurer records<br/>and holds the proposal"]
+  B --> C["Noted by:<br/>President · Adviser ·<br/>University Accountant"]
+  C --> D["Approved by:<br/>Campus Administrator"]
+  D --> E["Release / spend<br/>receipts uploaded"]
+  E --> F["Liquidation report"]
+```
+
+  - Officers in the system (Treasurer, President, Adviser) act in-app; the **University Accountant and Campus Administrator are external**: the Treasurer records their *noted/approved* step with date + an uploaded signed copy (no accounts needed in v1; optional limited accounts later).
+  - Each step is time-stamped and audited; a proposal can't move to "approved" without every "noted by" step.
+- Receipt uploads (R2), liquidation report per event/project (PDF/Excel).
 - Read-only **transparency board** (optional public summary).
 - *Acceptance:* expense can't exceed remaining line budget without override; liquidation totals reconcile; every approval audited.
 
@@ -327,8 +375,7 @@ gantt
   P3 Analytics + announcements        :p3, after p2, 20d
   section Governance
   P4 Fines & clearance                :p4, after p3, 15d
-  P5 Elections                        :p5, after p4, 15d
-  P6 Finance & liquidation            :p6, after p5, 15d
+  P6 Finance & liquidation            :p6, after p4, 15d
   P7 Documents archive                :p7, after p6, 10d
   section Launch
   P8 Hardening, a11y, DPA, pilot      :p8, after p7, 10d
@@ -341,7 +388,7 @@ gantt
 | **P2** Events | Calendar, categories, recurrence, registration + waitlist, ID-barcode scanning, offline scanner | 3–4 wk | §8.2 acceptance. |
 | **P3** Insight & comms | Analytics dashboards, Student 360, report templates, announcements (in-app/email/push), reminders | 3–4 wk | §8.3–8.4 acceptance. |
 | **P4** Fines | Rules, auto-generation, excuses, payments, clearance + verification | 2–3 wk | §8.5 acceptance. |
-| **P5** Elections | Setup, filing, secret ballot, results | 2–3 wk | §8.6 acceptance + independent review. |
+| ~~P5~~ Elections | **Deferred** — not election season | — | Revisit with the COMELEC. |
 | **P6** Finance | Budgets, requests, approvals, receipts, liquidation | 2–3 wk | §8.7 acceptance. |
 | **P7** Documents | Archive, numbering, versions, search | 1–2 wk | §8.8 acceptance. |
 | **P8** Launch | Accessibility (WCAG 2.1 AA), performance, DPA paperwork, load test, pilot event, training | 1–2 wk | Pilot event run with real students; sign-off from President/Adviser. |
@@ -368,9 +415,25 @@ A phase/feature is done only when:
 
 ## 11. Security, privacy and compliance
 
+### 11.1 Free-tier constraints (no hosting budget)
+
+*Limits below are the commonly published free-tier limits as of writing — **verify current numbers** on each provider's pricing page before relying on them.*
+
+| Service | Free-tier limit that matters | Design response |
+|---|---|---|
+| **Supabase** (DB + Auth) | ~500 MB database; projects **pause after ~7 days of inactivity** (this already caused an outage) | Keep images **out of Postgres** (move signatures/receipts/documents to R2); the nightly cron hits the DB daily, which should keep the project active — verify, and add a free uptime monitor (e.g., UptimeRobot) pinging a lightweight DB-backed endpoint. |
+| **Vercel Hobby** | Intended for personal/non-commercial use; cron jobs limited (daily); function duration limits | Single Nitro server function; daily crons only; heavy exports streamed/paginated. Confirm with the USC that a student-council non-profit use is acceptable, or seek a budget for Pro later. |
+| **Resend** (email) | ~100 emails/day, ~3,000/month on the free plan | **Email only for transactional mail** (verification, password reset, fine/clearance notices). Mass announcements go **in-app + web push** (free). Batch and throttle; show a daily-quota guard in the admin UI. |
+| **Cloudflare R2** | ~10 GB storage free, no egress fees | Store signature PNGs, receipts, documents, photos here. |
+| **Sentry** | Free developer tier | Error tracking with sampling. |
+
+**Storage math (why images leave Postgres):** a signature is ~15–20 KB; 1,000 students × ~8 required events per semester ≈ 8,000 signatures ≈ 150 MB per semester — too much for a 500 MB database alongside everything else, but trivial for R2. The per-semester retention already purges old images.
+
+### 11.2 Security and privacy
+
 - **Data Privacy Act of 2012 (RA 10173):** consent at registration (done), privacy notice (updated), retention schedule per data type (signatures done; extend to location, ballots, receipts), data-subject requests (export/delete own data), breach procedure, designate a Data Protection Officer contact.
 - **Least privilege:** capability-based RBAC (§7); service-role key only on the server.
-- **Elections:** secret ballot separation, concurrency-safe one-vote rule, results lock, configuration audit; ideally reviewed by the adviser/COMELEC before first use.
+- **Elections (when un-deferred):** secret ballot separation, concurrency-safe one-vote rule, results lock, configuration audit; reviewed by the adviser/COMELEC before first use.
 - **Abuse controls:** rate limits on public endpoints (registration, verification, clearance lookup); signed short-lived QR; geofence; optional device binding for scanners.
 - **Secrets:** never in code or logs; Vercel env vars; rotate `QR_SECRET`, `CRON_SECRET` if leaked.
 - **Weak passwords:** the `admin@usc.edu.ph` account currently uses a development password — **must** be changed before students are invited (tracked in §14).
@@ -379,19 +442,31 @@ A phase/feature is done only when:
 
 ## 12. Open questions for Jeff / the USC
 
+### 12.1 Answered (2026-10-17)
+
+| # | Question | Answer |
+|---|---|---|
+| Q1 | Academic structure | 4 colleges: CICI, CoAg, CBMSD, CoEd. Year levels 1st–4th for all programs, editable (a program may become 5 years). Sections vary — encoded by the admin. **Everything editable**, including college names. |
+| Q3 | Officers | Per the 2026 org chart (§7.1). Senate Press vacant. Jeff Edrick C. Martinez = Officer in Charge. VP has the same access as the President. |
+| Q4 | School ID barcode | Not on IDs yet; the USC will propose it to MIS/Admin. Build support anyway (D13). |
+| Q6 | Fines | Default ₱50 per absence, ₱25 per late; editable by admin. |
+| Q7 | Elections | COMELEC exists; voting deferred (not election season). |
+| Q8 | Finance approvals | Body decides in a meeting → Treasurer records/holds the proposal → noted by President, Adviser, University Accountant → approved by Campus Administrator. To be verified with the school. |
+| Q9 | Language | English only. |
+| Q10 | Hosting budget | None for now; may request one through a proposal later. |
+
+### 12.2 Still open
+
 | # | Question | Needed by |
 |---|---|---|
-| Q1 | Student profile fields: which colleges/programs/year levels/sections exist? Is there an official list we can seed? | P1 |
-| Q2 | Should officers also be students in the system (one account), or stay separate accounts? | P1 |
-| Q3 | Who are the Treasurer, Auditor, Adviser and Officer in Charge (names + school emails) for account creation? | P1 |
-| Q4 | Sample of the **printed school ID** (photo of the barcode): what format (Code 128/39, QR) and does it encode the student number? | P2 |
-| Q5 | Students scanned by ID barcode (no phone): skip the e-signature, or sign on the officer's device? | P2 |
-| Q6 | Fine amounts, late rules, excuse policy, payment methods (cash only? GCash?) and who may waive. | P4 |
-| Q7 | Elections: is there a COMELEC/electoral board? Eligibility rules, positions, seats, voting window, quorum? | P5 |
-| Q8 | Finance: approval chain and limits; is a public transparency board wanted? | P6 |
-| Q9 | Language: English only, or English + Filipino UI? | P1 |
-| Q10 | Budget for hosting: OK to move to **Supabase Pro (~$25/mo)** to avoid pauses, and is the project eligible for **Vercel Hobby** (non-commercial) or does it need Pro? | P0 |
-| Q11 | Does the USC want a native mobile app later, or is the PWA (installable web app) enough? | P3 |
+| Q2 | Should officers who are also students have one account (officer + student roles) or stay separate? *Recommendation: one account, multiple roles.* | P1 |
+| Q5 | Students checked in without a phone: sign on the officer's device (default) or skip the signature? | P2 |
+| Q11 | Is the installable web app (PWA) enough, or is a native mobile app wanted later? | P3 |
+| Q12 | School emails for **Jonard V. Verdeflor** (Adviser) and **Rowena S. Borcelo** (Co-Adviser) so their accounts can be created. | P1 |
+| Q13 | Late threshold: how many minutes after check-in opens counts as "late"? *Default proposal: 15 minutes.* | P4 |
+| Q14 | Can fines be paid partially, and who issues the official receipt (OR) — the Treasurer only? | P4 |
+| Q15 | Finance: confirm the approval chain with the school, and whether the University Accountant / Campus Administrator should ever sign in, or stay external signatories. | P6 |
+| Q16 | Is a student-council non-profit deployment acceptable on Vercel Hobby, or should the proposal request hosting funds? | P0 |
 
 ---
 
@@ -427,12 +502,14 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 ### Pre-work (current app)
 - [x] Delegation, exports, student registration, e-signature, retention, check-in windows, student admin (merged in PR #23)
 - [x] Production `DATABASE_URL` fixed to the Supabase pooler
+- [x] 2026 roster applied: VP = President access, Jeff = Officer in Charge, Dein = Senate President, Chene = Treasurer (seed script PR #25)
 - [ ] Change the `admin@usc.edu.ph` development password before students are invited
 - [ ] Supabase redirect allow-list includes `https://usc.syntaxure.dev/reset-password`
 - [ ] One real student sign-up verified end to end (Resend → `@isufst.edu.ph`)
 - [ ] Vercel Cron Jobs tab shows `/api/cron/purge-signatures`
 - [ ] Preview environment `DATABASE_URL` switched to the pooler
-- [ ] Adviser / officer-in-charge accounts created and given the Settings switch
+- [x] Officer in Charge (Jeff) has the Settings switch
+- [ ] Adviser and Co-Adviser accounts created (waiting on school emails, Q12) and given the Settings switch
 - [ ] Semesters entered in Settings
 
 ### P0 Foundation
@@ -446,7 +523,8 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] `server/utils/` ports of all `api/_lib` modules with tests passing
 - [ ] All API routes ported (same URLs); 113 live e2e checks green against Nuxt
 - [ ] All pages ported (public site + portal)
-- [ ] RBAC tables + migration of existing flags
+- [ ] RBAC tables + migration of existing flags (VP = President capabilities)
+- [ ] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD
 - [ ] `useDataTable` with server filters, saved views, exports
 - [ ] Student profile: college / program / year / section
 - [ ] QR refresh 30 s
@@ -459,17 +537,22 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] Student-ID barcode scanning
 - [ ] Offline scanner queue
 
+### P0/P1 free-tier hardening
+- [ ] Move signature images (and future uploads) from Postgres to R2
+- [ ] Uptime monitor on a DB-backed health endpoint (keeps Supabase awake, alerts on outage)
+- [ ] Daily email-quota guard for Resend
+
 ### P3 Analytics & communications
 - [ ] Dashboards + Student 360
 - [ ] Official report templates
 - [ ] Announcements (in-app, email, push) + reminders + preferences
 
 ### P4 Fines & clearance
-- [ ] Fine rules + auto-generation + excuses
+- [ ] Fine rules (defaults ₱50 absent / ₱25 late, editable) + auto-generation + excuses
 - [ ] Payments + clearance + public verification
 
-### P5 Elections
-- [ ] Setup, filing, secret ballot, results, audit
+### Elections (deferred)
+- [ ] Revisit with the COMELEC before election season
 
 ### P6 Finance
 - [ ] Budgets, requests/approvals, receipts, liquidation
@@ -486,10 +569,10 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| **Free tiers**: Supabase paused once (caused outage); Vercel Hobby is for non-commercial use | Outages, ToS issues | Decide Q10; upgrade Supabase to Pro or add uptime monitoring; confirm Vercel plan. |
+| **Free tiers** (no budget): Supabase paused once (outage); Vercel Hobby is non-commercial; Resend ~100 emails/day | Outages, ToS issues, undelivered mail | §11.1: images to R2, uptime monitor/keep-alive, in-app + push for mass messages, email only transactional; request hosting funds in the proposal (Q16). |
 | Rewrite stalls before parity | Two half-apps | Strict P1 parity scope; e2e suite as the gate; live site untouched until cutover. |
-| Scope creep across 8 modules | Nothing finished | Ship phase by phase; each phase independently useful. |
-| Election integrity questioned | Loss of trust | Secret-ballot design, review by adviser/COMELEC, dry run election first. |
+| Scope creep across 7 active modules | Nothing finished | Ship phase by phase; each phase independently useful; elections stay deferred. |
+| Election integrity questioned (when un-deferred) | Loss of trust | Secret-ballot design, review by adviser/COMELEC, dry-run election first. |
 | Student privacy breach | Legal (RA 10173), reputational | Least privilege, retention, audit, DPA procedures, no PII in logs. |
 | GPS/browser variability at venues | False rejections at the door | Accuracy allowance, staff override, ID-barcode path, offline queue. |
 | Email deliverability to `@isufst.edu.ph` | Students can't verify | Test early (pre-work), SPF/DKIM on sender domain, fallback manual verification by super admin. |
