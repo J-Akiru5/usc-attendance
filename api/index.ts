@@ -4,6 +4,7 @@ import * as attendance from './_handlers/attendance.js'
 import * as auth from './_handlers/auth.js'
 import * as cms from './_handlers/cms.js'
 import * as contact from './_handlers/contact.js'
+import * as delegations from './_handlers/delegations.js'
 import * as duties from './_handlers/duties.js'
 import * as events from './_handlers/events.js'
 import * as orgProfile from './_handlers/org-profile.js'
@@ -34,6 +35,10 @@ import * as photos from './_handlers/photos.js'
  *   /api/cms/officers        → cms.officers
  *   /api/cms/projects        → cms.projects
  *   /api/contact             → contact.contact
+ *   /api/delegations/mine       → delegations.myDelegations
+ *   /api/delegations/candidates → delegations.delegationCandidates
+ *   /api/delegations/:id        → delegations.delegationById
+ *   /api/delegations            → delegations.delegations
  *   /api/duties              → duties.duties
  *   /api/events/:id          → events.eventById
  *   /api/events              → events.events
@@ -88,6 +93,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Contact
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/contact') return contact.contact(req, res)
+
+  // ---------------------------------------------------------------------------
+  // Event delegation (temporary per-event access)
+  // ---------------------------------------------------------------------------
+  if (rawPath === '/api/delegations/mine') return delegations.myDelegations(req, res)
+  if (rawPath === '/api/delegations/candidates') return delegations.delegationCandidates(req, res)
+  const delegationIdMatch = rawPath.match(/^\/api\/delegations\/([^/]+)$/)
+  if (delegationIdMatch) return delegations.delegationById(req, res, delegationIdMatch[1])
+  if (rawPath === '/api/delegations') return delegations.delegations(req, res)
 
   // ---------------------------------------------------------------------------
   // Duties

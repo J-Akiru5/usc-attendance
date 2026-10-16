@@ -11,6 +11,7 @@ export interface AuthUser {
   position: string
   role: string
   canManageContent: boolean
+  canDelegate: boolean
 }
 
 export async function authenticate(

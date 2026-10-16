@@ -28,7 +28,7 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     const allUsers = await prisma.user.findMany({
       where: { active: true },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true },
       orderBy: { name: 'asc' },
     })
 
@@ -181,16 +181,35 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
   if (req.method === 'PATCH') {
     requireSuperAdmin(user)
 
-    const { canManageContent } = req.body
-    if (typeof canManageContent !== 'boolean') {
-      throw badRequest('canManageContent (boolean) is required')
+    const { canManageContent, canDelegate } = req.body
+    if (canManageContent !== undefined && typeof canManageContent !== 'boolean') {
+      throw badRequest('canManageContent must be a boolean')
+    }
+    if (canDelegate !== undefined && typeof canDelegate !== 'boolean') {
+      throw badRequest('canDelegate must be a boolean')
+    }
+    if (canManageContent === undefined && canDelegate === undefined) {
+      throw badRequest('canManageContent or canDelegate (boolean) is required')
     }
 
     const updated = await prisma.user.update({
       where: { id },
-      data: { canManageContent },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true },
+      data: {
+        ...(canManageContent !== undefined && { canManageContent }),
+        ...(canDelegate !== undefined && { canDelegate }),
+      },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true },
     })
+
+    if (canDelegate !== undefined) {
+      await prisma.auditLog.create({
+        data: {
+          userId: id,
+          action: canDelegate ? 'delegate_power_granted' : 'delegate_power_removed',
+          performedBy: user.id,
+        },
+      })
+    }
 
     return res.status(200).json(updated)
   }

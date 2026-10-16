@@ -12,9 +12,8 @@ import {
   authorizeDutySelfCheckIn,
   authorizeEventSelfCheckIn,
   authorizeManualCheckIn,
-  authorizeQrScan,
-  requireStaffRole,
 } from '../_lib/attendance-rules.js'
+import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
 import { issueQrToken, verifyQrToken } from '../_lib/qr.js'
 import { manilaDayRange, manilaDow, manilaHHMM } from '../_lib/time.js'
 
@@ -31,6 +30,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
     if (!eventId) {
       throw badRequest('eventId query parameter is required')
     }
+    await requireEventScope(prisma, user, eventId, 'view_roster')
 
     const records = await prisma.attendance.findMany({
       where: { eventId },
@@ -67,6 +67,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     // Resolve who may record whom, how, and where — all server-side.
     let resolved: { lat: number | null; lng: number | null }
+    let delegatedScope: 'manual_checkin' | null = null
     if (method === 'self') {
       if (attendanceType === 'event') {
         const event = await prisma.event.findUnique({ where: { id: eventId } })
@@ -84,7 +85,16 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
         resolved = authorizeDutySelfCheckIn({ actor: user, targetUserId: userId, lat, lng })
       }
     } else {
-      authorizeManualCheckIn(user, userId)
+      if (attendanceType === 'event') {
+        // Staff, or an officer holding an active "manual_checkin" grant for this event.
+        const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin')
+        if (userId === user.id) {
+          throw forbidden('You cannot manually record your own attendance.')
+        }
+        delegatedScope = viaDelegation ? 'manual_checkin' : null
+      } else {
+        authorizeManualCheckIn(user, userId)
+      }
       resolved = { lat: null, lng: null }
     }
 
@@ -128,6 +138,13 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
         },
       })
 
+      if (delegatedScope) {
+        await auditDelegationUse(prisma, user, eventId, delegatedScope, {
+          attendanceId: record.id,
+          targetUserId: userId,
+        })
+      }
+
       return res.status(201).json(record)
     } catch (dbErr: unknown) {
       // P2002 = unique constraint violation (race fallback from partial unique index)
@@ -162,9 +179,16 @@ export const checkout = handle(async (req: VercelRequest, res: VercelResponse) =
 
   // Determine self-checkout vs manual checkout
   const isSelf = user.id === userId
+  let delegatedCheckout = false
   if (!isSelf) {
-    // Manual checkout — require staff role (throws 403)
-    authorizeManualCheckIn(user, userId)
+    if (eventId) {
+      // Staff, or an officer holding an active "manual_checkin" grant for this event.
+      const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin')
+      delegatedCheckout = viaDelegation
+    } else {
+      // Duty check-out for someone else stays staff-only (throws 403)
+      authorizeManualCheckIn(user, userId)
+    }
   }
 
   // Find the open record
@@ -210,6 +234,14 @@ export const checkout = handle(async (req: VercelRequest, res: VercelResponse) =
       user: { select: { id: true, name: true, position: true, role: true } },
     },
   })
+
+  if (delegatedCheckout && eventId) {
+    await auditDelegationUse(prisma, user, eventId, 'manual_checkin', {
+      attendanceId: updated.id,
+      targetUserId: userId,
+      action: 'checkout',
+    })
+  }
 
   return res.status(200).json(updated)
 })
@@ -344,16 +376,20 @@ export const exportCsv = handle(async (req: VercelRequest, res: VercelResponse) 
   }
 
   const user = await authenticate(req)
-  requireStaffRole(user)
 
   const eventId = req.query.eventId as string
   if (!eventId) {
     throw badRequest('eventId is required')
   }
 
+  const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'export')
+
   const event = await prisma.event.findUnique({ where: { id: eventId } })
   if (!event) {
     throw notFound('Event not found')
+  }
+  if (viaDelegation) {
+    await auditDelegationUse(prisma, user, eventId, 'export')
   }
 
   const records = await prisma.attendance.findMany({
@@ -431,9 +467,13 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
     throw badRequest('token is required')
   }
 
-  // The scanner must be staff, and cannot scan their own code.
+  // The scanner must be staff or hold an active "scan" grant for this event,
+  // and cannot scan their own code.
   const payload = verifyQrToken(token)
-  authorizeQrScan(user, payload.u)
+  const { viaDelegation } = await requireEventScope(prisma, user, payload.e, 'scan')
+  if (payload.u === user.id) {
+    throw forbidden('You cannot check in with your own QR code')
+  }
 
   // Check for open (not-yet-checked-out) record
   const existing = await prisma.attendance.findFirst({
@@ -456,6 +496,13 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
         user: { select: { id: true, name: true, position: true, role: true } },
       },
     })
+
+    if (viaDelegation) {
+      await auditDelegationUse(prisma, user, payload.e, 'scan', {
+        attendanceId: record.id,
+        targetUserId: payload.u,
+      })
+    }
 
     return res.status(201).json(record)
   } catch (dbErr: unknown) {
