@@ -17,11 +17,19 @@ const sections = computed<PolicySection[]>(() => {
   return [
     {
       title: 'Information We Collect',
-      content: 'We collect information you provide directly when using our portal, such as your name, student ID number, email address, and role. We also collect attendance data and event participation records necessary for council operations.',
+      content: 'We collect information you provide directly when using our portal, such as your name, student ID number, school email address, program, and role. We also collect attendance data and event participation records necessary for council operations, including the time you were checked in, the location of the officer who recorded your attendance, and the signature you draw to confirm it.',
+    },
+    {
+      title: 'Location and Signatures',
+      content: 'When an officer scans your QR code, the officer's device location is checked and saved to confirm that attendance was recorded at the venue. Your own device location is not tracked. The signature you draw after check-in is stored as an image together with a fingerprint of that image, and it appears on attendance reports exported by authorized officers. These are used only to confirm event attendance.',
+    },
+    {
+      title: 'Student Accounts',
+      content: 'Students create their own account with their school email address, which must be verified before the account works. You can only be checked in by an officer, and you cannot edit your registered name or student ID yourself; ask the USC Secretariat if a correction is needed.',
     },
     {
       title: 'How We Use Your Information',
-      content: 'Your information is used to manage council events, track attendance, verify officer roles, and communicate council-related announcements. We do not sell, share, or disclose your personal data to third parties except as required by law.',
+      content: 'Your information is used to manage council events, track and report attendance, verify officer roles, and communicate council-related announcements. We do not sell, share, or disclose your personal data to third parties except as required by law.',
     },
     {
       title: 'Data Security',
