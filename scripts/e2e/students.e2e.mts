@@ -1,26 +1,19 @@
 // Live end-to-end test of student self-registration, verification gating, officer-recorded
-// check-in via the student's QR, e-signature, and signed exports. Uses throwaway data in the
-// connected DB (deleted at the end) and STUBS the email sender - no real email is sent.
-// Run: npx tsx scripts/e2e/students.e2e.mts
+// check-in via the student's QR, e-signature, and signed exports. Every call goes through the
+// real Nitro routes over HTTP. Uses throwaway data in the connected DB (deleted at the end);
+// emails land in the runner's local capture inbox - no real email is ever sent.
+// Run: npx tsx scripts/e2e/run.mts   (starts the dev server for you)
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 import ExcelJS from 'exceljs'
 import { Jimp } from 'jimp'
-import { resend } from '../../api/_lib/resend.js'
-import * as S from '../../api/_handlers/students.js'
-import * as G from '../../api/_handlers/signatures.js'
-import * as A from '../../api/_handlers/attendance.js'
-import * as U from '../../api/_handlers/auth.js'
-import * as Du from '../../api/_handlers/duties.js'
-import * as SA from '../../api/_handlers/student-admin.js'
+import { api, capturedEmails, clearCapturedEmails, type CapturedEmail } from './client.mts'
 
 process.env.QR_SECRET ||= 'e2e-' + randomBytes(8).toString('hex')
+process.env.SITE_URL ||= 'http://localhost:3000'
 process.env.RESEND_FROM_EMAIL ||= 'e2e@example.invalid'
-
-const sent: { to: string, html: string }[] = []
-;(resend.emails as any).send = async (m: any) => { sent.push({ to: m.to, html: m.html }); return { data: { id: 'stub' }, error: null } }
 
 const prisma = new PrismaClient()
 const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -33,17 +26,20 @@ const check = (label: string, ok: boolean, detail = '') => {
   ok ? pass++ : fail++
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}${ok ? '' : '  — ' + detail}`)
 }
-function res() {
-  const r: any = { _s: 0, _b: undefined, _h: {} }
-  r.status = (c: number) => { r._s = c; return r }
-  r.json = (b: any) => { r._b = b; return r }
-  r.send = (b: any) => { r._b = b; return r }
-  r.end = () => r
-  r.setHeader = (k: string, v: string) => { r._h[k] = v }
-  return r
+
+const settle = () => new Promise(resolve => setTimeout(resolve, 200))
+
+// The server sends the email and the capture inbox records it asynchronously, so poll
+// briefly until the expected messages have arrived (up to 15 attempts, 200ms apart).
+async function waitForEmails(to: string, n: number): Promise<CapturedEmail[]> {
+  let mine: CapturedEmail[] = []
+  for (let i = 0; i < 15; i++) {
+    mine = (await capturedEmails()).filter(m => m.to === to)
+    if (mine.length >= n) return mine
+    await settle()
+  }
+  return mine
 }
-const rq = (token: string | null, method: string, body: any = {}, query: any = {}, headers: any = {}) =>
-  ({ headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, method, body, query }) as any
 
 const ids: string[] = []
 let eventId = ''
@@ -74,39 +70,36 @@ async function main() {
   eventId = ev.id
 
   console.log('\n--- registration rules ---')
-  let r = res()
-  await S.register(rq(null, 'POST', { email: 'x@gmail.com', name: 'Juan Cruz', studentNo: '22-0001', consent: true }, {}, { 'x-forwarded-for': '9.9.9.1' }), r)
+  let r = await api('/api/auth/register', { method: 'POST', body: { email: 'x@gmail.com', name: 'Juan Cruz', studentNo: '22-0001', consent: true }, headers: { 'x-forwarded-for': '9.9.9.1' } })
   check('non-school email rejected (400)', r._s === 400, `${r._s}`)
-  r = res()
-  await S.register(rq(null, 'POST', { email: mail('a'), name: 'Juan Cruz', studentNo: '22-0001', consent: false }, {}, { 'x-forwarded-for': '9.9.9.1' }), r)
+  r = await api('/api/auth/register', { method: 'POST', body: { email: mail('a'), name: 'Juan Cruz', studentNo: '22-0001', consent: false }, headers: { 'x-forwarded-for': '9.9.9.1' } })
   check('missing privacy consent rejected (400)', r._s === 400, `${r._s}`)
 
   const emailA = mail('a'), passA = pw(), noA = 'E2E-' + Date.now().toString().slice(-7)
-  r = res()
-  await S.register(rq(null, 'POST', { email: emailA, name: 'Juan Dela Cruz', studentNo: noA, program: 'BSIT', consent: true }, {}, { 'x-forwarded-for': '9.9.9.2' }), r)
+  await clearCapturedEmails() // from here on the capture inbox only sees this suite's mail
+  r = await api('/api/auth/register', { method: 'POST', body: { email: emailA, name: 'Juan Dela Cruz', studentNo: noA, program: 'BSIT', consent: true }, headers: { 'x-forwarded-for': '9.9.9.2' } })
   check('valid registration returns the generic message (200)', r._s === 200 && /eligible/.test(r._b?.message), `${r._s} ${JSON.stringify(r._b)}`)
   const rowA = await prisma.user.findUnique({ where: { email: emailA }, include: { studentProfile: true } })
   check('student row + profile created with role student', rowA?.role === 'student' && rowA.studentProfile?.studentNo === noA && rowA.mustChangePassword === false)
   if (rowA) ids.push(rowA.id)
-  check('verification email was "sent" once with a link', sent.length === 1 && sent[0].to === emailA && sent[0].html.includes('Verify email'), `sent=${sent.length}`)
+  const regEmails = await waitForEmails(emailA, 1)
+  check('verification email was "sent" once with a link', regEmails.length === 1 && regEmails[0].html.includes('Verify email'), `sent=${regEmails.length}`)
 
   // Re-registering while still unverified replaces the pending sign-up and re-sends the link.
-  r = res()
-  await S.register(rq(null, 'POST', { email: emailA, name: 'Juan Dela Cruz', studentNo: noA, program: 'BSIT', consent: true }, {}, { 'x-forwarded-for': '9.9.9.3' }), r)
-  check('retry while unverified: generic answer, link re-sent, still ONE account', r._s === 200 && sent.length === 2 && (await prisma.user.count({ where: { email: emailA } })) === 1, `${r._s} sent=${sent.length}`)
+  r = await api('/api/auth/register', { method: 'POST', body: { email: emailA, name: 'Juan Dela Cruz', studentNo: noA, program: 'BSIT', consent: true }, headers: { 'x-forwarded-for': '9.9.9.3' } })
+  const retryEmails = await waitForEmails(emailA, 2)
+  check('retry while unverified: generic answer, link re-sent, still ONE account', r._s === 200 && retryEmails.length === 2 && (await prisma.user.count({ where: { email: emailA } })) === 1, `${r._s} sent=${retryEmails.length}`)
   const rowA3 = await prisma.user.findUnique({ where: { email: emailA } })
   if (rowA3) ids.push(rowA3.id)
 
   const emailB = mail('b')
-  r = res()
-  await S.register(rq(null, 'POST', { email: emailB, name: 'Thief Person', studentNo: noA, consent: true }, {}, { 'x-forwarded-for': '9.9.9.5' }), r)
+  r = await api('/api/auth/register', { method: 'POST', body: { email: emailB, name: 'Thief Person', studentNo: noA, consent: true }, headers: { 'x-forwarded-for': '9.9.9.5' } })
   check('taken student ID: generic answer, no account created', r._s === 200 && (await prisma.user.count({ where: { email: emailB } })) === 0)
 
   const limited = mail('lim')
   let last = 0
   for (let i = 0; i < 4; i++) {
-    const rr = res()
-    await S.register(rq(null, 'POST', { email: limited, name: 'Rate Limit', studentNo: 'E2E-L' + i + Date.now().toString().slice(-5), consent: true }, {}, { 'x-forwarded-for': '9.9.8.' + i }), rr)
+    const rr = await api('/api/auth/register', { method: 'POST', body: { email: limited, name: 'Rate Limit', studentNo: 'E2E-L' + i + Date.now().toString().slice(-5), consent: true }, headers: { 'x-forwarded-for': '9.9.8.' + i } })
     last = rr._s
   }
   check('4th attempt for one email in an hour is rate limited (429)', last === 429, `${last}`)
@@ -119,7 +112,7 @@ async function main() {
   const c = anon()
   const { data: sIn } = await c.auth.signInWithPassword({ email: emailA, password: passA })
   if (sIn.session) {
-    r = res(); await U.me(rq(sIn.session.access_token, 'GET'), r)
+    r = await api('/api/auth/me', { token: sIn.session.access_token })
     check('unverified student is refused by the API (403)', r._s === 403 && /verify/i.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
   } else {
     check('unverified student cannot even sign in (Supabase setting)', true)
@@ -128,96 +121,97 @@ async function main() {
   const { data: sOk, error: sErr } = await anon().auth.signInWithPassword({ email: emailA, password: passA })
   if (sErr || !sOk.session) throw sErr ?? new Error('sign-in failed after verification')
   const st = sOk.session.access_token
-  r = res(); await U.me(rq(st, 'GET'), r)
+  r = await api('/api/auth/me', { token: st })
   check('verified student can load their profile (200, role student)', r._s === 200 && r._b?.role === 'student', `${r._s} ${JSON.stringify(r._b)}`)
-  const before = sent.length
-  r = res()
-  await S.register(rq(null, 'POST', { email: emailA, name: 'Someone Else', studentNo: 'E2E-0000001', consent: true }, {}, { 'x-forwarded-for': '9.9.9.6' }), r)
-  check('re-registering a VERIFIED email changes nothing and sends nothing', r._s === 200 && sent.length === before && (await prisma.user.findUnique({ where: { email: emailA } }))?.name === 'Juan Dela Cruz', `${r._s}`)
+  const before = (await capturedEmails()).length
+  r = await api('/api/auth/register', { method: 'POST', body: { email: emailA, name: 'Someone Else', studentNo: 'E2E-0000001', consent: true }, headers: { 'x-forwarded-for': '9.9.9.6' } })
+  await settle() // give a wrongly-sent mail a chance to reach the capture inbox
+  check('re-registering a VERIFIED email changes nothing and sends nothing', r._s === 200 && (await capturedEmails()).length === before && (await prisma.user.findUnique({ where: { email: emailA } }))?.name === 'Juan Dela Cruz', `${r._s}`)
 
   console.log('\n--- students are limited to their own flows ---')
-  r = res(); await A.index(rq(st, 'POST', { type: 'event', eventId, userId: rowA3!.id, method: 'self', lat: 10.72, lng: 122.56 }), r)
+  r = await api('/api/attendance', { token: st, method: 'POST', body: { type: 'event', eventId, userId: rowA3!.id, method: 'self', lat: 10.72, lng: 122.56 } })
   check('student cannot self check-in (403)', r._s === 403, `${r._s}`)
-  r = res(); await A.index(rq(st, 'GET', {}, { eventId }), r)
+  r = await api('/api/attendance', { token: st, query: { eventId } })
   check('student cannot read the roster (403)', r._s === 403, `${r._s}`)
-  r = res(); await Du.duties(rq(st, 'GET'), r)
+  r = await api('/api/duties', { token: st })
   check('student cannot use duties (403)', r._s === 403, `${r._s}`)
-  r = res(); await U.users(rq(st, 'PUT', { name: 'Hacked', position: 'President' }), r)
+  r = await api('/api/auth/users', { token: st, method: 'PUT', body: { name: 'Hacked', position: 'President' } })
   check('student cannot rename themselves (403)', r._s === 403, `${r._s}`)
-  r = res(); await U.users(rq(st, 'GET'), r)
+  r = await api('/api/auth/users', { token: st })
   check('student cannot list users (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- officer scans the student QR, student signs ---')
-  r = res(); await A.qrToken(rq(st, 'POST', { eventId }), r)
+  r = await api('/api/attendance/qr-token', { token: st, method: 'POST', body: { eventId } })
   check('student gets a QR token (200)', r._s === 200 && !!r._b?.token, `${r._s}`)
   const qr = r._b.token
-  r = res(); await A.qr(rq(staff.token, 'POST', { ...AT, token: qr }), r)
+  r = await api('/api/attendance/qr', { token: staff.token, method: 'POST', body: { ...AT, token: qr } })
   check('officer scan records the student (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   const attendanceId = r._b?.id as string
 
-  r = res(); await G.pendingSignature(rq(st, 'GET'), r)
+  r = await api('/api/attendance/pending-signature', { token: st })
   check('student sees one pending signature', r._s === 200 && r._b.length === 1 && r._b[0].id === attendanceId, `${r._s} ${JSON.stringify(r._b)}`)
-  r = res(); await G.sign(rq(st, 'POST', { attendanceId, signature: await inkPng(false) }), r)
+  r = await api('/api/attendance/sign', { token: st, method: 'POST', body: { attendanceId, signature: await inkPng(false) } })
   check('blank signature rejected (400)', r._s === 400, `${r._s}`)
-  r = res(); await G.sign(rq(st, 'POST', { attendanceId, signature: 'data:text/html;base64,PGI+' }), r)
+  r = await api('/api/attendance/sign', { token: st, method: 'POST', body: { attendanceId, signature: 'data:text/html;base64,PGI+' } })
   check('non-PNG rejected (400)', r._s === 400, `${r._s}`)
 
   const emailC = mail('c'), passC = pw()
   const noC = 'E2E-C' + Date.now().toString().slice(-6)
-  await S.register(rq(null, 'POST', { email: emailC, name: 'Maria Santos', studentNo: noC, consent: true }, {}, { 'x-forwarded-for': '9.9.9.7' }), res())
+  await api('/api/auth/register', { method: 'POST', body: { email: emailC, name: 'Maria Santos', studentNo: noC, consent: true }, headers: { 'x-forwarded-for': '9.9.9.7' } })
   const rowC = await prisma.user.findUnique({ where: { email: emailC } })
   if (rowC) { ids.push(rowC.id); await admin.auth.admin.updateUserById(rowC.id, { password: passC, email_confirm: true }) }
   const { data: sC } = await anon().auth.signInWithPassword({ email: emailC, password: passC })
-  r = res(); await G.sign(rq(sC.session!.access_token, 'POST', { attendanceId, signature: await inkPng() }), r)
+  r = await api('/api/attendance/sign', { token: sC.session!.access_token, method: 'POST', body: { attendanceId, signature: await inkPng() } })
   check('cannot sign someone else\'s attendance (404)', r._s === 404, `${r._s}`)
 
-  r = res(); await G.sign(rq(st, 'POST', { attendanceId, signature: await inkPng() }), r)
+  r = await api('/api/attendance/sign', { token: st, method: 'POST', body: { attendanceId, signature: await inkPng() } })
   check('valid signature accepted (201) with a SIG- reference', r._s === 201 && /^SIG-[0-9A-F]{10}$/.test(r._b?.ref ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
   const ref = r._b?.ref as string
-  r = res(); await G.sign(rq(st, 'POST', { attendanceId, signature: await inkPng() }), r)
+  r = await api('/api/attendance/sign', { token: st, method: 'POST', body: { attendanceId, signature: await inkPng() } })
   check('signing twice rejected (409)', r._s === 409, `${r._s}`)
-  r = res(); await G.pendingSignature(rq(st, 'GET'), r)
+  r = await api('/api/attendance/pending-signature', { token: st })
   check('nothing pending afterwards', r._s === 200 && r._b.length === 0, `${JSON.stringify(r._b)}`)
 
   console.log('\n--- exports carry the signature ---')
-  r = res(); await A.index(rq(staff.token, 'GET', {}, { eventId }), r)
+  r = await api('/api/attendance', { token: staff.token, query: { eventId } })
   check('roster shows the record as signed', r._s === 200 && !!r._b[0]?.signature?.signedAt, `${r._s}`)
-  r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId, format: 'csv' }), r)
+  r = await api('/api/attendance/export', { token: staff.token, query: { eventId, format: 'csv' } })
   check('CSV E-Signature column holds the reference', String(r._b).includes(ref), String(r._b).slice(0, 200))
-  r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId, format: 'xlsx' }), r)
-  const wb = new ExcelJS.Workbook(); await wb.xlsx.load(r._b)
+  r = await api('/api/attendance/export', { token: staff.token, query: { eventId, format: 'xlsx' } })
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(r._b)
   check('Excel embeds the signature image', wb.getWorksheet('Attendance')!.getImages().length === 1)
-  r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId, format: 'pdf' }), r)
+  r = await api('/api/attendance/export', { token: staff.token, query: { eventId, format: 'pdf' } })
   check('PDF export succeeds', r._s === 200 && Buffer.from(r._b).subarray(0, 5).toString() === '%PDF-', `${r._s}`)
 
   console.log('\n--- student administration (super_admin) ---')
   const sa = await mkStaff('superadmin', 'super_admin')
-  r = res(); await SA.students(rq(staff.token, 'GET'), r)
+  r = await api('/api/students', { token: staff.token })
   check('plain staff cannot list students (403)', r._s === 403, `${r._s}`)
-  r = res(); await SA.students(rq(st, 'GET'), r)
+  r = await api('/api/students', { token: st })
   check('a student cannot list students (403)', r._s === 403, `${r._s}`)
-  r = res(); await SA.students(rq(sa.token, 'GET', {}, { q: 'Juan' }), r)
+  r = await api('/api/students', { token: sa.token, query: { q: 'Juan' } })
   check('super_admin can search students (200)', r._s === 200 && r._b.students.some((x: any) => x.id === rowA3!.id), `${r._s} ${JSON.stringify(r._b)?.slice(0, 160)}`)
-  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { name: 'Juan D. Cruz', program: 'BSCS' }), r, rowA3!.id)
+  r = await api('/api/students/' + rowA3!.id, { token: sa.token, method: 'PATCH', body: { name: 'Juan D. Cruz', program: 'BSCS' } })
   check('super_admin can correct name/program (200)', r._s === 200 && r._b.name === 'Juan D. Cruz' && r._b.studentProfile.program === 'BSCS', `${r._s} ${JSON.stringify(r._b)}`)
-  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { studentNo: noC }), r, rowA3!.id)
+  r = await api('/api/students/' + rowA3!.id, { token: sa.token, method: 'PATCH', body: { studentNo: noC } })
   check('duplicate student ID is refused (409)', r._s === 409, `${r._s} ${JSON.stringify(r._b)}`)
-  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { name: '<b>x</b>' }), r, rowA3!.id)
+  r = await api('/api/students/' + rowA3!.id, { token: sa.token, method: 'PATCH', body: { name: '<b>x</b>' } })
   check('invalid name is refused (400)', r._s === 400, `${r._s}`)
-  r = res(); await SA.studentById(rq(st, 'PATCH', { name: 'Self Edit' }), r, rowA3!.id)
+  r = await api('/api/students/' + rowA3!.id, { token: st, method: 'PATCH', body: { name: 'Self Edit' } })
   check('a student cannot edit students (403)', r._s === 403, `${r._s}`)
-  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { active: false }), r, rowA3!.id)
+  r = await api('/api/students/' + rowA3!.id, { token: sa.token, method: 'PATCH', body: { active: false } })
   check('super_admin can deactivate (200)', r._s === 200 && r._b.active === false, `${r._s}`)
-  r = res(); await A.qrToken(rq(st, 'POST', { eventId }), r)
+  r = await api('/api/attendance/qr-token', { token: st, method: 'POST', body: { eventId } })
   check('deactivated student is locked out immediately (403)', r._s === 403 && /deactivated/.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
-  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { active: true }), r, rowA3!.id)
+  r = await api('/api/students/' + rowA3!.id, { token: sa.token, method: 'PATCH', body: { active: true } })
   check('reactivation works (200)', r._s === 200 && r._b.active === true, `${r._s}`)
-  r = res(); await SA.studentById(rq(sa.token, 'PATCH', { name: 'x' }), r, staff.id)
+  r = await api('/api/students/' + staff.id, { token: sa.token, method: 'PATCH', body: { name: 'x' } })
   check('cannot use the student endpoint on an officer (404)', r._s === 404, `${r._s}`)
 
   console.log('\n--- deactivated accounts are refused ---')
   await prisma.user.update({ where: { id: staff.id }, data: { active: false } })
-  r = res(); await U.me(rq(staff.token, 'GET'), r)
+  r = await api('/api/auth/me', { token: staff.token })
   check('deactivated officer is refused (403)', r._s === 403 && /deactivated/.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
 }
 
