@@ -1,18 +1,18 @@
 // Live end-to-end test: signature retention per semester, settings managers, semesters, the
-// nightly cron entry point, and per-event check-in windows. Uses throwaway users/events/
-// semesters (in the year 2001 so they cannot clash with real semesters) and RESTORES the
-// real retention settings afterwards.
-// Run: npx tsx scripts/e2e/retention.e2e.mts
+// nightly cron entry point, and per-event check-in windows — all through the real Nitro
+// routes over HTTP. Uses throwaway users/events/semesters (in the year 2001 so they cannot
+// clash with real semesters) and RESTORES the real retention settings afterwards.
+// Run: npx tsx scripts/e2e/run.mts   (starts the dev server for you)
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 import ExcelJS from 'exceljs'
-import * as St from '../../api/_handlers/settings.js'
-import * as A from '../../api/_handlers/attendance.js'
+import { api } from './client.mts'
 
 process.env.QR_SECRET ||= 'e2e-' + randomBytes(8).toString('hex')
-process.env.CRON_SECRET = 'e2e-cron-' + randomBytes(8).toString('hex')
+process.env.CRON_SECRET ||= 'e2e-cron-' + randomBytes(8).toString('hex')
+process.env.SITE_URL ||= 'http://localhost:3000'
 
 const prisma = new PrismaClient()
 const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -26,17 +26,6 @@ const check = (label: string, ok: boolean, detail = '') => {
   ok ? pass++ : fail++
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}${ok ? '' : '  — ' + detail}`)
 }
-function res() {
-  const r: any = { _s: 0, _b: undefined, _h: {} }
-  r.status = (c: number) => { r._s = c; return r }
-  r.json = (b: any) => { r._b = b; return r }
-  r.send = (b: any) => { r._b = b; return r }
-  r.end = () => r
-  r.setHeader = (k: string, v: string) => { r._h[k] = v }
-  return r
-}
-const rq = (token: string | null, method: string, body: any = {}, query: any = {}, headers: any = {}) =>
-  ({ headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, method, body, query }) as any
 
 const ids: string[] = []
 const eventIds: string[] = []
@@ -69,32 +58,36 @@ async function main() {
   const studentB = await mkUser('s2', 'client')
 
   console.log('\n--- who can change settings ---')
-  let r = res(); await St.retention(rq(outsider.token, 'GET'), r)
+  let r = await api('/api/settings/retention', { token: outsider.token })
   check('ordinary officer blocked (403)', r._s === 403, `${r._s}`)
-  r = res(); await St.retention(rq(staff.token, 'GET'), r)
+  r = await api('/api/settings/retention', { token: staff.token })
   check('plain staff blocked (403)', r._s === 403, `${r._s}`)
   for (const [who, u] of [['super admin', superAdmin], ['settings manager (adviser/OIC)', manager], ['President/Secretary', president]] as const) {
-    r = res(); await St.retention(rq(u.token, 'GET'), r)
+    r = await api('/api/settings/retention', { token: u.token })
     check(`${who} allowed (200)`, r._s === 200 && typeof r._b.signatureRetentionSemesters === 'number', `${r._s}`)
   }
 
   console.log('\n--- retention setting ---')
-  r = res(); await St.retention(rq(manager.token, 'PUT', { signatureRetentionSemesters: 0, purgeGraceDays: 30 }), r)
+  r = await api('/api/settings/retention', { token: manager.token, method: 'PUT', body: { signatureRetentionSemesters: 0, purgeGraceDays: 30 } })
   check('0 semesters rejected (400)', r._s === 400, `${r._s}`)
-  r = res(); await St.retention(rq(outsider.token, 'PUT', { signatureRetentionSemesters: 2, purgeGraceDays: 10 }), r)
+  r = await api('/api/settings/retention', { token: outsider.token, method: 'PUT', body: { signatureRetentionSemesters: 2, purgeGraceDays: 10 } })
   check('non-manager cannot change it (403)', r._s === 403, `${r._s}`)
-  r = res(); await St.retention(rq(manager.token, 'PUT', { signatureRetentionSemesters: 2, purgeGraceDays: 0 }), r)
+  r = await api('/api/settings/retention', { token: manager.token, method: 'PUT', body: { signatureRetentionSemesters: 2, purgeGraceDays: 0 } })
   check('manager sets keep=2, grace=0 (200)', r._s === 200 && r._b.signatureRetentionSemesters === 2, `${r._s} ${JSON.stringify(r._b)}`)
 
   console.log('\n--- semesters ---')
-  const mk = async (name: string, a: string, b: string) => { const x = res(); await St.semesters(rq(manager.token, 'POST', { name, startsOn: a, endsOn: b }), x); if (x._b?.id) semIds.push(x._b.id); return x }
+  const mk = async (name: string, a: string, b: string) => {
+    const x = await api('/api/semesters', { token: manager.token, method: 'POST', body: { name, startsOn: a, endsOn: b } })
+    if (x._b?.id) semIds.push(x._b.id)
+    return x
+  }
   r = await mk(`${tag} S1`, '2001-01-01', '2001-07-01')
   check('define semester 1 (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = await mk(`${tag} S2`, '2001-07-01', '2002-01-01')
   check('define back-to-back semester 2 (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = await mk(`${tag} overlap`, '2001-06-01', '2001-08-01')
   check('overlapping semester refused (409)', r._s === 409, `${r._s}`)
-  r = res(); await St.semesters(rq(outsider.token, 'POST', { name: 'Nope nope', startsOn: '2010-01-01', endsOn: '2010-06-01' }), r)
+  r = await api('/api/semesters', { token: outsider.token, method: 'POST', body: { name: 'Nope nope', startsOn: '2010-01-01', endsOn: '2010-06-01' } })
   check('non-manager cannot add a semester (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- purge by semester ---')
@@ -112,44 +105,44 @@ async function main() {
   const aNow = await prisma.attendance.create({ data: { type: 'event', eventId: evNow.id, userId: studentA.id, method: 'qr', recordedBy: staff.id } })
   await prisma.attendanceSignature.create({ data: { attendanceId: aNow.id, png: new Uint8Array(PNG), sha256: randomBytes(32).toString('hex') } })
 
-  r = res(); await St.purgeNow(rq(outsider.token, 'POST'), r)
+  r = await api('/api/settings/purge-signatures', { token: outsider.token, method: 'POST' })
   check('non-manager cannot run a purge (403)', r._s === 403, `${r._s}`)
-  r = res(); await St.purgeNow(rq(manager.token, 'POST'), r)
+  r = await api('/api/settings/purge-signatures', { token: manager.token, method: 'POST' })
   const live = async (id: string) => (await prisma.attendanceSignature.findUnique({ where: { attendanceId: id } }))!
   check('keep=2: semester 1 image deleted', r._s === 200 && (await live(inS1)).png === null && (await live(inS1)).purgedAt !== null, `${r._s} ${JSON.stringify(r._b)}`)
   check('keep=2: semester 2 image still kept (waits for a later semester)', (await live(inS2)).png !== null)
   check('a signature outside every semester is never touched', (await live(aNow.id)).png !== null)
   check('attendance row, hash and reference survive a purge', !!(await prisma.attendance.findUnique({ where: { id: inS1 } })) && (await live(inS1)).sha256.length === 64)
 
-  r = res(); await St.retention(rq(manager.token, 'PUT', { signatureRetentionSemesters: 1, purgeGraceDays: 0 }), r)
-  r = res(); await St.purgeNow(rq(manager.token, 'POST'), r)
+  await api('/api/settings/retention', { token: manager.token, method: 'PUT', body: { signatureRetentionSemesters: 1, purgeGraceDays: 0 } })
+  r = await api('/api/settings/purge-signatures', { token: manager.token, method: 'POST' })
   check('keep=1: semester 2 image now deleted', (await live(inS2)).png === null, `${JSON.stringify(r._b)}`)
-  r = res(); await St.purgeNow(rq(manager.token, 'POST'), r)
+  r = await api('/api/settings/purge-signatures', { token: manager.token, method: 'POST' })
   check('running it again deletes nothing more (idempotent)', r._s === 200 && r._b.purged === 0, `${JSON.stringify(r._b)}`)
-  r = res(); await St.retention(rq(manager.token, 'GET'), r)
+  r = await api('/api/settings/retention', { token: manager.token })
   check('settings page data shows last cleanup + unassigned count', !!r._b.lastPurgeAt && r._b.unassignedSignatures >= 1, `${JSON.stringify({ ...r._b, semesters: undefined })}`)
 
   console.log('\n--- exports after a purge ---')
-  r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId: ev.id, format: 'csv' }), r)
+  r = await api('/api/attendance/export', { token: staff.token, query: { eventId: ev.id, format: 'csv' } })
   check('CSV still carries the SIG- reference', /SIG-[0-9A-F]{10}/.test(String(r._b)), String(r._b).slice(0, 120))
-  r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId: ev.id, format: 'xlsx' }), r)
+  r = await api('/api/attendance/export', { token: staff.token, query: { eventId: ev.id, format: 'xlsx' } })
   const wb = new ExcelJS.Workbook(); await wb.xlsx.load(r._b)
   check('Excel notes "image removed" for purged signatures', String(wb.getWorksheet('Attendance')!.getRow(6).getCell(9).value).includes('image removed'), String(wb.getWorksheet('Attendance')!.getRow(6).getCell(9).value))
-  r = res(); await A.exportAttendance(rq(staff.token, 'GET', {}, { eventId: ev.id, format: 'pdf' }), r)
+  r = await api('/api/attendance/export', { token: staff.token, query: { eventId: ev.id, format: 'pdf' } })
   check('PDF export still succeeds', r._s === 200 && Buffer.from(r._b).subarray(0, 5).toString() === '%PDF-', `${r._s}`)
 
   console.log('\n--- nightly cron entry point ---')
-  r = res(); await St.cronPurge(rq(null, 'GET'), r)
+  r = await api('/api/cron/purge-signatures', { method: 'GET' })
   check('cron without the secret is refused (401)', r._s === 401, `${r._s}`)
-  r = res(); await St.cronPurge(rq(null, 'GET', {}, {}, { authorization: 'Bearer wrong' }), r)
+  r = await api('/api/cron/purge-signatures', { method: 'GET', headers: { authorization: 'Bearer wrong' } })
   check('cron with a wrong secret is refused (401)', r._s === 401, `${r._s}`)
-  r = res(); await St.cronPurge(rq(null, 'GET', {}, {}, { authorization: `Bearer ${process.env.CRON_SECRET}` }), r)
+  r = await api('/api/cron/purge-signatures', { method: 'GET', headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } })
   check('cron with the right secret runs (200)', r._s === 200 && r._b.purged === 0, `${r._s} ${JSON.stringify(r._b)}`)
 
   console.log('\n--- check-in window ---')
   const evW = await prisma.event.create({ data: { title: `${tag} windowed`, date: new Date(), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: staff.id } })
   eventIds.push(evW.id)
-  const win = async (u: { token: string }, body: any) => { const x = res(); await St.eventWindow(rq(u.token, 'PUT', body), x, evW.id); return x }
+  const win = async (u: { token: string }, body: Record<string, unknown>) => api(`/api/events/${evW.id}/window`, { token: u.token, method: 'PUT', body })
   r = await win(outsider, { checkInOpensAt: new Date().toISOString() })
   check('non-manager cannot set a window (403)', r._s === 403, `${r._s}`)
   r = await win(manager, { checkInOpensAt: 'garbage' })
@@ -158,8 +151,8 @@ async function main() {
   check('closes before opens rejected (400)', r._s === 400, `${r._s}`)
 
   const scanFor = async (u: { token: string }, subject: { token: string }) => {
-    const t = res(); await A.qrToken(rq(subject.token, 'POST', { eventId: evW.id }), t)
-    const x = res(); await A.qr(rq(u.token, 'POST', { token: t._b.token, ...AT }), x)
+    const t = await api('/api/attendance/qr-token', { token: subject.token, method: 'POST', body: { eventId: evW.id } })
+    const x = await api('/api/attendance/qr', { token: u.token, method: 'POST', body: { token: t._b.token, ...AT } })
     return x
   }
   r = await win(president, { checkInOpensAt: new Date(Date.now() + 3600e3).toISOString(), checkInClosesAt: new Date(Date.now() + 2 * 3600e3).toISOString() })
@@ -169,9 +162,9 @@ async function main() {
   r = await win(manager, { checkInOpensAt: new Date(Date.now() - 2 * 3600e3).toISOString(), checkInClosesAt: new Date(Date.now() - 3600e3).toISOString() })
   r = await scanFor(staff, studentA)
   check('scan AFTER the window closes is refused (403)', r._s === 403 && /closed/.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
-  r = res(); await A.index(rq(studentB.token, 'POST', { type: 'event', eventId: evW.id, userId: studentB.id, method: 'self', ...AT }), r)
+  r = await api('/api/attendance', { token: studentB.token, method: 'POST', body: { type: 'event', eventId: evW.id, userId: studentB.id, method: 'self', ...AT } })
   check('self check-in outside the window is refused (403)', r._s === 403, `${r._s}`)
-  r = res(); await A.index(rq(staff.token, 'POST', { type: 'event', eventId: evW.id, userId: studentB.id, method: 'manual' }), r)
+  r = await api('/api/attendance', { token: staff.token, method: 'POST', body: { type: 'event', eventId: evW.id, userId: studentB.id, method: 'manual' } })
   check('staff manual override still works outside the window (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = await win(manager, { checkInOpensAt: new Date(Date.now() - 3600e3).toISOString(), checkInClosesAt: new Date(Date.now() + 3600e3).toISOString() })
   r = await scanFor(staff, studentA)

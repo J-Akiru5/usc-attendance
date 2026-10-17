@@ -21,11 +21,11 @@ One job: let an officer prove they physically showed up to an event, and let sta
 |-------|--------|
 | Frontend | Nuxt 4 (Vue 3) + TypeScript |
 | UI | Nuxt UI v4 (Tailwind CSS 4) |
-| Server | Nitro (`server/`) — porting from Vercel functions in P1 |
+| Server | Nitro routes (`server/api/`) + ported logic (`server/utils/`) |
 | Auth | `@nuxtjs/supabase` (cookie-based SSR sessions) |
 | ORM | Prisma |
 | Database / Auth | Supabase (PostgreSQL + Auth) |
-| API (legacy) | Vercel Serverless Functions in `api/` — same URLs until P1 cutover |
+| API | Same URLs as the legacy Vercel functions, served by Nitro (ported in P1a; the `api/` folder is gone) |
 | Hosting | Vercel |
 
 > The Nuxt rebuild runs on this branch behind its own preview URL (strangler pattern).
@@ -99,8 +99,9 @@ This runs the Nuxt dev server (app + Nitro API routes) with HMR.
 ```bash
 npm run lint              # ESLint
 npm run typecheck         # nuxi typecheck (app + server)
-npm run typecheck:legacy  # tsc over api/ prisma/ scripts/ (pre-Nuxt code)
-npm test                  # Vitest — unit tests in api/_lib
+npm run typecheck:legacy  # tsc over prisma/ scripts/ tests/ (pre-Nuxt code)
+npm test                  # Vitest — unit tests in tests/
+npm run test:e2e          # live e2e — boots nuxt dev + runs scripts/e2e/*.e2e.mts (113 checks)
 npm run build             # production build (.output; .vercel/output on Vercel)
 ```
 
@@ -120,15 +121,16 @@ npm run build             # production build (.output; .vercel/output on Vercel)
 │   ├── components/         # UserMenu, etc.
 │   ├── layouts/            # dashboard / public / auth
 │   └── pages/              # login, confirm, reset-password, settings, home
-├── api/                    # Legacy Vercel serverless functions (kept until P1)
-│   ├── _lib/               # Prisma, Supabase, auth middleware (+ unit tests)
-│   └── _handlers/          # auth, events, attendance, …
+├── server/                 # Nitro API — same URLs as the old Vercel functions
+│   ├── api/                # one file per route (attendance, auth, cms, delegations, …)
+│   └── utils/              # prisma, auth, http + ported qr/signature/report/… logic
+├── tests/                  # Vitest unit tests (ported from api/_lib/*.test.ts)
 ├── prisma/
 │   ├── schema.prisma       # Users, Events, Attendance tables
 │   ├── migrations/         # additive-only SQL migrations
 │   └── seed_auth.ts        # Supabase Auth + Postgres sync seeder
 ├── scripts/
-│   └── e2e/                # live e2e checks (throwaway data, full cleanup)
+│   └── e2e/                # live e2e checks — npm run test:e2e (throwaway data, full cleanup)
 └── public/                 # Static assets (logo, favicon, officers, data)
 ```
 

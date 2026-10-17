@@ -530,8 +530,10 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - Note: `h3@^1.15` pinned as a devDependency so the root copy matches Nitro's h3 v1 (an h3 v2 hoist from the eslint config-inspector broke Supabase SSR cookie reads)
 
 ### P1 Parity
-- [ ] `server/utils/` ports of all `api/_lib` modules with tests passing
-- [ ] All API routes ported (same URLs); 113 live e2e checks green against Nuxt
+- [x] `server/utils/` ports of all `api/_lib` modules with tests passing (2026-10-17, PR into `develop` — `feat/p1a-server-port`)
+  - `http`/`auth`/`resend` rewritten for H3 events; the pure modules moved unchanged; 92 unit tests green
+- [x] All API routes ported (same URLs); 113 live e2e checks green against Nuxt (2026-10-17: export 10, delegation 26, retention 36, students 41 via `npm run test:e2e`)
+  - `api/` deleted; `vercel.json` `rewrites` removed (Nitro serves `/api/**` directly), `crons` kept; Vercel Cron Jobs tab still to be verified at cutover
 - [ ] All pages ported (public site + portal)
 - [ ] RBAC tables + migration of existing flags (VP = President capabilities)
 - [ ] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD
