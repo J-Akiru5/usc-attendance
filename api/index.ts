@@ -4,6 +4,11 @@ import * as attendance from './_handlers/attendance.js'
 import * as auth from './_handlers/auth.js'
 import * as cms from './_handlers/cms.js'
 import * as contact from './_handlers/contact.js'
+import * as delegations from './_handlers/delegations.js'
+import * as settings from './_handlers/settings.js'
+import * as signatures from './_handlers/signatures.js'
+import * as studentAdmin from './_handlers/student-admin.js'
+import * as students from './_handlers/students.js'
 import * as duties from './_handlers/duties.js'
 import * as events from './_handlers/events.js'
 import * as orgProfile from './_handlers/org-profile.js'
@@ -17,12 +22,25 @@ import * as photos from './_handlers/photos.js'
  * within the Hobby plan's 12-function limit.
  *
  * Route table (most-specific first to avoid false matches):
- *   /api/attendance/export   → attendance.exportCsv
+ *   /api/attendance/export   → attendance.exportAttendance
+ *   /api/attendance/sign              → signatures.sign
+ *   /api/attendance/pending-signature → signatures.pendingSignature
  *   /api/attendance/checkout → attendance.checkout
  *   /api/attendance/duty     → attendance.duty
+ *   /api/attendance/qr-token → attendance.qrToken
  *   /api/attendance/qr       → attendance.qr
  *   /api/attendance          → attendance.index
+ *   /api/settings/retention  → settings.retention
+ *   /api/settings/purge-signatures → settings.purgeNow
+ *   /api/semesters(/:id)     → settings.semesters / semesterById
+ *   /api/cron/purge-signatures → settings.cronPurge (Vercel Cron)
+ *   /api/events/:id/window   → settings.eventWindow
+ *   /api/students/:id        → studentAdmin.studentById
+ *   /api/students            → studentAdmin.students
  *   /api/auth/me             → auth.me
+ *   /api/auth/register       → students.register
+ *   /api/auth/password-reset  → auth.requestPasswordReset
+ *   /api/auth/change-password → auth.changePassword
  *   /api/auth/profile        → auth.users  (PUT alias used by the frontend store)
  *   /api/auth/users/:id      → auth.userById
  *   /api/auth/users          → auth.users
@@ -31,6 +49,10 @@ import * as photos from './_handlers/photos.js'
  *   /api/cms/officers        → cms.officers
  *   /api/cms/projects        → cms.projects
  *   /api/contact             → contact.contact
+ *   /api/delegations/mine       → delegations.myDelegations
+ *   /api/delegations/candidates → delegations.delegationCandidates
+ *   /api/delegations/:id        → delegations.delegationById
+ *   /api/delegations            → delegations.delegations
  *   /api/duties              → duties.duties
  *   /api/events/:id          → events.eventById
  *   /api/events              → events.events
@@ -53,9 +75,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ---------------------------------------------------------------------------
   // Attendance routes (most specific first)
   // ---------------------------------------------------------------------------
-  if (rawPath === '/api/attendance/export') return attendance.exportCsv(req, res)
+  if (rawPath === '/api/attendance/export') return attendance.exportAttendance(req, res)
+  if (rawPath === '/api/attendance/sign') return signatures.sign(req, res)
+  if (rawPath === '/api/attendance/pending-signature') return signatures.pendingSignature(req, res)
   if (rawPath === '/api/attendance/checkout') return attendance.checkout(req, res)
   if (rawPath === '/api/attendance/duty') return attendance.duty(req, res)
+  if (rawPath === '/api/attendance/qr-token') return attendance.qrToken(req, res)
   if (rawPath === '/api/attendance/qr') return attendance.qr(req, res)
   if (rawPath === '/api/attendance') return attendance.index(req, res)
 
@@ -63,6 +88,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Auth routes
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/auth/me') return auth.me(req, res)
+  if (rawPath === '/api/auth/register') return students.register(req, res)
+  if (rawPath === '/api/auth/password-reset') return auth.requestPasswordReset(req, res)
+  if (rawPath === '/api/auth/change-password') return auth.changePassword(req, res)
   // /api/auth/profile is used by the frontend store for PUT (own profile update)
   if (rawPath === '/api/auth/profile') return auth.users(req, res)
   // /api/auth/users/:id — dynamic segment
@@ -82,6 +110,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Contact
   // ---------------------------------------------------------------------------
   if (rawPath === '/api/contact') return contact.contact(req, res)
+
+  // ---------------------------------------------------------------------------
+  // Settings: retention, semesters, check-in windows, cron
+  // ---------------------------------------------------------------------------
+  if (rawPath === '/api/settings/retention') return settings.retention(req, res)
+  if (rawPath === '/api/settings/purge-signatures') return settings.purgeNow(req, res)
+  if (rawPath === '/api/cron/purge-signatures') return settings.cronPurge(req, res)
+  if (rawPath === '/api/semesters') return settings.semesters(req, res)
+  const semesterIdMatch = rawPath.match(/^\/api\/semesters\/([^/]+)$/)
+  if (semesterIdMatch) return settings.semesterById(req, res, semesterIdMatch[1])
+  const eventWindowMatch = rawPath.match(/^\/api\/events\/([^/]+)\/window$/)
+  if (eventWindowMatch) return settings.eventWindow(req, res, eventWindowMatch[1])
+
+  // ---------------------------------------------------------------------------
+  // Student administration (super_admin)
+  // ---------------------------------------------------------------------------
+  const studentIdMatch = rawPath.match(/^\/api\/students\/([^/]+)$/)
+  if (studentIdMatch) return studentAdmin.studentById(req, res, studentIdMatch[1])
+  if (rawPath === '/api/students') return studentAdmin.students(req, res)
+
+  // ---------------------------------------------------------------------------
+  // Event delegation (temporary per-event access)
+  // ---------------------------------------------------------------------------
+  if (rawPath === '/api/delegations/mine') return delegations.myDelegations(req, res)
+  if (rawPath === '/api/delegations/candidates') return delegations.delegationCandidates(req, res)
+  const delegationIdMatch = rawPath.match(/^\/api\/delegations\/([^/]+)$/)
+  if (delegationIdMatch) return delegations.delegationById(req, res, delegationIdMatch[1])
+  if (rawPath === '/api/delegations') return delegations.delegations(req, res)
 
   // ---------------------------------------------------------------------------
   // Duties

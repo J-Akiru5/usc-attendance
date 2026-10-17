@@ -21,6 +21,8 @@ model User {
   position  String
   role      String   // "super_admin" | "staff" | "client"
   canManageContent Boolean @default(false)
+  canDelegate Boolean @default(false) // may grant temporary per-event access (President/Secretary)
+  canConfigure Boolean @default(false) // may set retention + check-in windows (adviser, officer in charge, ...)
   mustChangePassword Boolean @default(true)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -29,6 +31,10 @@ model User {
   attendance    Attendance[]
   recorded      Attendance[]  @relation("RecordedBy")
   officeDuties  OfficeDuty[]
+  delegations        EventDelegate[] @relation("DelegateUser")
+  grantedDelegations EventDelegate[] @relation("DelegateGranter")
+  revokedDelegations EventDelegate[] @relation("DelegateRevoker")
+  studentProfile     StudentProfile?
 
   @@map("users")
 }
@@ -40,9 +46,12 @@ model Event {
   lat          Float
   lng          Float
   radiusMeters Int      @default(50)
+  checkInOpensAt  DateTime? // null = no limit
+  checkInClosesAt DateTime? // null = no limit
   createdBy    String
   creator      User     @relation("EventCreator", fields: [createdBy], references: [id])
   attendance   Attendance[]
+  delegates    EventDelegate[]
   createdAt    DateTime @default(now())
 
   @@map("events")
@@ -64,8 +73,70 @@ model Attendance {
   event    Event?  @relation(fields: [eventId], references: [id])
   user     User    @relation(fields: [userId], references: [id])
   recorder User    @relation("RecordedBy", fields: [recordedBy], references: [id])
+  signature AttendanceSignature?
 
   @@map("attendance")
+}
+
+/// Academic semesters. A signature belongs to the semester its signing time falls in.
+model Semester {
+  id        String   @id @default(uuid())
+  name      String
+  startsOn  DateTime
+  endsOn    DateTime // exclusive end
+  createdAt DateTime @default(now())
+
+  @@index([startsOn])
+  @@map("semesters")
+}
+
+/// Extra identity data for self-registered students (role = "student").
+model StudentProfile {
+  userId    String   @id
+  studentNo String   @unique
+  program   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+/// The attendee's own drawn signature for one attendance record (PNG), kept
+/// apart from "attendance" so roster queries never pull image bytes.
+model AttendanceSignature {
+  attendanceId String   @id
+  png          Bytes?   // null once purged by the retention rule
+  sha256       String
+  signedAt     DateTime @default(now())
+  purgedAt     DateTime?
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_signatures")
+}
+
+/// Temporary, per-event access granted by an officer with canDelegate.
+/// Valid only while revokedAt is null and expiresAt is in the future.
+model EventDelegate {
+  id        String    @id @default(uuid())
+  eventId   String
+  userId    String    // the officer receiving access
+  scopes    String[]  // "scan" | "manual_checkin" | "view_roster" | "export"
+  grantedBy String
+  expiresAt DateTime
+  revokedAt DateTime?
+  revokedBy String?
+  createdAt DateTime  @default(now())
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User  @relation("DelegateUser", fields: [userId], references: [id])
+  granter User  @relation("DelegateGranter", fields: [grantedBy], references: [id])
+  revoker User? @relation("DelegateRevoker", fields: [revokedBy], references: [id])
+
+  @@index([eventId, userId])
+  @@index([userId, expiresAt])
+  @@map("event_delegates")
 }
 
 model OfficeDuty {
@@ -184,6 +255,10 @@ model ContactSubmission {
 model Settings {
   id                  String   @id @default(uuid())
   currentAcademicYear String   @default("2026-2027")
+  signatureRetentionSemesters Int @default(1) // keep a signature image for this many semesters (the one it was signed in counts as 1)
+  purgeGraceDays              Int @default(30)
+  lastPurgeAt                 DateTime?
+  lastPurgeCount              Int?
   updatedAt           DateTime @updatedAt
 
   @@map("settings")

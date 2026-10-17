@@ -1,539 +1,556 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { prisma } from '../_lib/prisma.js'
-import { authenticate, requireStaff } from '../_lib/auth.js'
-import { createHmac, timingSafeEqual } from 'crypto'
+import { authenticate, forbidStudents } from '../_lib/auth.js'
+import {
+  badRequest,
+  forbidden,
+  handle,
+  isUniqueViolation,
+  notFound,
+} from '../_lib/http.js'
+import {
+  authorizeDutySelfCheckIn,
+  authorizeEventSelfCheckIn,
+  authorizeManualCheckIn,
+  authorizeScanLocation,
+} from '../_lib/attendance-rules.js'
+import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
+import { assertCheckInOpen } from '../_lib/retention.js'
+import { issueQrToken, verifyQrToken } from '../_lib/qr.js'
+import { signatureRef } from '../_lib/signature.js'
+import { buildReport, fileStem, formatManila, parseFormat, type ReportModel } from '../_lib/report.js'
+import { manilaDayRange, manilaDow, manilaHHMM } from '../_lib/time.js'
 
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
-
-function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6_371_000
-  const toRad = (deg: number) => (deg * Math.PI) / 180
-  const dLat = toRad(lat2 - lat1)
-  const dLng = toRad(lng2 - lng1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-function manilaHHMM(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Manila',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-  const hh = parts.find((p) => p.type === 'hour')?.value ?? '00'
-  const mm = parts.find((p) => p.type === 'minute')?.value ?? '00'
-  return `${hh}:${mm}`
-}
-
-const QR_SECRET = process.env.QR_SECRET || 'usc-attendance-qr-secret-change-in-prod'
-
-function signQr(userId: string, eventId: string, issuedAt: number): string {
-  const data = `${userId}:${eventId}:${issuedAt}`
-  return createHmac('sha256', QR_SECRET).update(data).digest('hex')
-}
+const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
 
 // ---------------------------------------------------------------------------
 // GET/POST /api/attendance
 // ---------------------------------------------------------------------------
-export async function index(req: VercelRequest, res: VercelResponse) {
-  try {
-    const user = await authenticate(req)
+export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
+  const user = await authenticate(req)
 
-    if (req.method === 'GET') {
-      const eventId = req.query.eventId as string
-      if (!eventId) {
-        return res.status(400).json({ error: 'eventId query parameter is required' })
-      }
+  if (req.method === 'GET') {
+    const eventId = req.query.eventId as string
+    if (!eventId) {
+      throw badRequest('eventId query parameter is required')
+    }
+    await requireEventScope(prisma, user, eventId, 'view_roster')
 
-      const records = await prisma.attendance.findMany({
-        where: { eventId },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-          recorder: { select: { id: true, name: true, position: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      })
+    const records = await prisma.attendance.findMany({
+      where: { eventId },
+      include: {
+        user: { select: { id: true, name: true, position: true, role: true } },
+        recorder: { select: { id: true, name: true, position: true } },
+        signature: { select: { signedAt: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
 
-      return res.status(200).json(records)
+    return res.status(200).json(records)
+  }
+
+  if (req.method === 'POST') {
+    const { type, eventId, dutyDate, userId, method, lat, lng, accuracy } = req.body
+
+    if (!userId || !method) {
+      throw badRequest('Missing required fields')
     }
 
-    if (req.method === 'POST') {
-      const { type, eventId, dutyDate, userId, method, lat, lng } = req.body
+    const attendanceType = type || 'event'
 
-      if (!userId || !method) {
-        return res.status(400).json({ error: 'Missing required fields' })
-      }
+    // Students are checked in by an officer scanning their QR - never by themselves.
+    if (method === 'self' && user.role === 'student') {
+      throw forbidden('Students are checked in by an officer. Show your QR code at the venue.')
+    }
 
-      const attendanceType = type || 'event'
+    if (attendanceType === 'event' && !eventId) {
+      throw badRequest('eventId is required for event check-ins')
+    }
 
-      if (attendanceType === 'event' && !eventId) {
-        return res.status(400).json({ error: 'eventId is required for event check-ins' })
-      }
+    if (attendanceType === 'duty' && !dutyDate) {
+      throw badRequest('dutyDate is required for duty check-ins')
+    }
 
-      if (attendanceType === 'duty' && !dutyDate) {
-        return res.status(400).json({ error: 'dutyDate is required for duty check-ins' })
-      }
+    if (method !== 'self' && method !== 'manual') {
+      throw badRequest("method must be 'self' or 'manual'. QR check-ins go through /api/attendance/qr with a signed token.")
+    }
 
-      // Check for open (not-yet-checked-out) record
+    // Resolve who may record whom, how, and where — all server-side.
+    let resolved: { lat: number | null; lng: number | null } = { lat: null, lng: null }
+    let delegatedScope: 'manual_checkin' | null = null
+    if (method === 'self') {
       if (attendanceType === 'event') {
-        const existing = await prisma.attendance.findFirst({
-          where: { eventId, userId, checkOutAt: null },
-        })
-
-        if (existing) {
-          return res.status(409).json({
-            error: 'Already checked in. Check out before checking in again.',
-          })
-        }
-      }
-
-      if (attendanceType === 'duty') {
-        const date = new Date(dutyDate)
-        const todayStart = new Date(date)
-        todayStart.setHours(0, 0, 0, 0)
-        const todayEnd = new Date(date)
-        todayEnd.setHours(23, 59, 59, 999)
-
-        const existing = await prisma.attendance.findFirst({
-          where: {
-            userId,
-            type: 'duty',
-            dutyDate: { gte: todayStart, lte: todayEnd },
-            checkOutAt: null,
-          },
-        })
-
-        if (existing) {
-          return res.status(409).json({
-            error: 'Already checked in. Check out before checking in again.',
-          })
-        }
-      }
-
-      // Server-side distance validation for self check-ins
-      if (method === 'self' && lat !== undefined && lng !== undefined && attendanceType === 'event') {
         const event = await prisma.event.findUnique({ where: { id: eventId } })
         if (!event) {
-          return res.status(404).json({ error: 'Event not found' })
+          throw notFound('Event not found')
         }
-
-        const distance = haversine(lat, lng, event.lat, event.lng)
-        if (distance > event.radiusMeters) {
-          return res.status(403).json({
-            error: `You are ${Math.round(distance)}m from the venue. Must be within ${event.radiusMeters}m to check in.`,
-          })
-        }
-      }
-
-      // Staff can only do manual/qr check-ins
-      if (method === 'manual' || method === 'qr') {
-        requireStaff(user)
-      }
-
-      // Guard: staff cannot manually record their own attendance
-      if (method === 'manual' && user.id === userId) {
-        return res.status(403).json({
-          error: 'Staff cannot manually record their own attendance. Use self check-in (geolocation) or QR instead.',
+        assertCheckInOpen(event)
+        resolved = authorizeEventSelfCheckIn({
+          actor: user,
+          targetUserId: userId,
+          lat,
+          lng,
+          geofence: event,
         })
+      } else {
+        resolved = authorizeDutySelfCheckIn({ actor: user, targetUserId: userId, lat, lng })
       }
-
-      // recordedBy is always the authenticated user, never from client input
-      try {
-        const record = await prisma.attendance.create({
-          data: {
-            type: attendanceType,
-            eventId: attendanceType === 'event' ? eventId : null,
-            dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
-            userId,
-            method,
-            lat: lat ? parseFloat(lat) : null,
-            lng: lng ? parseFloat(lng) : null,
-            recordedBy: user.id,
-          },
-          include: {
-            user: { select: { id: true, name: true, position: true, role: true } },
-          },
-        })
-
-        return res.status(201).json(record)
-      } catch (dbErr: unknown) {
-        // P2002 = Prisma unique constraint violation (race condition fallback from partial unique index)
-        if (dbErr && typeof dbErr === 'object' && 'code' in dbErr && (dbErr as { code: string }).code === 'P2002') {
-          return res.status(409).json({
-            error: 'Already checked in. Check out before checking in again.',
-          })
+    } else {
+      if (attendanceType === 'event') {
+        // Staff, or an officer holding an active "manual_checkin" grant for this event.
+        const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin')
+        if (userId === user.id) {
+          throw forbidden('You cannot manually record your own attendance.')
         }
-        throw dbErr
+        delegatedScope = viaDelegation ? 'manual_checkin' : null
+        if (viaDelegation) {
+          // A temporary helper must be at the venue; staff overrides stay exempt.
+          const event = await prisma.event.findUnique({ where: { id: eventId } })
+          if (!event) throw notFound('Event not found')
+          assertCheckInOpen(event)
+          const here = authorizeScanLocation(event, lat, lng, accuracy)
+          resolved = { lat: here.lat, lng: here.lng }
+        }
+      } else {
+        authorizeManualCheckIn(user, userId)
       }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
+    // Check for open (not-yet-checked-out) record
+    if (attendanceType === 'event') {
+      const existing = await prisma.attendance.findFirst({
+        where: { eventId, userId, checkOutAt: null },
+      })
+      if (existing) {
+        throw forbidden(ALREADY_CHECKED_IN)
+      }
+    } else {
+      const { gte, lt } = manilaDayRange(new Date(dutyDate))
+      const existing = await prisma.attendance.findFirst({
+        where: {
+          userId,
+          type: 'duty',
+          dutyDate: { gte, lt },
+          checkOutAt: null,
+        },
+      })
+      if (existing) {
+        throw forbidden(ALREADY_CHECKED_IN)
+      }
+    }
+
+    try {
+      const record = await prisma.attendance.create({
+        data: {
+          type: attendanceType,
+          eventId: attendanceType === 'event' ? eventId : null,
+          dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
+          userId,
+          method,
+          lat: resolved.lat,
+          lng: resolved.lng,
+          recordedBy: user.id,
+        },
+        include: {
+          user: { select: { id: true, name: true, position: true, role: true } },
+        },
+      })
+
+      if (delegatedScope) {
+        await auditDelegationUse(prisma, user, eventId, delegatedScope, {
+          attendanceId: record.id,
+          targetUserId: userId,
+        })
+      }
+
+      return res.status(201).json(record)
+    } catch (dbErr: unknown) {
+      // P2002 = unique constraint violation (race fallback from partial unique index)
+      if (isUniqueViolation(dbErr)) {
+        throw forbidden(ALREADY_CHECKED_IN)
+      }
+      throw dbErr
+    }
   }
-}
+
+  return res.status(405).json({ error: 'Method not allowed' })
+})
 
 // ---------------------------------------------------------------------------
 // POST /api/attendance/checkout
 // ---------------------------------------------------------------------------
-export async function checkout(req: VercelRequest, res: VercelResponse) {
+export const checkout = handle(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  try {
-    const user = await authenticate(req)
-    const { eventId, dutyDate, userId } = req.body
+  const user = await authenticate(req)
+  const { eventId, dutyDate, userId } = req.body
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' })
-    }
+  if (!userId) {
+    throw badRequest('userId is required')
+  }
 
-    if (!eventId && !dutyDate) {
-      return res.status(400).json({ error: 'Either eventId or dutyDate is required' })
-    }
+  if (!eventId && !dutyDate) {
+    throw badRequest('Either eventId or dutyDate is required')
+  }
 
-    // Determine self-checkout vs manual checkout
-    const isSelf = user.id === userId
-    if (!isSelf) {
-      // Manual checkout — require staff role
-      requireStaff(user)
-    }
-
-    // Find the open record
-    let openRecord
+  // Determine self-checkout vs manual checkout
+  const isSelf = user.id === userId
+  if (isSelf) forbidStudents(user)
+  let delegatedCheckout = false
+  if (!isSelf) {
     if (eventId) {
-      openRecord = await prisma.attendance.findFirst({
-        where: { eventId, userId, checkOutAt: null },
-      })
+      // Staff, or an officer holding an active "manual_checkin" grant for this event.
+      const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin')
+      delegatedCheckout = viaDelegation
     } else {
-      const date = new Date(dutyDate)
-      const todayStart = new Date(date)
-      todayStart.setHours(0, 0, 0, 0)
-      const todayEnd = new Date(date)
-      todayEnd.setHours(23, 59, 59, 999)
+      // Duty check-out for someone else stays staff-only (throws 403)
+      authorizeManualCheckIn(user, userId)
+    }
+  }
 
-      openRecord = await prisma.attendance.findFirst({
-        where: {
-          userId,
-          type: 'duty',
-          dutyDate: { gte: todayStart, lte: todayEnd },
-          checkOutAt: null,
-        },
-      })
+  // Find the open record
+  let openRecord
+  if (eventId) {
+    openRecord = await prisma.attendance.findFirst({
+      where: { eventId, userId, checkOutAt: null },
+    })
+  } else {
+    const { gte, lt } = manilaDayRange(new Date(dutyDate))
+    openRecord = await prisma.attendance.findFirst({
+      where: {
+        userId,
+        type: 'duty',
+        dutyDate: { gte, lt },
+        checkOutAt: null,
+      },
+    })
+  }
+
+  if (!openRecord) {
+    throw notFound('No open check-in record found. You may have already checked out.')
+  }
+
+  // Time-window enforcement for duty checkout only
+  if (!eventId && dutyDate) {
+    let orgProfile = await prisma.orgProfile.findFirst()
+    if (!orgProfile) {
+      orgProfile = await prisma.orgProfile.create({ data: {} })
     }
 
-    if (!openRecord) {
-      return res.status(404).json({ error: 'No open check-in record found. You may have already checked out.' })
+    const nowManila = manilaHHMM(new Date())
+    if (nowManila < orgProfile.dutyCheckOutStart) {
+      throw forbidden(`Duty check-out is only allowed starting ${orgProfile.dutyCheckOutStart}.`)
     }
+  }
 
-    // Time-window enforcement for duty checkout only
-    if (!eventId && dutyDate) {
-      let orgProfile = await prisma.orgProfile.findFirst()
-      if (!orgProfile) {
-        orgProfile = await prisma.orgProfile.create({ data: {} })
-      }
+  // Set checkOutAt
+  const updated = await prisma.attendance.update({
+    where: { id: openRecord.id },
+    data: { checkOutAt: new Date() },
+    include: {
+      user: { select: { id: true, name: true, position: true, role: true } },
+    },
+  })
 
-      const nowManila = manilaHHMM(new Date())
-      if (nowManila < orgProfile.dutyCheckOutStart) {
-        return res.status(403).json({
-          error: `Duty check-out is only allowed starting ${orgProfile.dutyCheckOutStart}.`,
-        })
-      }
-    }
+  if (delegatedCheckout && eventId) {
+    await auditDelegationUse(prisma, user, eventId, 'manual_checkin', {
+      attendanceId: updated.id,
+      targetUserId: userId,
+      action: 'checkout',
+    })
+  }
 
-    // Set checkOutAt
-    const updated = await prisma.attendance.update({
-      where: { id: openRecord.id },
-      data: { checkOutAt: new Date() },
+  return res.status(200).json(updated)
+})
+
+// ---------------------------------------------------------------------------
+// GET/POST /api/attendance/duty
+// ---------------------------------------------------------------------------
+export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
+  const user = await authenticate(req)
+
+  // GET: list duty check-ins for a date
+  if (req.method === 'GET') {
+    const dateStr = req.query.date as string
+    const date = dateStr ? new Date(dateStr) : new Date()
+    const dayOfWeek = manilaDow(date)
+
+    const duties = await prisma.officeDuty.findMany({
+      where: { dayOfWeek, active: true },
       include: {
         user: { select: { id: true, name: true, position: true, role: true } },
       },
     })
 
-    return res.status(200).json(updated)
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
+    // Get attendance records for that Manila day
+    const { gte, lt } = manilaDayRange(date)
+    const attendance = await prisma.attendance.findMany({
+      where: {
+        type: 'duty',
+        dutyDate: { gte, lt },
+      },
+      include: {
+        user: { select: { id: true, name: true, position: true, role: true } },
+        recorder: { select: { id: true, name: true, position: true } },
+      },
+    })
+
+    return res.status(200).json({ duties, attendance })
   }
-}
 
-// ---------------------------------------------------------------------------
-// GET/POST /api/attendance/duty
-// ---------------------------------------------------------------------------
-export async function duty(req: VercelRequest, res: VercelResponse) {
-  try {
-    const user = await authenticate(req)
+  // POST: check in for duty
+  if (req.method === 'POST') {
+    const { userId, lat, lng, dutyDate } = req.body
 
-    // GET: list duty check-ins for a date
-    if (req.method === 'GET') {
-      const dateStr = req.query.date as string
-      const date = dateStr ? new Date(dateStr) : new Date()
-      const dayOfWeek = date.getDay()
-
-      const duties = await prisma.officeDuty.findMany({
-        where: { dayOfWeek, active: true },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-        },
-      })
-
-      // Get attendance records for today's duty
-      const todayStart = new Date(date)
-      todayStart.setHours(0, 0, 0, 0)
-      const todayEnd = new Date(date)
-      todayEnd.setHours(23, 59, 59, 999)
-
-      const attendance = await prisma.attendance.findMany({
-        where: {
-          type: 'duty',
-          dutyDate: { gte: todayStart, lte: todayEnd },
-        },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-          recorder: { select: { id: true, name: true, position: true } },
-        },
-      })
-
-      return res.status(200).json({ duties, attendance })
+    if (!userId) {
+      throw badRequest('userId is required')
     }
 
-    // POST: check in for duty
-    if (req.method === 'POST') {
-      const { userId, lat, lng, recordedBy, dutyDate } = req.body
+    const date = dutyDate ? new Date(dutyDate) : new Date()
+    const dayOfWeek = manilaDow(date)
 
-      if (!userId || !recordedBy) {
-        return res.status(400).json({ error: 'Missing required fields' })
-      }
+    // Verify officer has duty on that Manila day
+    const dutyRecord = await prisma.officeDuty.findFirst({
+      where: { userId, dayOfWeek, active: true },
+    })
 
-      const date = dutyDate ? new Date(dutyDate) : new Date()
-      const dayOfWeek = date.getDay()
+    if (!dutyRecord) {
+      throw forbidden('No duty scheduled for today')
+    }
 
-      // Verify officer has duty today
-      const dutyRecord = await prisma.officeDuty.findFirst({
-        where: { userId, dayOfWeek, active: true },
-      })
+    // Time-window enforcement: duty check-in cutoff (Manila wall clock)
+    let orgProfile = await prisma.orgProfile.findFirst()
+    if (!orgProfile) {
+      orgProfile = await prisma.orgProfile.create({ data: {} })
+    }
 
-      if (!dutyRecord) {
-        return res.status(403).json({ error: 'No duty scheduled for today' })
-      }
+    const nowManila = manilaHHMM(new Date())
+    if (nowManila >= orgProfile.dutyCheckInCutoff) {
+      throw forbidden(`Duty check-in is only allowed before ${orgProfile.dutyCheckInCutoff}.`)
+    }
 
-      // Time-window enforcement: duty check-in cutoff
-      let orgProfile = await prisma.orgProfile.findFirst()
-      if (!orgProfile) {
-        orgProfile = await prisma.orgProfile.create({ data: {} })
-      }
+    // Check for open (not-yet-checked-out) duty record that Manila day
+    const { gte, lt } = manilaDayRange(date)
+    const existing = await prisma.attendance.findFirst({
+      where: {
+        userId,
+        type: 'duty',
+        dutyDate: { gte, lt },
+        checkOutAt: null,
+      },
+    })
+    if (existing) {
+      throw forbidden(ALREADY_CHECKED_IN)
+    }
 
-      const nowManila = manilaHHMM(new Date())
-      if (nowManila >= orgProfile.dutyCheckInCutoff) {
-        return res.status(403).json({
-          error: `Duty check-in is only allowed before ${orgProfile.dutyCheckInCutoff}.`,
-        })
-      }
+    // Who may record whom: self check-in is open; recording someone else is staff-only.
+    // recordedBy is always the authenticated user, never from the body.
+    let resolved: { lat: number | null; lng: number | null }
+    let method: 'self' | 'manual'
+    if (userId === user.id) {
+      method = 'self'
+      resolved = authorizeDutySelfCheckIn({ actor: user, targetUserId: userId, lat, lng })
+    } else {
+      method = 'manual'
+      authorizeManualCheckIn(user, userId)
+      resolved = { lat: null, lng: null }
+    }
 
-      // Check for open (not-yet-checked-out) duty record today
-      const todayStart = new Date(date)
-      todayStart.setHours(0, 0, 0, 0)
-      const todayEnd = new Date(date)
-      todayEnd.setHours(23, 59, 59, 999)
-
-      const existing = await prisma.attendance.findFirst({
-        where: {
+    try {
+      const record = await prisma.attendance.create({
+        data: {
+          type: 'duty',
+          dutyDate: date,
           userId,
-          type: 'duty',
-          dutyDate: { gte: todayStart, lte: todayEnd },
-          checkOutAt: null,
+          method,
+          lat: resolved.lat,
+          lng: resolved.lng,
+          recordedBy: user.id,
+        },
+        include: {
+          user: { select: { id: true, name: true, position: true, role: true } },
         },
       })
 
-      if (existing) {
-        return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
+      return res.status(201).json(record)
+    } catch (dbErr: unknown) {
+      if (isUniqueViolation(dbErr)) {
+        throw forbidden(ALREADY_CHECKED_IN)
       }
-
-      // Server-side distance validation for self check-ins
-      if (lat !== undefined && lng !== undefined) {
-        requireStaff(user)
-      }
-
-      try {
-        const record = await prisma.attendance.create({
-          data: {
-            type: 'duty',
-            dutyDate: date,
-            userId,
-            method: lat !== undefined ? 'self' : 'manual',
-            lat: lat ? parseFloat(lat) : null,
-            lng: lng ? parseFloat(lng) : null,
-            recordedBy,
-          },
-          include: {
-            user: { select: { id: true, name: true, position: true, role: true } },
-          },
-        })
-
-        return res.status(201).json(record)
-      } catch (dbErr: unknown) {
-        if (dbErr && typeof dbErr === 'object' && 'code' in dbErr && (dbErr as { code: string }).code === 'P2002') {
-          return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
-        }
-        throw dbErr
-      }
+      throw dbErr
     }
-
-    return res.status(405).json({ error: 'Method not allowed' })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
   }
-}
+
+  return res.status(405).json({ error: 'Method not allowed' })
+})
 
 // ---------------------------------------------------------------------------
-// GET /api/attendance/export
+// GET /api/attendance/export?eventId=&format=csv|xlsx|pdf   (default csv)
 // ---------------------------------------------------------------------------
-export async function exportCsv(req: VercelRequest, res: VercelResponse) {
+export const exportAttendance = handle(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  const user = await authenticate(req)
+
+  const eventId = req.query.eventId as string
+  if (!eventId) {
+    throw badRequest('eventId is required')
+  }
+
+  const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'export')
+
+  const event = await prisma.event.findUnique({ where: { id: eventId } })
+  if (!event) {
+    throw notFound('Event not found')
+  }
+  if (viaDelegation) {
+    await auditDelegationUse(prisma, user, eventId, 'export')
+  }
+
+  const format = parseFormat(req.query.format)
+  if (!format) {
+    throw badRequest('format must be one of: csv, xlsx, pdf')
+  }
+
+  const records = await prisma.attendance.findMany({
+    where: { eventId },
+    include: {
+      user: { select: { name: true, position: true } },
+      recorder: { select: { name: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  const sigs = await prisma.attendanceSignature.findMany({
+    where: { attendanceId: { in: records.map((r) => r.id) } },
+    select: { attendanceId: true, png: true, sha256: true },
+  })
+  const sigById = new Map(sigs.map((s) => [s.attendanceId, s]))
+
+  const METHOD_LABEL: Record<string, string> = { self: 'Self', qr: 'QR', manual: 'Manual' }
+  const model: ReportModel = {
+    title: event.title,
+    eventDate: formatManila(event.date).slice(0, 10),
+    venue: `${event.lat.toFixed(5)}, ${event.lng.toFixed(5)} (${event.radiusMeters} m radius)`,
+    generatedAt: formatManila(new Date()),
+    generatedBy: user.name,
+    rows: records.map((r, i) => ({
+      no: i + 1,
+      name: r.user.name,
+      position: r.user.position,
+      timeIn: formatManila(r.createdAt),
+      timeOut: r.checkOutAt ? formatManila(r.checkOutAt) : '',
+      method: METHOD_LABEL[r.method] ?? r.method,
+      recordedBy: r.recorder.name,
+      location: r.lat != null && r.lng != null ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}` : '',
+      signatureRef: sigById.has(r.id) ? signatureRef(sigById.get(r.id)!.sha256) : null,
+      signaturePng: sigById.get(r.id)?.png ? new Uint8Array(sigById.get(r.id)!.png!) : null,
+      signatureExpired: sigById.has(r.id) && !sigById.get(r.id)!.png,
+    })),
+  }
+
+  const report = await buildReport(model, format)
+
+  res.setHeader('Content-Type', report.contentType)
+  res.setHeader('Content-Disposition', `attachment; filename="${fileStem(event.title)}.${report.extension}"`)
+  res.setHeader('Cache-Control', 'no-store')
+
+  return res.status(200).send(report.body)
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/attendance/qr-token  — issue a server-signed QR token (own account)
+// ---------------------------------------------------------------------------
+export const qrToken = handle(async (req: VercelRequest, res: VercelResponse) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const user = await authenticate(req)
+  const { eventId } = req.body
+
+  if (!eventId || typeof eventId !== 'string') {
+    throw badRequest('eventId is required')
+  }
+
+  const event = await prisma.event.findUnique({ where: { id: eventId } })
+  if (!event) {
+    throw notFound('Event not found')
+  }
+
+  const { token, exp } = issueQrToken(user.id, eventId)
+  return res.status(200).json({ token, exp })
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/attendance/qr  — scan a server-signed token
+// ---------------------------------------------------------------------------
+export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const user = await authenticate(req)
+  const { token, lat, lng, accuracy } = req.body
+
+  if (!token || typeof token !== 'string') {
+    throw badRequest('token is required')
+  }
+
+  // The scanner must be staff or hold an active "scan" grant for this event,
+  // and cannot scan their own code.
+  const payload = verifyQrToken(token)
+  const { viaDelegation } = await requireEventScope(prisma, user, payload.e, 'scan')
+  if (payload.u === user.id) {
+    throw forbidden('You cannot check in with your own QR code')
+  }
+
+  // The scanner must physically be at the venue.
+  const scanEvent = await prisma.event.findUnique({ where: { id: payload.e } })
+  if (!scanEvent) throw notFound('Event not found')
+  assertCheckInOpen(scanEvent)
+  const scannedAt = authorizeScanLocation(scanEvent, lat, lng, accuracy)
+
+  // Check for open (not-yet-checked-out) record
+  const existing = await prisma.attendance.findFirst({
+    where: { eventId: payload.e, userId: payload.u, checkOutAt: null },
+  })
+  if (existing) {
+    throw forbidden(ALREADY_CHECKED_IN)
+  }
+
   try {
-    const user = await authenticate(req)
-    requireStaff(user)
-
-    const eventId = req.query.eventId as string
-    if (!eventId) {
-      return res.status(400).json({ error: 'eventId is required' })
-    }
-
-    const event = await prisma.event.findUnique({ where: { id: eventId } })
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' })
-    }
-
-    const records = await prisma.attendance.findMany({
-      where: { eventId },
-      include: {
-        user: { select: { name: true, position: true } },
-        recorder: { select: { name: true } },
+    const record = await prisma.attendance.create({
+      data: {
+        type: 'event',
+        eventId: payload.e,
+        userId: payload.u,
+        method: 'qr',
+        lat: scannedAt.lat,
+        lng: scannedAt.lng,
+        recordedBy: user.id,
       },
-      orderBy: { createdAt: 'asc' },
+      include: {
+        user: { select: { id: true, name: true, position: true, role: true } },
+      },
     })
 
-    const header = 'Name,Position,Method,Latitude,Longitude,Recorded By,Checked In At,Checked Out At\n'
-    const rows = records
-      .map((r: { user: { name: string; position: string }; method: string; lat: number | null; lng: number | null; recorder: { name: string }; createdAt: Date; checkOutAt: Date | null }) =>
-        [
-          `"${r.user.name}"`,
-          `"${r.user.position}"`,
-          r.method,
-          r.lat ?? '',
-          r.lng ?? '',
-          `"${r.recorder.name}"`,
-          r.createdAt.toISOString(),
-          r.checkOutAt ? r.checkOutAt.toISOString() : '',
-        ].join(',')
-      )
-      .join('\n')
-
-    const csv = header + rows
-
-    res.setHeader('Content-Type', 'text/csv')
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${event.title.replace(/[^a-zA-Z0-9 ]/g, '')}-attendance.csv"`
-    )
-
-    return res.status(200).send(csv)
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
-  }
-}
-
-// ---------------------------------------------------------------------------
-// POST /api/attendance/qr
-// ---------------------------------------------------------------------------
-export async function qr(req: VercelRequest, res: VercelResponse) {
-  try {
-    const user = await authenticate(req)
-
-    if (req.method === 'POST') {
-      const { userId, eventId, recordedBy } = req.body
-
-      if (!userId || !eventId || !recordedBy) {
-        return res.status(400).json({ error: 'Missing required fields: userId, eventId, recordedBy' })
-      }
-
-      // Get the QR token from the request body
-      const { issuedAt, exp, sig } = req.body
-
-      if (!issuedAt || !exp || !sig) {
-        return res.status(400).json({ error: 'Missing QR token fields' })
-      }
-
-      // Verify signature
-      const expectedSig = signQr(userId, eventId, issuedAt)
-      const expectedBuf = Buffer.from(expectedSig, 'hex')
-      const actualBuf = Buffer.from(sig, 'hex')
-
-      if (expectedBuf.length !== actualBuf.length || !timingSafeEqual(expectedBuf, actualBuf)) {
-        return res.status(403).json({ error: 'Invalid QR code signature' })
-      }
-
-      // Verify expiry
-      const now = Math.floor(Date.now() / 1000)
-      if (now > exp) {
-        return res.status(403).json({ error: 'QR code has expired' })
-      }
-
-      // Check for open (not-yet-checked-out) record
-      const existing = await prisma.attendance.findFirst({
-        where: { eventId, userId, checkOutAt: null },
+    if (viaDelegation) {
+      await auditDelegationUse(prisma, user, payload.e, 'scan', {
+        attendanceId: record.id,
+        targetUserId: payload.u,
       })
-
-      if (existing) {
-        return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
-      }
-
-      // QR scan requires staff
-      requireStaff(user)
-
-      try {
-        const record = await prisma.attendance.create({
-          data: {
-            type: 'event',
-            eventId,
-            userId,
-            method: 'qr',
-            recordedBy,
-          },
-          include: {
-            user: { select: { id: true, name: true, position: true, role: true } },
-          },
-        })
-
-        return res.status(201).json(record)
-      } catch (dbErr: unknown) {
-        if (dbErr && typeof dbErr === 'object' && 'code' in dbErr && (dbErr as { code: string }).code === 'P2002') {
-          return res.status(409).json({ error: 'Already checked in. Check out before checking in again.' })
-        }
-        throw dbErr
-      }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    const status = message.includes('Access denied') ? 403 : 500
-    return res.status(status).json({ error: message })
+    return res.status(201).json(record)
+  } catch (dbErr: unknown) {
+    if (isUniqueViolation(dbErr)) {
+      throw forbidden(ALREADY_CHECKED_IN)
+    }
+    throw dbErr
   }
-}
+})

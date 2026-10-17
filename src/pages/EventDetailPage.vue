@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEventStore } from '@/stores/events'
 import Button from '@/components/ui/Button.vue'
@@ -7,10 +7,15 @@ import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
 import LocationPicker from '@/components/ui/LocationPicker.vue'
+import { downloadAttendance, type ExportFormat } from '@/lib/download'
+import EventAccessPanel from '@/components/EventAccessPanel.vue'
+import CheckInWindowPanel from '@/components/CheckInWindowPanel.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const events = useEventStore()
+const auth = useAuthStore()
 
 const eventId = computed(() => route.params.id as string)
 
@@ -45,19 +50,19 @@ function formatCheckInTime(dateStr: string) {
   })
 }
 
-async function exportCSV() {
-  const { supabase } = await import('@/lib/api')
-  const { data: { session } } = await supabase.auth.getSession()
-  const res = await fetch(`/api/attendance/export?eventId=${eventId.value}`, {
-    headers: { Authorization: `Bearer ${session?.access_token}` },
-  })
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${events.currentEvent?.title || 'attendance'}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+const exporting = ref<ExportFormat | null>(null)
+const exportError = ref('')
+
+async function exportAs(format: ExportFormat) {
+  exportError.value = ''
+  exporting.value = format
+  try {
+    await downloadAttendance(eventId.value, format, events.currentEvent?.title)
+  } catch (err: unknown) {
+    exportError.value = err instanceof Error ? err.message : 'Export failed'
+  } finally {
+    exporting.value = null
+  }
 }
 
 function methodLabel(method: string) {
@@ -108,17 +113,39 @@ function methodBadgeVariant(method: string) {
       </Card>
 
       <!-- Actions -->
+      <div v-if="exportError" class="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        {{ exportError }}
+      </div>
       <div class="flex gap-3 flex-wrap">
         <Button variant="gold" @click="router.push(`/check-in/${eventId}`)">
           Check In
         </Button>
-        <Button variant="outline" @click="exportCSV">
-          Export CSV
+        <Button variant="outline" :disabled="exporting !== null" @click="exportAs('pdf')">
+          {{ exporting === 'pdf' ? 'Preparing…' : 'Export PDF' }}
+        </Button>
+        <Button variant="outline" :disabled="exporting !== null" @click="exportAs('xlsx')">
+          {{ exporting === 'xlsx' ? 'Preparing…' : 'Export Excel' }}
+        </Button>
+        <Button variant="outline" :disabled="exporting !== null" @click="exportAs('csv')">
+          {{ exporting === 'csv' ? 'Preparing…' : 'Export CSV' }}
         </Button>
         <Button variant="outline" @click="router.push(`/attendance/${eventId}`)">
           Full List
         </Button>
       </div>
+
+      <CheckInWindowPanel
+        v-if="auth.canManageSettings"
+        :event-id="eventId"
+        :opens-at="events.currentEvent.checkInOpensAt"
+        :closes-at="events.currentEvent.checkInClosesAt"
+      />
+
+      <EventAccessPanel
+        v-if="auth.user?.canDelegate || auth.isSuperAdmin"
+        :event-id="eventId"
+        :can-grant="!!auth.user?.canDelegate"
+      />
 
       <!-- Attendance Summary -->
       <Card>

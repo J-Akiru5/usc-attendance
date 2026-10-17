@@ -3,22 +3,31 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useEventStore } from '@/stores/events'
-import { generateQRToken, type QRTokenPayload } from '@/lib/qr'
+import { api } from '@/lib/api'
 
 const route = useRoute()
 const auth = useAuthStore()
 const events = useEventStore()
 
 const eventId = ref(route.query.eventId as string)
-const token = ref<QRTokenPayload | null>(null)
+const token = ref<string | null>(null)
+const error = ref<string | null>(null)
 const timeLeft = ref(60)
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 let countdownInterval: ReturnType<typeof setInterval> | null = null
 
 async function refreshQR() {
   if (!auth.user || !eventId.value) return
-  token.value = await generateQRToken(auth.user.id, eventId.value)
-  timeLeft.value = 60
+  try {
+    const res = await api.post<{ token: string; exp: number }>('/attendance/qr-token', {
+      eventId: eventId.value,
+    })
+    token.value = res.token
+    error.value = null
+    timeLeft.value = 60
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Could not generate QR token'
+  }
 }
 
 onMounted(async () => {
@@ -41,6 +50,8 @@ onUnmounted(() => {
 
 function selectEvent(id: string) {
   eventId.value = id
+  if (refreshInterval) clearInterval(refreshInterval)
+  if (countdownInterval) clearInterval(countdownInterval)
   refreshQR()
   refreshInterval = setInterval(refreshQR, 45000)
   countdownInterval = setInterval(() => {
@@ -56,11 +67,9 @@ function formatTime(dateStr: string) {
   })
 }
 
-const tokenJson = ref('')
 function copyToken() {
   if (token.value) {
-    tokenJson.value = JSON.stringify(token.value)
-    navigator.clipboard.writeText(tokenJson.value)
+    navigator.clipboard.writeText(token.value)
   }
 }
 </script>
@@ -101,11 +110,12 @@ function copyToken() {
         <div class="w-48 h-48 mx-auto bg-white border-2 border-navy-deep rounded-xl flex items-center justify-center mb-4 relative overflow-hidden">
           <div v-if="token" class="flex flex-col items-center gap-1 p-2">
             <div class="text-[8px] font-mono text-navy-deep break-all leading-tight text-center">
-              {{ JSON.stringify(token).slice(0, 60) }}...
+              {{ token.slice(0, 60) }}...
             </div>
             <div class="text-[10px] font-bold text-navy mt-2">USC QR TOKEN</div>
             <div class="text-[8px] text-slate">Valid for {{ timeLeft }}s</div>
           </div>
+          <div v-else-if="error" class="text-danger text-sm p-2 text-center">{{ error }}</div>
           <div v-else class="text-slate text-sm">Generating...</div>
         </div>
 

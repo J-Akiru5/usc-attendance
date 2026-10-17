@@ -7,6 +7,7 @@
     "dev:full": "vercel dev",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
@@ -25,12 +26,15 @@
     "@supabase/supabase-js": "^2.50.0",
     "@vercel/node": "^5.0.0",
     "@vueuse/motion": "^3.0.3",
+    "exceljs": "^4.4.0",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.0",
     "jimp": "^1.6.1",
     "jose": "^6.2.3",
     "leaflet": "^1.9.4",
+    "pdf-lib": "^1.17.1",
     "pinia": "^3.0.0",
+    "resend": "^6.20.0",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
   },
@@ -51,6 +55,7 @@
     "vercel": "^57.0.0",
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^0.21.0",
+    "vitest": "^5.0.3",
     "vue-tsc": "^2.0.0"
   }
 }

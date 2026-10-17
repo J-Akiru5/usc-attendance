@@ -2,6 +2,7 @@ import type { VercelRequest } from '@vercel/node'
 import { jwtVerify } from 'jose'
 import { supabaseAdmin } from './supabase.js'
 import { prisma } from './prisma.js'
+import { HttpError } from './http.js'
 
 export interface AuthUser {
   id: string
@@ -10,12 +11,38 @@ export interface AuthUser {
   position: string
   role: string
   canManageContent: boolean
+  canDelegate: boolean
+  canConfigure: boolean
 }
 
-export async function authenticate(req: VercelRequest): Promise<AuthUser> {
+/**
+ * Checks that apply once the database row is known: deactivated accounts are
+ * refused everywhere, and a self-registered student must have verified their
+ * email (enforced here so it never depends on a dashboard setting).
+ */
+function assertAccountUsable(
+  dbUser: { active: boolean; role: string; mustChangePassword: boolean },
+  emailConfirmed: boolean,
+  options?: { allowMustChangePassword?: boolean }
+) {
+  if (!dbUser.active) {
+    throw new HttpError(403, 'Access denied. This account is deactivated.')
+  }
+  if (dbUser.role === 'student' && !emailConfirmed) {
+    throw new HttpError(403, 'Access denied. Please verify your email address first - check your inbox for the link.')
+  }
+  if (dbUser.mustChangePassword && !options?.allowMustChangePassword) {
+    throw new HttpError(403, 'Access denied. Password change required.')
+  }
+}
+
+export async function authenticate(
+  req: VercelRequest,
+  options?: { allowMustChangePassword?: boolean }
+): Promise<AuthUser> {
   const authHeader = req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
-    throw new Error('Missing or invalid authorization header')
+    throw new HttpError(401, 'Missing or invalid authorization header')
   }
 
   const token = authHeader.slice(7)
@@ -23,9 +50,12 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
 
   if (user) {
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (dbUser) return dbUser as AuthUser
-    console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
-    throw new Error('User not found in database')
+    if (!dbUser) {
+      console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
+      throw new HttpError(401, 'User not found in database')
+    }
+    assertAccountUsable(dbUser, !!user.email_confirmed_at, options)
+    return dbUser as AuthUser
   }
 
   // Fallback: verify JWT signature using project's HS256 secret
@@ -33,30 +63,36 @@ export async function authenticate(req: VercelRequest): Promise<AuthUser> {
   const jwtSecret = process.env.SUPABASE_JWT_SECRET
   if (!jwtSecret) {
     console.error('[auth] No SUPABASE_JWT_SECRET set — cannot verify token')
-    throw new Error('Invalid or expired token')
+    throw new HttpError(401, 'Invalid or expired token')
   }
 
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret))
     const userId = payload.sub
-    if (!userId) throw new Error('Token has no sub claim')
+    if (!userId) throw new HttpError(401, 'Token has no sub claim')
 
     const dbUser = await prisma.user.findUnique({ where: { id: userId } })
     if (!dbUser) {
       console.error('[auth] JWT fallback: no Prisma user for id:', userId, 'email:', payload.email)
-      throw new Error('User not found in database')
+      throw new HttpError(401, 'User not found in database')
     }
+    let confirmed = true
+    if (dbUser.role === 'student') {
+      const { data: au } = await supabaseAdmin.auth.admin.getUserById(userId)
+      confirmed = !!au?.user?.email_confirmed_at
+    }
+    assertAccountUsable(dbUser, confirmed, options)
     return dbUser as AuthUser
   } catch (jwtErr) {
-    if (jwtErr instanceof Error && jwtErr.message === 'User not found in database') throw jwtErr
+    if (jwtErr instanceof HttpError) throw jwtErr
     console.error('[auth] JWT verification failed:', jwtErr)
-    throw new Error('Invalid or expired token')
+    throw new HttpError(401, 'Invalid or expired token')
   }
 }
 
 export function requireRole(user: AuthUser, ...roles: string[]) {
   if (!roles.includes(user.role)) {
-    throw new Error(`Access denied. Required role: ${roles.join(' or ')}`)
+    throw new HttpError(403, `Access denied. Required role: ${roles.join(' or ')}`)
   }
 }
 
@@ -70,6 +106,13 @@ export function requireSuperAdmin(user: AuthUser) {
 
 export function requireContentAccess(user: AuthUser) {
   if (user.role !== 'super_admin' && !user.canManageContent) {
-    throw new Error('Access denied. Content management permission required.')
+    throw new HttpError(403, 'Access denied. Content management permission required.')
+  }
+}
+
+/** Students may only use their own QR/signature flows; block them from officer features. */
+export function forbidStudents(user: { role: string }) {
+  if (user.role === 'student') {
+    throw new HttpError(403, 'Access denied. This feature is for officers only.')
   }
 }

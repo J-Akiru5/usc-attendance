@@ -1,4 +1,4 @@
-export type Role = 'super_admin' | 'staff' | 'client'
+export type Role = 'super_admin' | 'staff' | 'client' | 'student'
 
 export type AttendanceType = 'event' | 'duty'
 export type CheckInMethod = 'self' | 'manual' | 'qr'
@@ -10,6 +10,9 @@ export interface User {
   position: string
   role: Role
   canManageContent?: boolean
+  canDelegate?: boolean
+  canConfigure?: boolean
+  mustChangePassword?: boolean
   createdAt: string
 }
 
@@ -20,6 +23,8 @@ export interface USCEvent {
   lat: number
   lng: number
   radiusMeters: number
+  checkInOpensAt?: string | null
+  checkInClosesAt?: string | null
   createdBy: string
   creator?: User
   attendance?: Attendance[]
@@ -41,6 +46,7 @@ export interface Attendance {
   event?: USCEvent
   user?: User
   recorder?: User
+  signature?: { signedAt: string } | null
 }
 
 export interface OrgProfile {
@@ -70,10 +76,18 @@ export interface OfficeDuty {
   user?: User
 }
 
-export interface QRToken {
-  userId: string
+export type DelegationScope = 'scan' | 'manual_checkin' | 'view_roster' | 'export'
+
+export interface EventDelegate {
+  id: string
   eventId: string
-  issuedAt: number
-  exp: number
-  sig: string
+  userId: string
+  scopes: DelegationScope[]
+  grantedBy: string
+  expiresAt: string
+  revokedAt: string | null
+  createdAt: string
+  user?: Pick<User, 'id' | 'name' | 'position'>
+  granter?: Pick<User, 'id' | 'name' | 'position'>
+  event?: Pick<USCEvent, 'id' | 'title' | 'date'>
 }

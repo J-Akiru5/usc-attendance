@@ -49,16 +49,14 @@ export const useEventStore = defineStore('events', () => {
       method: 'self',
       lat,
       lng,
-      recordedBy: userId,
     })
   }
 
-  async function manualCheckIn(eventId: string, userId: string, recordedBy: string) {
+  async function manualCheckIn(eventId: string, userId: string) {
     return api.post<Attendance>('/attendance', {
       eventId,
       userId,
       method: 'manual',
-      recordedBy,
     })
   }
 

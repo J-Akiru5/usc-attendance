@@ -42,6 +42,34 @@ async function toggleContentAccess(user: User) {
   }
 }
 
+async function toggleDelegate(user: User) {
+  toggling.value = user.id
+  try {
+    const updated = await api.patch<User>(`/auth/users/${user.id}`, {
+      canDelegate: !user.canDelegate,
+    })
+    const idx = users.value.findIndex((u) => u.id === user.id)
+    if (idx !== -1) users.value[idx] = { ...users.value[idx], canDelegate: updated.canDelegate }
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Failed to update'
+  } finally {
+    toggling.value = null
+  }
+}
+
+async function toggleConfigure(user: User) {
+  toggling.value = user.id
+  try {
+    const updated = await api.patch<User>(`/auth/users/${user.id}`, { canConfigure: !user.canConfigure })
+    const idx = users.value.findIndex((u) => u.id === user.id)
+    if (idx !== -1) users.value[idx] = { ...users.value[idx], canConfigure: updated.canConfigure }
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Failed to update'
+  } finally {
+    toggling.value = null
+  }
+}
+
 function roleBadgeVariant(role: string) {
   if (role === 'super_admin') return 'success'
   if (role === 'staff') return 'default'
@@ -53,7 +81,7 @@ function roleBadgeVariant(role: string) {
   <div class="max-w-4xl mx-auto space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-navy font-serif">User Management</h1>
-      <p class="text-sm text-slate">Grant content management access to staff members</p>
+      <p class="text-sm text-slate">Grant content access, mark who can give out temporary event access (President / Secretary), and who can change settings (adviser, officer in charge)</p>
     </div>
 
     <div v-if="error" class="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -80,6 +108,44 @@ function roleBadgeVariant(role: string) {
                 </div>
                 <div class="text-xs text-slate mt-0.5 truncate">{{ user.position }}</div>
                 <div class="text-xs text-slate/60 mt-0.5 truncate">{{ user.email }}</div>
+              </div>
+
+              <!-- Settings manager toggle: may set signature retention, semesters and check-in windows -->
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.canConfigure ? 'text-gold-dark' : 'text-slate/50'">
+                  Settings
+                </span>
+                <button
+                  type="button"
+                  :disabled="toggling === user.id"
+                  :class="[
+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200',
+                    user.canConfigure ? 'bg-gold' : 'bg-slate-300',
+                    toggling === user.id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                  ]"
+                  @click="toggleConfigure(user)"
+                >
+                  <span :class="['inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200', user.canConfigure ? 'translate-x-6' : 'translate-x-1']" />
+                </button>
+              </div>
+
+              <!-- Delegate toggle: lets the President/Secretary grant temporary event access -->
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.canDelegate ? 'text-gold-dark' : 'text-slate/50'">
+                  Delegate
+                </span>
+                <button
+                  type="button"
+                  :disabled="toggling === user.id"
+                  :class="[
+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200',
+                    user.canDelegate ? 'bg-gold' : 'bg-slate-300',
+                    toggling === user.id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                  ]"
+                  @click="toggleDelegate(user)"
+                >
+                  <span :class="['inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200', user.canDelegate ? 'translate-x-6' : 'translate-x-1']" />
+                </button>
               </div>
 
               <!-- Toggle switch (super_admin always has access — disabled) -->

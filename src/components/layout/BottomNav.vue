@@ -20,7 +20,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Home', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client'] },
+  { label: 'Home', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client', 'student'] },
   { label: 'Events', to: '/manage/events', icon: '📅', roles: ['super_admin', 'staff'] },
   { label: 'Scan', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },

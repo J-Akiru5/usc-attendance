@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { randomBytes } from 'crypto'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -11,26 +12,26 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'password123'
+/** Generate a cryptographically random password (16 bytes → 22-char base64url). */
+function generatePassword(): string {
+  return randomBytes(16).toString('base64url')
+}
 
-const OFFICER_PASSWORDS: Record<string, string> = {
-  'admin@usc.edu.ph': adminPassword,
-  'staff@usc.edu.ph': 'password123',
-  'officer@usc.edu.ph': 'password123',
-  'jdemonteverde@isufst.edu.ph': 'USC2026!EGKJ3G',
-  'kbicodo@isufst.edu.ph':      'USC2026!hwLRTq',
-  'ndanugrao@isufst.edu.ph':    'USC2026!EJLFDZ',
-  'ddaguro@isufst.edu.ph':      'USC2026!VcKuMB',
-  'lparcia@isufst.edu.ph':      'USC2026!Jkcbru',
-  'raquino@isufst.edu.ph':      'USC2026!feSSKx',
-  'cmanderico@isufst.edu.ph':   'USC2026!NYwzMM',
-  'ndeang@isufst.edu.ph':       'USC2026!FgAkpM',
-  'jnatalio@isufst.edu.ph':     'USC2026!nmBMAS',
-  'jbalinas@isufst.edu.ph':     'USC2026!qU4D2N',
-  'jmartinez@isufst.edu.ph':    'USC2026!atwgVf',
-  'aperisme@isufst.edu.ph':     'USC2026!qXJWSD',
-  'ralmirante@isufst.edu.ph':   'USC2026!QVj3be',
-  'jfrial@isufst.edu.ph':       'USC2026!xUcMMf',
+// By default, an account that has already completed its first-login password
+// change (mustChangePassword: false) is left untouched on subsequent runs —
+// no password rotation, no reprinted credential, no mustChangePassword reset.
+// Only brand-new accounts get a generated password. Set ROTATE_ALL=true to
+// force every account (including already-changed ones) back through rotation,
+// e.g. for a deliberate credential-rotation pass:
+//   ROTATE_ALL=true npm run db:auth-seed
+const ROTATE_ALL = process.env.ROTATE_ALL === 'true'
+
+/** Resolve the admin password lazily — only called when the admin account is actually being (re)seeded. */
+function getAdminPassword(): string {
+  if (process.env.SEED_ADMIN_PASSWORD) return process.env.SEED_ADMIN_PASSWORD
+  const generated = generatePassword()
+  console.log(`\n⚠  SEED_ADMIN_PASSWORD not set — generated admin password:\n   ${generated}\n`)
+  return generated
 }
 
 const officers = [
@@ -58,6 +59,7 @@ async function main() {
 
   const credentials: { name: string; email: string; password: string; position: string }[] = []
   const skippedMismatches: { email: string; authId: string; dbId: string }[] = []
+  const skippedAlreadyChanged: string[] = []
   const failedUpdates: { email: string; message: string }[] = []
 
   // Fetch all auth users once to avoid repeated API calls
@@ -67,14 +69,27 @@ async function main() {
   }
 
   for (const u of officers) {
-    const tempPassword = OFFICER_PASSWORDS[u.email]
-    if (!tempPassword) {
-      console.error(`  ✗ No password defined for ${u.email} — skipping`)
+    // Look up the existing Prisma record first — it decides whether this
+    // account gets rotated at all.
+    const existingAuthUser = authList.users.find(user => user.email === u.email)
+    const existingDbUser = await prisma.user.findUnique({ where: { email: u.email } })
+
+    const isNewAccount = !existingAuthUser || !existingDbUser
+    const alreadyChanged = !!existingDbUser && existingDbUser.mustChangePassword === false
+
+    if (!isNewAccount && alreadyChanged && !ROTATE_ALL) {
+      console.log(`  ${u.email} — already changed password, left untouched (mustChangePassword=false)`)
+      skippedAlreadyChanged.push(u.email)
       continue
     }
 
-    // 1. Resolve Supabase Auth user (reuse cached list)
-    const existingAuthUser = authList.users.find(user => user.email === u.email)
+    // Generate a fresh random password for every account being (re)seeded.
+    // The admin user (first in the list) uses SEED_ADMIN_PASSWORD if set;
+    // all others get a runtime-generated random password.
+    const tempPassword = u.email === 'admin@usc.edu.ph'
+      ? getAdminPassword()
+      : generatePassword()
+
     let authUserId: string
     let status: string
 
@@ -105,14 +120,13 @@ async function main() {
 
       authUserId = createData.user.id
       status = 'created'
-      credentials.push({ name: u.name, email: u.email, password: tempPassword, position: u.position })
     }
 
-    // 2. Upsert Prisma user by EMAIL — repair ID if mismatched
-    const existingDbUser = await prisma.user.findUnique({
-      where: { email: u.email }
-    })
+    // Always push credentials so the table shows every rotated password
+    credentials.push({ name: u.name, email: u.email, password: tempPassword, position: u.position })
 
+    // 2. Upsert Prisma user by EMAIL — repair ID if mismatched
+    // (existingDbUser was already resolved above, before the rotation-skip check)
     if (existingDbUser) {
       if (existingDbUser.id === authUserId) {
         // IDs match — just update metadata
@@ -191,6 +205,14 @@ async function main() {
     }
   }
 
+  if (skippedAlreadyChanged.length > 0) {
+    console.log(`\nUNTOUCHED (already changed their password — ${skippedAlreadyChanged.length}):`)
+    for (const email of skippedAlreadyChanged) {
+      console.log(`  ${email}`)
+    }
+    console.log('  Re-run with ROTATE_ALL=true to force-rotate these too.')
+  }
+
   if (credentials.length > 0) {
     console.log('\nTEMPORARY CREDENTIALS — Distribute these privately to each officer:\n')
     console.log('-'.repeat(70))
@@ -200,9 +222,7 @@ async function main() {
       console.log(c.name.padEnd(30) + c.email.padEnd(35) + c.password)
     }
     console.log('-'.repeat(70))
-    console.log(`\nTotal new accounts: ${credentials.length}`)
-  } else {
-    console.log('\nAll officers already have accounts. No new credentials generated.')
+    console.log(`\nTotal accounts: ${credentials.length}`)
   }
 
   if (failedUpdates.length > 0) {
