@@ -1,11 +1,11 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { prisma } from '../_lib/prisma.js'
-import { supabaseAdmin } from '../_lib/supabase.js'
-import { resend } from '../_lib/resend.js'
 import { randomBytes } from 'crypto'
-import { handle, HttpError } from '../_lib/http.js'
-import { siteUrl } from '../_lib/site.js'
-import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../_lib/students.js'
+import { getMethod } from 'h3'
+import { prisma } from '../../utils/prisma'
+import { resend } from '../../utils/resend'
+import { supabaseAdmin } from '../../utils/supabase'
+import { siteUrl } from '../../utils/site'
+import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../../utils/students'
+import { defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
 
 const GENERIC
   = 'If your details are eligible, a verification link has been sent to your school email. Open it to finish signing up.'
@@ -29,17 +29,17 @@ async function audit(action: string, key: string, extra: Record<string, unknown>
 // Always answers with the same message whether or not the email / student ID is
 // already taken, so it cannot be used to discover who has an account.
 // ---------------------------------------------------------------------------
-export const register = handle(async (req: VercelRequest, res: VercelResponse) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+export default defineApiHandler(async (event) => {
+  if (getMethod(event) !== 'POST') {
+    return respond(event, 405, { error: 'Method not allowed' })
   }
 
-  const ipKey = `|ip=${clientIp(req.headers)}|`
+  const ipKey = `|ip=${clientIp(event.node.req.headers)}|`
   if (await overLimit(prisma, 'student_register_attempt', ipKey, 8, TEN_MIN)) {
     throw new HttpError(429, 'Too many sign-up attempts. Please wait a few minutes and try again.')
   }
 
-  const input = parseRegistration(req.body)
+  const input = parseRegistration(await readJsonBody(event))
 
   const emailKey = `|em=${input.email}|`
   if (await overLimit(prisma, 'student_register_attempt', emailKey, 3, ONE_HOUR)) {
@@ -57,7 +57,7 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
     }
     if (!staleUnverified) {
       await audit('student_register_duplicate', emailKey, { reason: 'email' })
-      return res.status(200).json({ message: GENERIC })
+      return { message: GENERIC }
     }
     // A previous sign-up that never verified: replace it so the person can retry.
     await prisma.user.delete({ where: { id: existing.id } })
@@ -67,7 +67,7 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
   const takenNo = await prisma.studentProfile.findUnique({ where: { studentNo: input.studentNo } })
   if (takenNo) {
     await audit('student_register_duplicate', emailKey, { reason: 'studentNo' })
-    return res.status(200).json({ message: GENERIC })
+    return { message: GENERIC }
   }
 
   // Creates the (unconfirmed) auth user and returns the verification link.
@@ -80,7 +80,7 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
   })
   if (linkError || !link?.user) {
     console.error('[register] generateLink failed:', linkError?.message)
-    return res.status(200).json({ message: GENERIC })
+    return { message: GENERIC }
   }
 
   try {
@@ -99,7 +99,7 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
   } catch (err) {
     console.error('[register] database insert failed:', err instanceof Error ? err.message : err)
     await supabaseAdmin.auth.admin.deleteUser(link.user.id).catch(() => {})
-    return res.status(200).json({ message: GENERIC })
+    return { message: GENERIC }
   }
 
   const { error: sendError } = await resend.emails.send({
@@ -130,5 +130,5 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
   }
 
   await audit('student_registered', emailKey, {}, link.user.id)
-  return res.status(200).json({ message: GENERIC })
+  return { message: GENERIC }
 })

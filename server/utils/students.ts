@@ -47,7 +47,7 @@ export function validatePassword(raw: unknown, email: string): string {
   if (pw.length < 8 || pw.length > 72) {
     throw badRequest('Password must be 8 to 72 characters')
   }
-  const local = email.split('@')[0]
+  const local = email.split('@')[0] ?? ''
   if (pw.toLowerCase().includes(local) && local.length >= 4) {
     throw badRequest('Password must not contain your email name')
   }

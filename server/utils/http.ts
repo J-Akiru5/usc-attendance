@@ -31,6 +31,17 @@ export function respond<T>(event: H3Event, statusCode: number, body: T): T {
   return body
 }
 
+/**
+ * The request path as the legacy router computed it: raw URL, query string and
+ * trailing slash removed (`/api/attendance/?x=1` → `/api/attendance`).
+ */
+export function requestPath(event: H3Event): string {
+  const req = event.node.req as typeof event.node.req & { originalUrl?: string }
+  const rawUrl = req.originalUrl || req.url || '/'
+  const path = rawUrl.split('?')[0] ?? ''
+  return path.replace(/\/$/, '') || '/'
+}
+
 /** `res.status(statusCode).end()` — empty body, status kept (204 by default). */
 export function noContent(event: H3Event, statusCode = 204): null {
   setResponseStatus(event, statusCode)
@@ -38,10 +49,14 @@ export function noContent(event: H3Event, statusCode = 204): null {
 }
 
 /**
- * The parsed JSON body, or `undefined` when the request carries no body — the
- * same shape the Vercel request parser gave the legacy handlers.
+ * JSON body of the request as the legacy handlers saw it (`VercelRequest.body`
+ * was untyped, so fields are checked at runtime rather than by the compiler),
+ * or `undefined` when the request carries no body.
  */
-export async function readJsonBody<T = Record<string, unknown>>(event: H3Event): Promise<T | undefined> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyRecord = Record<string, any>
+
+export async function readJsonBody<T = AnyRecord>(event: H3Event): Promise<T | undefined> {
   try {
     return await readBody<T>(event)
   } catch {

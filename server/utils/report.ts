@@ -204,7 +204,7 @@ export async function buildPdf(model: ReportModel): Promise<Buffer> {
     let x = MARGIN
     REPORT_COLUMNS.forEach((c, i) => {
       page.drawText(c, { x: x + 4, y: y - 14, size: 8, font: bold, color: rgb(1, 1, 1) })
-      x += COL_W[i]
+      x += COL_W[i] ?? 0
     })
     y -= 20
   }
@@ -233,7 +233,7 @@ export async function buildPdf(model: ReportModel): Promise<Buffer> {
   }
 
   for (let idx = 0; idx < model.rows.length; idx++) {
-    const r = model.rows[idx]
+    const r = model.rows[idx]!
     if (y - ROW_H < MARGIN + 18) newPage(false)
 
     if (idx % 2 === 1) {
@@ -247,7 +247,7 @@ export async function buildPdf(model: ReportModel): Promise<Buffer> {
         if (r.signaturePng) {
           try {
             const img = await pdf.embedPng(r.signaturePng)
-            const maxW = COL_W[i] - 8
+            const maxW = (COL_W[i] ?? 0) - 8
             const maxH = ROW_H - 6
             const scale = Math.min(maxW / img.width, maxH / img.height, 1)
             page!.drawImage(img, { x: x + 4, y: y - ROW_H + 3, width: img.width * scale, height: img.height * scale })
@@ -256,14 +256,14 @@ export async function buildPdf(model: ReportModel): Promise<Buffer> {
           }
         } else if (r.signatureExpired) {
           page!.drawText('image removed', { x: x + 4, y: y - 14, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
-          page!.drawText(fit(r.signatureRef ?? '', font, 7, COL_W[i] - 8), { x: x + 4, y: y - 24, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
+          page!.drawText(fit(r.signatureRef ?? '', font, 7, (COL_W[i] ?? 0) - 8), { x: x + 4, y: y - 24, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
         } else {
           page!.drawText('-', { x: x + 4, y: y - 18, size: 8, font, color: rgb(0.6, 0.6, 0.6) })
         }
       } else {
-        page!.drawText(fit(cells[i], font, 8, COL_W[i] - 8), { x: x + 4, y: y - 18, size: 8, font, color: rgb(0.1, 0.1, 0.1) })
+        page!.drawText(fit(cells[i] ?? '', font, 8, (COL_W[i] ?? 0) - 8), { x: x + 4, y: y - 18, size: 8, font, color: rgb(0.1, 0.1, 0.1) })
       }
-      x += COL_W[i]
+      x += COL_W[i] ?? 0
     }
     page!.drawLine({ start: { x: MARGIN, y: y - ROW_H }, end: { x: PAGE_W - MARGIN, y: y - ROW_H }, thickness: 0.4, color: rgb(0.85, 0.85, 0.85) })
     y -= ROW_H

@@ -1,10 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { prisma } from '../_lib/prisma.js'
-import { authenticate, requireSuperAdmin } from '../_lib/auth.js'
-import { badRequest, handle, HttpError, isUniqueViolation, notFound } from '../_lib/http.js'
-import { normalizeName, normalizeStudentNo, STUDENT_ROLE } from '../_lib/students.js'
-
-const PAGE = 50
+import { getMethod, getRouterParam } from 'h3'
+import { prisma } from '../../utils/prisma'
+import { authenticate, requireSuperAdmin } from '../../utils/auth'
+import { badRequest, defineApiHandler, HttpError, isUniqueViolation, notFound, readJsonBody, respond } from '../../utils/http'
+import { normalizeName, normalizeStudentNo, STUDENT_ROLE } from '../../utils/students'
 
 const select = {
   id: true,
@@ -16,46 +14,19 @@ const select = {
 } as const
 
 // ---------------------------------------------------------------------------
-// GET /api/students?q=&page=   — super_admin only
-// ---------------------------------------------------------------------------
-export const students = handle(async (req: VercelRequest, res: VercelResponse) => {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
-  const actor = await authenticate(req)
-  requireSuperAdmin(actor)
-
-  const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 60) : ''
-  const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1)
-
-  const where = {
-    role: STUDENT_ROLE,
-    ...(q && {
-      OR: [
-        { name: { contains: q, mode: 'insensitive' as const } },
-        { email: { contains: q, mode: 'insensitive' as const } },
-        { studentProfile: { studentNo: { contains: q, mode: 'insensitive' as const } } }
-      ]
-    })
-  }
-
-  const [total, rows] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({ where, select, orderBy: { name: 'asc' }, skip: (page - 1) * PAGE, take: PAGE })
-  ])
-  return res.status(200).json({ total, page, pageSize: PAGE, students: rows })
-})
-
-// ---------------------------------------------------------------------------
 // PATCH /api/students/:id   { name?, studentNo?, program?, active? }  — super_admin only
 // ---------------------------------------------------------------------------
-export const studentById = handle(async (req: VercelRequest, res: VercelResponse, id: string) => {
-  if (req.method !== 'PATCH') return res.status(405).json({ error: 'Method not allowed' })
-  const actor = await authenticate(req)
+export default defineApiHandler(async (event) => {
+  if (getMethod(event) !== 'PATCH') return respond(event, 405, { error: 'Method not allowed' })
+  const actor = await authenticate(event)
   requireSuperAdmin(actor)
+
+  const id = getRouterParam(event, 'id') ?? ''
 
   const target = await prisma.user.findUnique({ where: { id }, include: { studentProfile: true } })
   if (!target || target.role !== STUDENT_ROLE) throw notFound('Student not found')
 
-  const { name, studentNo, program, active } = req.body ?? {}
+  const { name, studentNo, program, active } = await readJsonBody(event) ?? {}
   if (name === undefined && studentNo === undefined && program === undefined && active === undefined) {
     throw badRequest('Nothing to update')
   }
@@ -94,7 +65,7 @@ export const studentById = handle(async (req: VercelRequest, res: VercelResponse
       })
       return u
     })
-    return res.status(200).json(updated)
+    return updated
   } catch (err) {
     if (isUniqueViolation(err)) throw new HttpError(409, 'That student ID is already registered to someone else')
     throw err

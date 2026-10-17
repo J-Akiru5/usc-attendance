@@ -1,16 +1,16 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { prisma } from '../_lib/prisma.js'
-import { badRequest, handle } from '../_lib/http.js'
+import { getMethod } from 'h3'
+import { prisma } from '../utils/prisma'
+import { badRequest, defineApiHandler, readJsonBody, respond } from '../utils/http'
 
 // ---------------------------------------------------------------------------
 // POST /api/contact
 // ---------------------------------------------------------------------------
-export const contact = handle(async (req: VercelRequest, res: VercelResponse) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+export default defineApiHandler(async (event) => {
+  if (getMethod(event) !== 'POST') {
+    return respond(event, 405, { error: 'Method not allowed' })
   }
 
-  const { name, email, message } = req.body || {}
+  const { name, email, message } = await readJsonBody(event) ?? {}
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     throw badRequest('Name is required')
@@ -30,5 +30,5 @@ export const contact = handle(async (req: VercelRequest, res: VercelResponse) =>
     }
   })
 
-  return res.status(201).json(submission)
+  return respond(event, 201, submission)
 })

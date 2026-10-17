@@ -51,7 +51,7 @@ export async function hasInk(buf: Buffer, minPixels = 40): Promise<boolean> {
   const data = img.bitmap.data
   let ink = 0
   for (let i = 3; i < data.length; i += 4) {
-    if (data[i] > 40 && ++ink >= minPixels) return true
+    if ((data[i] ?? 0) > 40 && ++ink >= minPixels) return true
   }
   return false
 }

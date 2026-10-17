@@ -1,16 +1,16 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { prisma } from '../_lib/prisma.js'
-import { authenticate, forbidStudents, requireSuperAdmin } from '../_lib/auth.js'
-import { badRequest, handle, notFound } from '../_lib/http.js'
+import { getMethod } from 'h3'
+import { prisma } from '../utils/prisma'
+import { authenticate, forbidStudents, requireSuperAdmin } from '../utils/auth'
+import { badRequest, defineApiHandler, noContent, notFound, readJsonBody, respond } from '../utils/http'
 
 // ---------------------------------------------------------------------------
 // GET/POST/PUT/DELETE /api/duties
 // ---------------------------------------------------------------------------
-export const duties = handle(async (req: VercelRequest, res: VercelResponse) => {
-  const user = await authenticate(req)
+export default defineApiHandler(async (event) => {
+  const user = await authenticate(event)
   forbidStudents(user)
 
-  if (req.method === 'GET') {
+  if (getMethod(event) === 'GET') {
     const dutiesList = await prisma.officeDuty.findMany({
       include: {
         user: { select: { id: true, name: true, position: true, role: true } }
@@ -18,13 +18,13 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
       orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }]
     })
 
-    return res.status(200).json(dutiesList)
+    return dutiesList
   }
 
-  if (req.method === 'POST') {
+  if (getMethod(event) === 'POST') {
     requireSuperAdmin(user)
 
-    const { userId, dayOfWeek, startTime, endTime, active } = req.body
+    const { userId, dayOfWeek, startTime, endTime, active } = await readJsonBody(event) ?? {}
 
     if (!userId || dayOfWeek === undefined || !startTime || !endTime) {
       throw badRequest('Missing required fields: userId, dayOfWeek, startTime, endTime')
@@ -43,13 +43,13 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
       }
     })
 
-    return res.status(201).json(duty)
+    return respond(event, 201, duty)
   }
 
-  if (req.method === 'PUT') {
+  if (getMethod(event) === 'PUT') {
     requireSuperAdmin(user)
 
-    const { id, userId, dayOfWeek, startTime, endTime, active } = req.body
+    const { id, userId, dayOfWeek, startTime, endTime, active } = await readJsonBody(event) ?? {}
     if (!id) {
       throw badRequest('Schedule ID is required')
     }
@@ -73,13 +73,13 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
       }
     })
 
-    return res.status(200).json(updated)
+    return updated
   }
 
-  if (req.method === 'DELETE') {
+  if (getMethod(event) === 'DELETE') {
     requireSuperAdmin(user)
 
-    const { id } = req.body
+    const { id } = await readJsonBody(event) ?? {}
     if (!id) {
       throw badRequest('Missing duty id')
     }
@@ -90,8 +90,8 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
     }
 
     await prisma.officeDuty.delete({ where: { id } })
-    return res.status(204).end()
+    return noContent(event, 204)
   }
 
-  return res.status(405).json({ error: 'Method not allowed' })
+  return respond(event, 405, { error: 'Method not allowed' })
 })

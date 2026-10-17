@@ -16,5 +16,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["api/**/*.ts", "prisma/**/*.ts", "scripts/**/*.mts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": ["prisma/**/*.ts", "scripts/**/*.mts", "tests/**/*.ts", "vitest.config.ts"]
 }
