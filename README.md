@@ -4,6 +4,8 @@ Geolocation-gated attendance tracking for University Student Council officers.
 
 Built for the **University Student Council — ISUFST Dingle Campus**.
 
+> **Roadmap:** the plan for the professional USC platform (Nuxt 4 + Nuxt UI rebuild, events calendar, analytics, notifications, fines & clearance, elections, finance, documents) is in [docs/PROFESSIONAL-SYSTEM-PLAN.md](docs/PROFESSIONAL-SYSTEM-PLAN.md). Agents: see [AGENTS.md](AGENTS.md).
+
 ## What it does
 
 One job: let an officer prove they physically showed up to an event, and let staff override that when the scanner can't be trusted or used.
