@@ -1,0 +1,16 @@
+{
+  "name": "usc-public-parity",
+  "private": true,
+  "description": "Guards the public USC website during the Nuxt rebuild: compares every public page on the live site (baseline) against a candidate build, content and pixels.",
+  "type": "module",
+  "scripts": {
+    "parity": "playwright test",
+    "parity:self-check": "cross-env CANDIDATE_URL=https://usc.syntaxure.dev playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
+    "cross-env": "^7.0.3"
+  }
+}
