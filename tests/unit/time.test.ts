@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 // Force the Vercel runtime default timezone so local runs match production.
 process.env.TZ = 'UTC'
 
-const { manilaDayRange, manilaDow, manilaHHMM, manilaYmd } = await import('./time.js')
+const { manilaDayRange, manilaDow, manilaHHMM, manilaYmd } = await import('../../server/utils/time')
 
 describe('manilaYmd', () => {
   it('returns the Manila calendar date, not the server date', () => {

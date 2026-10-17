@@ -1,4 +1,4 @@
-import { HttpError } from './http.js'
+import { HttpError } from './http'
 
 export type CheckInMethod = 'self' | 'manual' | 'qr'
 

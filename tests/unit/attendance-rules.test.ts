@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HttpError } from './http.js'
+import { HttpError } from '../../server/utils/http'
 import {
   assertWithinGeofence,
   authorizeDutySelfCheckIn,
@@ -11,7 +11,7 @@ import {
   isStaff,
   requireStaffRole,
   type Actor
-} from './attendance-rules.js'
+} from '../../server/utils/attendance-rules'
 
 const officer: Actor = { id: 'user-officer', role: 'client' }
 const staff: Actor = { id: 'user-staff', role: 'staff' }

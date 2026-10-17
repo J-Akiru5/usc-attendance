@@ -1,4 +1,4 @@
-import { badRequest } from './http.js'
+import { badRequest } from './http'
 
 export const STUDENT_EMAIL_DOMAIN = 'isufst.edu.ph'
 export const STUDENT_ROLE = 'student'

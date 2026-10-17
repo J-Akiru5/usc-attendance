@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { Jimp } from 'jimp'
-import { badRequest } from './http.js'
+import { badRequest } from './http'
 
 export const MAX_SIGNATURE_BYTES = 200 * 1024
 /** How long after check-in the attendee may still sign. */

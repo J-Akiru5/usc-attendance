@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Jimp } from 'jimp'
-import { HttpError } from './http.js'
+import { HttpError } from '../../server/utils/http'
 import {
   clientIp,
   normalizeName,
@@ -9,7 +9,7 @@ import {
   overLimit,
   parseRegistration,
   validatePassword
-} from './students.js'
+} from '../../server/utils/students'
 import {
   decodeSignatureDataUrl,
   hasInk,
@@ -17,7 +17,7 @@ import {
   sha256Hex,
   signatureRef,
   validateSignature
-} from './signature.js'
+} from '../../server/utils/signature'
 
 function http(fn: () => unknown, status = 400, part?: string) {
   try {

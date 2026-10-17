@@ -1,4 +1,4 @@
-import { HttpError, badRequest } from './http.js'
+import { HttpError, badRequest } from './http'
 
 export interface SemesterLike {
   id?: string

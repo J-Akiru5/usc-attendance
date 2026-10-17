@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto'
-import { HttpError } from './http.js'
+import { HttpError } from './http'
 
 const TOKEN_TTL_SECONDS = 60
 

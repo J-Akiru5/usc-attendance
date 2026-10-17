@@ -11,7 +11,7 @@ import {
   safeCell,
   type ReportModel,
   type ReportRow
-} from './report.js'
+} from '../../server/utils/report'
 
 // 1x1 transparent PNG
 const PNG = Uint8Array.from(

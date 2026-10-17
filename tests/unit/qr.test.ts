@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { HttpError } from './http.js'
-import { issueQrToken, verifyQrToken } from './qr.js'
+import { HttpError } from '../../server/utils/http'
+import { issueQrToken, verifyQrToken } from '../../server/utils/qr'
 
 const SECRET = 'test-qr-secret-at-least-32-chars-long!!'
 

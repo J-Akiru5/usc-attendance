@@ -1,6 +1,6 @@
-import { HttpError, badRequest } from './http.js'
-import { isStaff, type Actor } from './attendance-rules.js'
-import { manilaDayRange } from './time.js'
+import { HttpError, badRequest } from './http'
+import { isStaff, type Actor } from './attendance-rules'
+import { manilaDayRange } from './time'
 
 export const DELEGATION_SCOPES = ['scan', 'manual_checkin', 'view_roster', 'export'] as const
 export type DelegationScope = (typeof DELEGATION_SCOPES)[number]

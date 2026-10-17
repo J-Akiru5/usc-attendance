@@ -1,8 +1,10 @@
-import type { VercelRequest } from '@vercel/node'
+import type { H3Event } from 'h3'
 import { jwtVerify } from 'jose'
-import { supabaseAdmin } from './supabase.js'
-import { prisma } from './prisma.js'
-import { HttpError } from './http.js'
+import { getRequestHeader } from 'h3'
+import { serverSupabaseSession } from '#supabase/server'
+import { supabaseAdmin } from './supabase'
+import { prisma } from './prisma'
+import { HttpError } from './http'
 
 export interface AuthUser {
   id: string
@@ -36,16 +38,35 @@ function assertAccountUsable(
   }
 }
 
+/**
+ * Token carried by this request: the legacy `Authorization: Bearer …` header
+ * (what the current app and the e2e suites send) first, then the Supabase
+ * cookie session `@nuxtjs/supabase` writes for SSR. `null` = anonymous caller.
+ */
+async function accessTokenOf(event: H3Event): Promise<string | null> {
+  const authHeader = getRequestHeader(event, 'authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7)
+  }
+
+  try {
+    const session = await serverSupabaseSession(event)
+    return session?.access_token ?? null
+  } catch {
+    // No (or unreadable) cookie session — treated as anonymous below.
+    return null
+  }
+}
+
 export async function authenticate(
-  req: VercelRequest,
+  event: H3Event,
   options?: { allowMustChangePassword?: boolean }
 ): Promise<AuthUser> {
-  const authHeader = req.headers.authorization
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = await accessTokenOf(event)
+  if (!token) {
     throw new HttpError(401, 'Missing or invalid authorization header')
   }
 
-  const token = authHeader.slice(7)
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
 
   if (user) {

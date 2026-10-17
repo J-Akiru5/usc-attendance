@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HttpError } from './http.js'
+import { HttpError } from '../../server/utils/http'
 import {
   computeExpiry,
   grantAllows,
@@ -9,7 +9,7 @@ import {
   requireCanDelegate,
   requireEventScope,
   type DelegationDb
-} from './delegation.js'
+} from '../../server/utils/delegation'
 
 const NOW = new Date('2026-11-10T02:00:00Z') // 10:00 Manila
 // Event on 2026-11-10 Manila → day ends 2026-11-10T16:00:00Z

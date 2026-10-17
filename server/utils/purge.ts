@@ -1,5 +1,5 @@
-import type { prisma } from './prisma.js'
-import { expiredSemesters } from './retention.js'
+import type { prisma } from './prisma'
+import { expiredSemesters } from './retention'
 
 type Db = typeof prisma
 

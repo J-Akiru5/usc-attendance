@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HttpError } from './http.js'
+import { HttpError } from '../../server/utils/http'
 import {
   assertCheckInOpen,
   canManageSettings,
@@ -9,7 +9,7 @@ import {
   requireSettingsManager,
   validateSemester,
   type SemesterLike
-} from './retention.js'
+} from '../../server/utils/retention'
 
 const d = (s: string) => new Date(s + 'T00:00:00+08:00')
 const sem = (name: string, a: string, b: string): SemesterLike => ({ name, startsOn: d(a), endsOn: d(b) })
