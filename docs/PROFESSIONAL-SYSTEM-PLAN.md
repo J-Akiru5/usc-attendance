@@ -2,6 +2,8 @@
 
 > **Status:** Draft v1.1 (USC answers folded in) · 2026-10-17 · Owner: Jeff (Syntaxure Labs) · Audience: Jeff, the USC President, and any AI coding agent working in this repo.
 >
+> **Public site freeze (2026-10-17):** the public website stays exactly as it is until Jeff approves a change — see [PUBLIC-SITE-FREEZE.md](PUBLIC-SITE-FREEZE.md) for the rules, the parity gate (`tools/public-parity`) and the branch workflow (`feat/*` → `develop` after every phase; `develop` → `main` only at the cutover).
+>
 > **For agents:** this is the source of truth for scope, order and conventions. Read [§13 Agent working agreement](#13-agent-working-agreement) before writing code, and tick the [§14 tracker](#14-progress-tracker) as phases land. Do not start a phase whose open questions in [§12](#12-open-questions-for-jeff--the-usc) are still unanswered without asking.
 
 ---
