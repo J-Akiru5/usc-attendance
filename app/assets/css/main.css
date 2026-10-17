@@ -40,4 +40,133 @@
   --color-slate: #5C6773;
   --color-success: #3F7D5C;
   --color-danger: #A23E3E;
+
+  /* Tailwind v3 names used verbatim by the frozen public pages (navy.light/deep,
+     gold.soft/dark, paper.panel) — the numbered scales above stay authoritative
+     for the portal. */
+  --color-navy: #142850;
+  --color-navy-light: #1E4A9E;
+  --color-navy-deep: #0C1B36;
+  --color-gold: #C9A24B;
+  --color-gold-soft: #E4CD8E;
+  --color-gold-dark: #8A6D2F;
+  --color-paper-panel: #FFFFFF;
+}
+
+/*
+ * Public-site freeze compatibility layer.
+ *
+ * The public pages are ported from the Tailwind v3 build as-is, so the handful
+ * of v3 defaults that v4 changed must be restored inside the public layout
+ * only (`.legacy-public` on the layout root — see app/layouts/public.vue).
+ * Portal styling is untouched.
+ */
+@layer base {
+  /* v3 preflight coloured borders gray-200; v4 leaves them currentColor */
+  .legacy-public,
+  .legacy-public *,
+  .legacy-public ::before,
+  .legacy-public ::after {
+    border-color: #e5e7eb;
+  }
+
+  /* v3 placeholder colour: @tailwindcss/forms used gray-500 (v4 uses currentColor at 50%) */
+  .legacy-public ::placeholder {
+    color: #6b7280;
+  }
+
+  /* v3 body defaults from src/assets/main.css of the old app */
+  .legacy-public {
+    font-family: var(--font-sans);
+    background-color: #F7F5F0;
+    color: #1B1B1D;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /*
+   * The legacy build used `@tailwindcss/forms`, whose base styles give form
+   * controls a white background. The contact form relies on that default (the
+   * campus-guide search input sets bg-white itself), so keep it for the public
+   * pages.
+   */
+  .legacy-public input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+  .legacy-public textarea,
+  .legacy-public select {
+    background-color: #fff;
+    appearance: none;
+  }
+}
+
+@layer utilities {
+  /* v3 rounded = 0.25rem (v4 renamed it rounded-sm) */
+  .legacy-public .rounded {
+    border-radius: 0.25rem;
+  }
+
+  /* v3 shadow-sm = v4 shadow-xs */
+  .legacy-public .shadow-sm {
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* v3 backdrop-blur-sm = 4px (v4 blur-sm = 8px) */
+  .legacy-public .backdrop-blur-sm {
+    --tw-backdrop-blur: blur(4px);
+  }
+
+  /* v3 outline-none = 2px transparent outline + 2px offset (v4 outline-hidden) */
+  .legacy-public .outline-none {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  .legacy-public .flex-grow {
+    flex-grow: 1;
+  }
+
+  /*
+   * The frozen site's v3 build emitted `.font-serif{font-family:Source Serif
+   * 4,Georgia,serif}` — unquoted, so the browser dropped the declaration and
+   * every "serif" heading actually rendered in the body font (Inter).
+   * The parity gate compares against that live rendering, so the ported pages
+   * force the same stack here. Restoring real serif type is a public-site
+   * change and needs Jeff's approval first (docs/PUBLIC-SITE-FREEZE.md §2).
+   */
+  .legacy-public .font-serif {
+    font-family: var(--font-sans);
+  }
+
+  /*
+   * Tailwind v3 emitted the responsive text-* rules after the leading-*
+   * utilities, so at those breakpoints a size's paired line-height beat
+   * `leading-*`; v4 emits utilities in property order, letting leading-* win.
+   * Restore the v3 outcome for the frozen pages (only classes these pages use).
+   */
+  @media (min-width: 768px) {
+    .legacy-public .md\:text-base {
+      line-height: 1.5rem;
+    }
+
+    .legacy-public .md\:text-lg {
+      line-height: 1.75rem;
+    }
+
+    .legacy-public .md\:text-2xl {
+      line-height: 2rem;
+    }
+
+    .legacy-public .md\:text-4xl {
+      line-height: 2.5rem;
+    }
+
+    .legacy-public .md\:text-5xl {
+      line-height: 1;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .legacy-public .lg\:text-5xl {
+      line-height: 1;
+    }
+  }
 }

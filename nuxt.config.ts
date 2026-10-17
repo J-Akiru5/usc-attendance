@@ -11,6 +11,34 @@ export default defineNuxtConfig({
     enabled: true
   },
 
+  // Legacy index.html head, ported as-is (public-site freeze): the font stack
+  // must match or every public page's pixels drift.
+  app: {
+    head: {
+      htmlAttrs: { lang: 'en' },
+      title: 'University Student Council — ISUFST Dingle Campus',
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', href: '/logo-192.webp' },
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap'
+        }
+      ],
+      meta: [
+        { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+        { name: 'theme-color', content: '#142850' },
+        { name: 'title', content: 'University Student Council — ISUFST Dingle Campus' },
+        {
+          name: 'description',
+          content: 'Official website of the ISUFST Dingle Campus University Student Council. Explore events, campus guide, officer information, and the digital attendance portal.'
+        }
+      ]
+    }
+  },
+
   css: ['~/assets/css/main.css'],
 
   routeRules: {
@@ -40,8 +68,26 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
-      // Public site pages (ported in P1) go here — everything else requires a session.
-      exclude: ['/login', '/confirm', '/reset-password']
+      // Public site (frozen pages ported in P1b) — everything else requires a session.
+      exclude: [
+        '/login',
+        '/confirm',
+        '/reset-password',
+        '/',
+        '/about',
+        '/officers',
+        '/projects',
+        '/events',
+        '/events/pag-abi-abi/photobooth',
+        '/campus-guide',
+        '/contact',
+        '/privacy',
+        '/portal',
+        '/portal/features',
+        '/portal/how-it-works',
+        '/portal/security',
+        '/portal/faq'
+      ]
     }
   }
 })

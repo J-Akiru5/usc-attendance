@@ -1,0 +1,93 @@
+export type Role = 'super_admin' | 'staff' | 'client' | 'student'
+
+export type AttendanceType = 'event' | 'duty'
+export type CheckInMethod = 'self' | 'manual' | 'qr'
+
+export interface User {
+  id: string
+  email: string
+  name: string
+  position: string
+  role: Role
+  canManageContent?: boolean
+  canDelegate?: boolean
+  canConfigure?: boolean
+  mustChangePassword?: boolean
+  createdAt: string
+}
+
+export interface USCEvent {
+  id: string
+  title: string
+  date: string
+  lat: number
+  lng: number
+  radiusMeters: number
+  checkInOpensAt?: string | null
+  checkInClosesAt?: string | null
+  createdBy: string
+  creator?: User
+  attendance?: Attendance[]
+  createdAt: string
+}
+
+export interface Attendance {
+  id: string
+  type: AttendanceType
+  eventId: string | null
+  dutyDate: string | null
+  userId: string
+  method: CheckInMethod
+  lat: number | null
+  lng: number | null
+  recordedBy: string
+  createdAt: string
+  checkOutAt: string | null
+  event?: USCEvent
+  user?: User
+  recorder?: User
+  signature?: { signedAt: string } | null
+}
+
+export interface OrgProfile {
+  id: string
+  dutyCheckInCutoff: string
+  dutyCheckOutStart: string
+}
+
+export interface CheckInPayload {
+  type: AttendanceType
+  eventId?: string
+  dutyDate?: string
+  userId: string
+  method: CheckInMethod
+  lat?: number
+  lng?: number
+  recordedBy: string
+}
+
+export interface OfficeDuty {
+  id: string
+  userId: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  active: boolean
+  user?: User
+}
+
+export type DelegationScope = 'scan' | 'manual_checkin' | 'view_roster' | 'export'
+
+export interface EventDelegate {
+  id: string
+  eventId: string
+  userId: string
+  scopes: DelegationScope[]
+  grantedBy: string
+  expiresAt: string
+  revokedAt: string | null
+  createdAt: string
+  user?: Pick<User, 'id' | 'name' | 'position'>
+  granter?: Pick<User, 'id' | 'name' | 'position'>
+  event?: Pick<USCEvent, 'id' | 'title' | 'date'>
+}

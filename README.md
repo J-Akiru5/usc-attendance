@@ -116,11 +116,11 @@ npm run build             # production build (.output; .vercel/output on Vercel)
 ## Project Structure
 
 ```
-├── app/                    # Nuxt app (P0 shell; pages ported in P1)
-│   ├── assets/css/         # Tailwind 4 theme — USC navy/gold tokens
-│   ├── components/         # UserMenu, etc.
-│   ├── layouts/            # dashboard / public / auth
-│   └── pages/              # login, confirm, reset-password, settings, home
+├── app/                    # Nuxt app (P0 shell; public site ported in P1b, portal in P1c)
+│   ├── assets/css/         # Tailwind 4 theme — USC navy/gold tokens + v3 compat layer for the frozen public pages
+│   ├── components/         # UserMenu + ui/ (ported public components)
+│   ├── layouts/            # dashboard / public (ported) / auth
+│   └── pages/              # public site + login, confirm, reset-password, settings
 ├── server/                 # Nitro API — same URLs as the old Vercel functions
 │   ├── api/                # one file per route (attendance, auth, cms, delegations, …)
 │   └── utils/              # prisma, auth, http + ported qr/signature/report/… logic
