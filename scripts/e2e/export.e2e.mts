@@ -56,7 +56,7 @@ async function main() {
 
   let r = res(); await A.exportAttendance(rq(staff.token, { eventId }), r)
   check('default format is csv (200)', r._s === 200 && r._h['Content-Type'].startsWith('text/csv'), `${r._s}`)
-  check('csv has both rows, E-Signature column, formula neutralised', String(r._b).includes('E-Signature') && String(r._b).includes("'=cmd()") && String(r._b).includes('Plain Person'))
+  check('csv has both rows, E-Signature column, formula neutralised', String(r._b).includes('E-Signature') && String(r._b).includes('\'=cmd()') && String(r._b).includes('Plain Person'))
   check('csv filename is sanitised', /filename="[A-Za-z0-9-]+-attendance\.csv"/.test(r._h['Content-Disposition']), r._h['Content-Disposition'])
 
   r = res(); await A.exportAttendance(rq(staff.token, { eventId, format: 'xlsx' }), r)

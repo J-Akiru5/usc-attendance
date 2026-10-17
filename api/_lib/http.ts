@@ -17,10 +17,10 @@ export const notFound = (message: string) => new HttpError(404, message)
 
 export function isUniqueViolation(err: unknown): boolean {
   return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code: unknown }).code === 'P2002'
+    typeof err === 'object'
+    && err !== null
+    && 'code' in err
+    && (err as { code: unknown }).code === 'P2002'
   )
 }
 

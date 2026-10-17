@@ -24,7 +24,7 @@ export function decodeSignatureDataUrl(input: unknown): Buffer {
 }
 
 /** Verify PNG magic + IHDR and reasonable dimensions. */
-export function inspectPng(buf: Buffer): { width: number; height: number } {
+export function inspectPng(buf: Buffer): { width: number, height: number } {
   if (buf.length < 33 || !buf.subarray(0, 8).equals(PNG_MAGIC) || buf.subarray(12, 16).toString('ascii') !== 'IHDR') {
     throw badRequest('Signature is not a valid PNG')
   }
@@ -57,7 +57,7 @@ export async function hasInk(buf: Buffer, minPixels = 40): Promise<boolean> {
 }
 
 /** Full validation pipeline used by the sign endpoint. */
-export async function validateSignature(dataUrl: unknown): Promise<{ png: Buffer; sha256: string }> {
+export async function validateSignature(dataUrl: unknown): Promise<{ png: Buffer, sha256: string }> {
   const png = decodeSignatureDataUrl(dataUrl)
   inspectPng(png)
   if (!(await hasInk(png))) throw badRequest('Please draw your signature before submitting')

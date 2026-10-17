@@ -24,9 +24,9 @@ export const delegations = handle(async (req: VercelRequest, res: VercelResponse
       where: { eventId },
       include: {
         user: { select: PERSON },
-        granter: { select: PERSON },
+        granter: { select: PERSON }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     })
     return res.status(200).json(grants)
   }
@@ -58,11 +58,11 @@ export const delegations = handle(async (req: VercelRequest, res: VercelResponse
     const grant = await prisma.$transaction(async (tx) => {
       const replaced = await tx.eventDelegate.updateMany({
         where: { eventId, userId, revokedAt: null, expiresAt: { gt: now } },
-        data: { revokedAt: now, revokedBy: actor.id },
+        data: { revokedAt: now, revokedBy: actor.id }
       })
       const created = await tx.eventDelegate.create({
         data: { eventId, userId, scopes, grantedBy: actor.id, expiresAt },
-        include: { user: { select: PERSON }, granter: { select: PERSON } },
+        include: { user: { select: PERSON }, granter: { select: PERSON } }
       })
       await tx.auditLog.create({
         data: {
@@ -73,10 +73,10 @@ export const delegations = handle(async (req: VercelRequest, res: VercelResponse
             scopes,
             expiresAt: expiresAt.toISOString(),
             grantId: created.id,
-            replacedGrants: replaced.count,
+            replacedGrants: replaced.count
           }),
-          performedBy: actor.id,
-        },
+          performedBy: actor.id
+        }
       })
       return created
     })
@@ -97,7 +97,7 @@ export const myDelegations = handle(async (req: VercelRequest, res: VercelRespon
   const grants = await prisma.eventDelegate.findMany({
     where: { userId: actor.id, revokedAt: null, expiresAt: { gt: new Date() } },
     include: { event: { select: { id: true, title: true, date: true } } },
-    orderBy: { expiresAt: 'asc' },
+    orderBy: { expiresAt: 'asc' }
   })
   return res.status(200).json(grants)
 })
@@ -113,7 +113,7 @@ export const delegationCandidates = handle(async (req: VercelRequest, res: Verce
   const officers = await prisma.user.findMany({
     where: { active: true, id: { not: actor.id }, role: { not: 'student' } },
     select: PERSON,
-    orderBy: { name: 'asc' },
+    orderBy: { name: 'asc' }
   })
   return res.status(200).json(officers)
 })
@@ -137,15 +137,15 @@ export const delegationById = handle(
     const revoked = await prisma.$transaction(async (tx) => {
       const updated = await tx.eventDelegate.update({
         where: { id },
-        data: { revokedAt: now, revokedBy: actor.id },
+        data: { revokedAt: now, revokedBy: actor.id }
       })
       await tx.auditLog.create({
         data: {
           userId: grant.userId,
           action: 'delegation_revoked',
           details: JSON.stringify({ eventId: grant.eventId, grantId: id }),
-          performedBy: actor.id,
-        },
+          performedBy: actor.id
+        }
       })
       return updated
     })

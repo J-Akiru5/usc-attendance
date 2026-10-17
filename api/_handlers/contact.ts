@@ -26,8 +26,8 @@ export const contact = handle(async (req: VercelRequest, res: VercelResponse) =>
     data: {
       name: name.trim(),
       email: email.trim(),
-      message: message.trim(),
-    },
+      message: message.trim()
+    }
   })
 
   return res.status(201).json(submission)

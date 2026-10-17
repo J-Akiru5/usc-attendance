@@ -12,11 +12,11 @@ export const MAX_GRACE_DAYS = 365
 const DAY_MS = 86_400_000
 
 /** Settings managers: super admin, the President/Secretary (canDelegate), or anyone flagged canConfigure. */
-export function canManageSettings(u: { role: string; canDelegate?: boolean; canConfigure?: boolean }): boolean {
+export function canManageSettings(u: { role: string, canDelegate?: boolean, canConfigure?: boolean }): boolean {
   return u.role === 'super_admin' || u.canDelegate === true || u.canConfigure === true
 }
 
-export function requireSettingsManager(u: { role: string; canDelegate?: boolean; canConfigure?: boolean }): void {
+export function requireSettingsManager(u: { role: string, canDelegate?: boolean, canConfigure?: boolean }): void {
   if (!canManageSettings(u)) {
     throw new HttpError(
       403,
@@ -25,7 +25,7 @@ export function requireSettingsManager(u: { role: string; canDelegate?: boolean;
   }
 }
 
-export function parseRetention(body: unknown): { signatureRetentionSemesters: number; purgeGraceDays: number } {
+export function parseRetention(body: unknown): { signatureRetentionSemesters: number, purgeGraceDays: number } {
   const b = (body ?? {}) as Record<string, unknown>
   const n = Number(b.signatureRetentionSemesters)
   const g = Number(b.purgeGraceDays)
@@ -46,7 +46,7 @@ function parseDay(v: unknown): Date {
 
 /** Validate a semester definition against the existing ones (no overlap, start before end). */
 export function validateSemester(
-  input: { name: unknown; startsOn: unknown; endsOn: unknown },
+  input: { name: unknown, startsOn: unknown, endsOn: unknown },
   existing: SemesterLike[]
 ): SemesterLike {
   const name = typeof input.name === 'string' ? input.name.trim() : ''
@@ -110,7 +110,7 @@ export function assertCheckInOpen(event: WindowLike, now: Date = new Date()): vo
   }
 }
 
-export function parseWindow(body: unknown): { checkInOpensAt: Date | null; checkInClosesAt: Date | null } {
+export function parseWindow(body: unknown): { checkInOpensAt: Date | null, checkInClosesAt: Date | null } {
   const b = (body ?? {}) as Record<string, unknown>
   const one = (v: unknown, label: string): Date | null => {
     if (v === undefined || v === null || v === '') return null

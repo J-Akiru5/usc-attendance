@@ -8,7 +8,7 @@ import {
   normalizeStudentNo,
   overLimit,
   parseRegistration,
-  validatePassword,
+  validatePassword
 } from './students.js'
 import {
   decodeSignatureDataUrl,
@@ -16,7 +16,7 @@ import {
   inspectPng,
   sha256Hex,
   signatureRef,
-  validateSignature,
+  validateSignature
 } from './signature.js'
 
 function http(fn: () => unknown, status = 400, part?: string) {
@@ -35,7 +35,7 @@ const good = {
   name: '  Juan   Dela Cruz ',
   studentNo: '22-0123',
   program: 'BSIT',
-  consent: true,
+  consent: true
 }
 
 describe('registration validation', () => {
@@ -44,7 +44,7 @@ describe('registration validation', () => {
       email: 'juan.dela.cruz@isufst.edu.ph',
       name: 'Juan Dela Cruz',
       studentNo: '22-0123',
-      program: 'BSIT',
+      program: 'BSIT'
     })
   })
   it('requires privacy consent', () => {
@@ -63,11 +63,11 @@ describe('registration validation', () => {
     expect(normalizeStudentNo('ab-12345')).toBe('AB-12345')
     http(() => normalizeStudentNo('abc'))
     http(() => normalizeStudentNo('has space'))
-    http(() => normalizeStudentNo("x'; drop table--"))
+    http(() => normalizeStudentNo('x\'; drop table--'))
   })
   it('names: letters and common punctuation only', () => {
     expect(normalizeName('Rena Grace B. Aquiño')).toBe('Rena Grace B. Aquiño')
-    expect(normalizeName("Ma. O'Neil-Cruz, Jr.")).toBe("Ma. O'Neil-Cruz, Jr.")
+    expect(normalizeName('Ma. O\'Neil-Cruz, Jr.')).toBe('Ma. O\'Neil-Cruz, Jr.')
     http(() => normalizeName('='))
     http(() => normalizeName('<script>'))
     http(() => normalizeName('A'))

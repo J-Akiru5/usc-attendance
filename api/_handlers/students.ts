@@ -7,19 +7,19 @@ import { handle, HttpError } from '../_lib/http.js'
 import { siteUrl } from '../_lib/site.js'
 import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../_lib/students.js'
 
-const GENERIC =
-  'If your details are eligible, a verification link has been sent to your school email. Open it to finish signing up.'
+const GENERIC
+  = 'If your details are eligible, a verification link has been sent to your school email. Open it to finish signing up.'
 
 const TEN_MIN = 10 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[c]!)
 }
 
 async function audit(action: string, key: string, extra: Record<string, unknown> = {}, userId?: string) {
   await prisma.auditLog.create({
-    data: { userId: userId ?? null, action, details: JSON.stringify({ k: key, ...extra }), performedBy: null },
+    data: { userId: userId ?? null, action, details: JSON.stringify({ k: key, ...extra }), performedBy: null }
   })
 }
 
@@ -76,7 +76,7 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
     email: input.email,
     // Throwaway password nobody knows; the student chooses their own on the page the link opens.
     password: randomBytes(32).toString('base64url') + 'aA1!',
-    options: { redirectTo: `${siteUrl()}/reset-password?welcome=1`, data: { full_name: input.name } },
+    options: { redirectTo: `${siteUrl()}/reset-password?welcome=1`, data: { full_name: input.name } }
   })
   if (linkError || !link?.user) {
     console.error('[register] generateLink failed:', linkError?.message)
@@ -93,8 +93,8 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
         role: STUDENT_ROLE,
         mustChangePassword: false,
         active: true,
-        studentProfile: { create: { studentNo: input.studentNo, program: input.program } },
-      },
+        studentProfile: { create: { studentNo: input.studentNo, program: input.program } }
+      }
     })
   } catch (err) {
     console.error('[register] database insert failed:', err instanceof Error ? err.message : err)
@@ -123,7 +123,7 @@ export const register = handle(async (req: VercelRequest, res: VercelResponse) =
         </p>
         <p style="color: #94a3b8; font-size: 12px;">- USC Attendance · ISUFST Dingle Campus</p>
       </div>
-    `,
+    `
   })
   if (sendError) {
     console.error('[register] Resend send failed:', sendError.message)

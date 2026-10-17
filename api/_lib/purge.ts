@@ -1,4 +1,4 @@
-import { prisma } from './prisma.js'
+import type { prisma } from './prisma.js'
 import { expiredSemesters } from './retention.js'
 
 type Db = typeof prisma
@@ -15,7 +15,7 @@ export async function runSignaturePurge(
   db: Db,
   performedBy: string | null,
   now: Date = new Date()
-): Promise<{ purged: number; semesters: string[] }> {
+): Promise<{ purged: number, semesters: string[] }> {
   const settings = await getSettings(db)
   const semesters = await db.semester.findMany()
   const due = expiredSemesters(semesters, settings.signatureRetentionSemesters, settings.purgeGraceDays, now)
@@ -24,7 +24,7 @@ export async function runSignaturePurge(
   for (const sem of due) {
     const r = await db.attendanceSignature.updateMany({
       where: { purgedAt: null, signedAt: { gte: sem.startsOn, lt: sem.endsOn } },
-      data: { png: null, purgedAt: now },
+      data: { png: null, purgedAt: now }
     })
     purged += r.count
   }
@@ -34,9 +34,9 @@ export async function runSignaturePurge(
     data: {
       userId: null,
       action: 'signatures_purged',
-      details: JSON.stringify({ purged, semesters: due.map((s) => s.name), keep: settings.signatureRetentionSemesters }),
-      performedBy,
-    },
+      details: JSON.stringify({ purged, semesters: due.map(s => s.name), keep: settings.signatureRetentionSemesters }),
+      performedBy
+    }
   })
-  return { purged, semesters: due.map((s) => s.name) }
+  return { purged, semesters: due.map(s => s.name) }
 }

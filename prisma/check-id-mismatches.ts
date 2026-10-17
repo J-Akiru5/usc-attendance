@@ -36,7 +36,7 @@ const allEmails = [
   'jmartinez@isufst.edu.ph',
   'aperisme@isufst.edu.ph',
   'ralmirante@isufst.edu.ph',
-  'jfrial@isufst.edu.ph',
+  'jfrial@isufst.edu.ph'
 ]
 
 async function main() {
@@ -71,7 +71,7 @@ async function main() {
         authId: authUser.id,
         dbId: null,
         attendanceCount: 0,
-        dutyCount: 0,
+        dutyCount: 0
       })
       continue
     }
@@ -81,15 +81,15 @@ async function main() {
     } else {
       const [attendanceCount, dutyCount] = await Promise.all([
         prisma.attendance.count({ where: { userId: dbUser.id } }),
-        prisma.officeDuty.count({ where: { userId: dbUser.id } }),
+        prisma.officeDuty.count({ where: { userId: dbUser.id } })
       ])
 
       const safe = attendanceCount === 0 && dutyCount === 0
       console.log(
-        `  ${email} — MISMATCH ${safe ? '(safe to repair)' : '(BLOCKED — has records)'}` +
-        `\n    auth id: ${authUser.id}` +
-        `\n    db   id: ${dbId(dbUser.id)}` +
-        `\n    attendance: ${attendanceCount}, duties: ${dutyCount}`
+        `  ${email} — MISMATCH ${safe ? '(safe to repair)' : '(BLOCKED — has records)'}`
+        + `\n    auth id: ${authUser.id}`
+        + `\n    db   id: ${dbId(dbUser.id)}`
+        + `\n    attendance: ${attendanceCount}, duties: ${dutyCount}`
       )
 
       mismatches.push({
@@ -97,7 +97,7 @@ async function main() {
         authId: authUser.id,
         dbId: dbUser.id,
         attendanceCount,
-        dutyCount,
+        dutyCount
       })
     }
   }

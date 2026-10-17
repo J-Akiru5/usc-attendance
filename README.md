@@ -19,21 +19,23 @@ One job: let an officer prove they physically showed up to an event, and let sta
 
 | Layer | Choice |
 |-------|--------|
-| Frontend | Vue 3 + Vite + TypeScript |
-| UI | Tailwind CSS |
-| State | Pinia |
-| PWA | vite-plugin-pwa (Workbox) |
-| Offline queue | idb (IndexedDB) |
+| Frontend | Nuxt 4 (Vue 3) + TypeScript |
+| UI | Nuxt UI v4 (Tailwind CSS 4) |
+| Server | Nitro (`server/`) — porting from Vercel functions in P1 |
+| Auth | `@nuxtjs/supabase` (cookie-based SSR sessions) |
 | ORM | Prisma |
 | Database / Auth | Supabase (PostgreSQL + Auth) |
-| API | Vercel Serverless Functions |
+| API (legacy) | Vercel Serverless Functions in `api/` — same URLs until P1 cutover |
 | Hosting | Vercel |
+
+> The Nuxt rebuild runs on this branch behind its own preview URL (strangler pattern).
+> The live site at `usc.syntaxure.dev` still serves the previous Vite app from `main`.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24+
 - A [Supabase](https://supabase.com) project (Singapore region recommended)
 
 ### 1. Install dependencies
@@ -52,7 +54,7 @@ cp .env.example .env
 
 You'll need:
 - `SUPABASE_URL` — from your Supabase project settings
-- `SUPABASE_ANON_KEY` — public anon key
+- `SUPABASE_ANON_KEY` — public anon key (the Nuxt auth module falls back to these two; `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_KEY` can override at runtime without a rebuild)
 - `SUPABASE_SERVICE_ROLE_KEY` — server-only, never expose to client
 - `DATABASE_URL` — session pooler connection string (port 5432)
 
@@ -61,6 +63,8 @@ You'll need:
 ```bash
 npx prisma migrate dev
 ```
+
+Migrations are additive-only — see the working agreement in [AGENTS.md](AGENTS.md).
 
 ### 4. Seed test accounts
 
@@ -85,18 +89,19 @@ This runs `prisma/seed_auth.ts`, which:
 ### 5. Start development server
 
 ```bash
-npm run dev:full
+npm run dev
 ```
 
-This runs `vercel dev`, which:
-- Proxies the Vite frontend dev server (HMR, Tailwind, etc.)
-- Executes `api/` serverless functions locally (auth, events, attendance)
-- Reads `.env` for Supabase credentials — mirrors production exactly
+This runs the Nuxt dev server (app + Nitro API routes) with HMR.
 
-For frontend-only work (styles, markup, components) where you don't need the API:
+### Other scripts
 
 ```bash
-npm run dev
+npm run lint              # ESLint
+npm run typecheck         # nuxi typecheck (app + server)
+npm run typecheck:legacy  # tsc over api/ prisma/ scripts/ (pre-Nuxt code)
+npm test                  # Vitest — unit tests in api/_lib
+npm run build             # production build (.output; .vercel/output on Vercel)
 ```
 
 ## Roles
@@ -110,32 +115,32 @@ npm run dev
 ## Project Structure
 
 ```
-├── api/                    # Vercel serverless functions
-│   ├── _lib/               # Prisma, Supabase, auth middleware
-│   ├── auth/               # Login endpoint
-│   ├── events/             # Event CRUD
-│   └── attendance/         # Check-in + CSV export
+├── app/                    # Nuxt app (P0 shell; pages ported in P1)
+│   ├── assets/css/         # Tailwind 4 theme — USC navy/gold tokens
+│   ├── components/         # UserMenu, etc.
+│   ├── layouts/            # dashboard / public / auth
+│   └── pages/              # login, confirm, reset-password, settings, home
+├── api/                    # Legacy Vercel serverless functions (kept until P1)
+│   ├── _lib/               # Prisma, Supabase, auth middleware (+ unit tests)
+│   └── _handlers/          # auth, events, attendance, …
 ├── prisma/
-│   └── schema.prisma       # Users, Events, Attendance tables
-├── src/
-│   ├── components/         # UI components (Button, Card, etc.)
-│   ├── composables/        # useGeolocation, useOfflineQueue
-│   ├── pages/              # Login, Dashboard, Events, CheckIn, Attendance
-│   ├── router/             # Vue Router with role guards
-│   └── stores/             # Pinia stores (auth, events)
-└── public/                 # Static assets (logo, favicon)
+│   ├── schema.prisma       # Users, Events, Attendance tables
+│   ├── migrations/         # additive-only SQL migrations
+│   └── seed_auth.ts        # Supabase Auth + Postgres sync seeder
+├── scripts/
+│   └── e2e/                # live e2e checks (throwaway data, full cleanup)
+└── public/                 # Static assets (logo, favicon, officers, data)
 ```
 
 ## Deployment
 
-1. Push to GitHub
-2. Import repo in [Vercel](https://vercel.com)
-3. Set environment variables
-4. Deploy
+Push to `main` deploys the live Vite app. Branches get preview deployments on
+[Vercel](https://vercel.com) — the Nuxt branch previews at its own URL until the
+P1 cutover switches the project's framework preset to Nuxt.
 
 ```bash
-# Or deploy via CLI
-npx vercel --prod
+# Deploy via CLI (preview)
+npx vercel
 ```
 
 ## Data Integrity

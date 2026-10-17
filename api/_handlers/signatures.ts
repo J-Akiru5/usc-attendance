@@ -17,14 +17,14 @@ export const pendingSignature = handle(async (req: VercelRequest, res: VercelRes
       userId: user.id,
       type: 'event',
       createdAt: { gt: new Date(Date.now() - SIGN_WINDOW_MS) },
-      signature: { is: null },
+      signature: { is: null }
     },
     select: { id: true, eventId: true, createdAt: true, event: { select: { title: true } } },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: 'desc' }
   })
 
   return res.status(200).json(
-    records.map((r) => ({ id: r.id, eventId: r.eventId, eventTitle: r.event?.title ?? '', createdAt: r.createdAt }))
+    records.map(r => ({ id: r.id, eventId: r.eventId, eventTitle: r.event?.title ?? '', createdAt: r.createdAt }))
   )
 })
 
@@ -43,7 +43,7 @@ export const sign = handle(async (req: VercelRequest, res: VercelResponse) => {
 
   const record = await prisma.attendance.findUnique({
     where: { id: attendanceId },
-    include: { signature: { select: { attendanceId: true } } },
+    include: { signature: { select: { attendanceId: true } } }
   })
   // Same answer for "does not exist" and "is somebody else's".
   if (!record || record.userId !== user.id) throw notFound('Attendance record not found')
@@ -57,15 +57,15 @@ export const sign = handle(async (req: VercelRequest, res: VercelResponse) => {
   try {
     const saved = await prisma.attendanceSignature.create({
       data: { attendanceId, png: new Uint8Array(png), sha256 },
-      select: { signedAt: true },
+      select: { signedAt: true }
     })
     await prisma.auditLog.create({
       data: {
         userId: user.id,
         action: 'attendance_signed',
         details: JSON.stringify({ attendanceId, sha256 }),
-        performedBy: user.id,
-      },
+        performedBy: user.id
+      }
     })
     return res.status(201).json({ signedAt: saved.signedAt, ref: signatureRef(sha256) })
   } catch (err) {

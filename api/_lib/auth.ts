@@ -21,7 +21,7 @@ export interface AuthUser {
  * email (enforced here so it never depends on a dashboard setting).
  */
 function assertAccountUsable(
-  dbUser: { active: boolean; role: string; mustChangePassword: boolean },
+  dbUser: { active: boolean, role: string, mustChangePassword: boolean },
   emailConfirmed: boolean,
   options?: { allowMustChangePassword?: boolean }
 ) {

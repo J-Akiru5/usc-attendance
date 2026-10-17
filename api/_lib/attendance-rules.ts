@@ -18,9 +18,9 @@ export function haversine(lat1: number, lng1: number, lat2: number, lng2: number
   const toRad = (deg: number) => (deg * Math.PI) / 180
   const dLat = toRad(lat2 - lat1)
   const dLng = toRad(lng2 - lng1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  const a
+    = Math.sin(dLat / 2) ** 2
+      + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
@@ -47,7 +47,7 @@ export function authorizeScanLocation(
   lat: unknown,
   lng: unknown,
   accuracy?: unknown
-): { lat: number; lng: number } {
+): { lat: number, lng: number } {
   const la = toNumber(lat)
   const ln = toNumber(lng)
   if (la === null || ln === null || Math.abs(la) > 90 || Math.abs(ln) > 180) {
@@ -97,7 +97,7 @@ interface SelfCheckInBase {
  */
 export function authorizeEventSelfCheckIn(
   input: SelfCheckInBase & { geofence: Geofence }
-): { lat: number; lng: number } {
+): { lat: number, lng: number } {
   if (input.targetUserId !== input.actor.id) {
     throw new HttpError(403, 'Self check-in is for your own account only')
   }
@@ -116,7 +116,7 @@ export function authorizeEventSelfCheckIn(
  */
 export function authorizeDutySelfCheckIn(
   input: SelfCheckInBase
-): { lat: number | null; lng: number | null } {
+): { lat: number | null, lng: number | null } {
   if (input.targetUserId !== input.actor.id) {
     throw new HttpError(403, 'Self check-in is for your own account only')
   }

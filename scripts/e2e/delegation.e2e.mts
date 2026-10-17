@@ -33,7 +33,7 @@ function res() {
 const rq = (token: string, method: string, body: any = {}, query: any = {}) =>
   ({ headers: { authorization: `Bearer ${token}` }, method, body, query }) as any
 
-const made: { ids: string[]; eventId?: string } = { ids: [] }
+const made: { ids: string[], eventId?: string } = { ids: [] }
 
 async function mkUser(key: string, extra: Record<string, unknown> = {}) {
   const email = `${tag}-${key}@example.invalid`
@@ -41,7 +41,7 @@ async function mkUser(key: string, extra: Record<string, unknown> = {}) {
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true })
   if (error) throw error
   await prisma.user.create({
-    data: { id: data.user.id, email, name: `E2E ${key}`, position: 'Test', role: 'client', mustChangePassword: false, active: true, ...extra },
+    data: { id: data.user.id, email, name: `E2E ${key}`, position: 'Test', role: 'client', mustChangePassword: false, active: true, ...extra }
   })
   const c = anon()
   const { data: s, error: se } = await c.auth.signInWithPassword({ email, password })
@@ -53,7 +53,7 @@ async function mkUser(key: string, extra: Record<string, unknown> = {}) {
 async function main() {
   const base = await prisma.user.findUnique({ where: { email: 'admin@usc.edu.ph' } })
   const ev = await prisma.event.create({
-    data: { title: `${tag} event`, date: new Date(Date.now() + 3600_000), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: base!.id },
+    data: { title: `${tag} event`, date: new Date(Date.now() + 3600_000), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: base!.id }
   })
   made.eventId = ev.id
 
@@ -143,8 +143,8 @@ async function main() {
 
   console.log('\n--- audit trail ---')
   const audit = await prisma.auditLog.findMany({ where: { OR: [{ userId: { in: made.ids } }, { performedBy: { in: made.ids } }] } })
-  const kinds = new Set(audit.map((a) => a.action))
-  check('granted / revoked / used all audited', ['delegation_granted', 'delegation_revoked', 'delegation_used'].every((k) => kinds.has(k)), [...kinds].join(','))
+  const kinds = new Set(audit.map(a => a.action))
+  check('granted / revoked / used all audited', ['delegation_granted', 'delegation_revoked', 'delegation_used'].every(k => kinds.has(k)), [...kinds].join(','))
 }
 
 async function cleanup() {

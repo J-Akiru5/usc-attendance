@@ -19,7 +19,7 @@ const officers = [
   { email: 'jmartinez@isufst.edu.ph', name: 'Jeff Edrick C. Martinez', position: 'Senator', role: 'client' },
   { email: 'aperisme@isufst.edu.ph', name: 'Andro Renz D. Perisme', position: 'Senator', role: 'client' },
   { email: 'ralmirante@isufst.edu.ph', name: 'Reynald S. Almirante', position: 'Senator', role: 'client' },
-  { email: 'jfrial@isufst.edu.ph', name: 'Jona Ross P. Frial', position: 'Senator', role: 'client' },
+  { email: 'jfrial@isufst.edu.ph', name: 'Jona Ross P. Frial', position: 'Senator', role: 'client' }
 ]
 
 async function main() {
@@ -32,7 +32,7 @@ async function main() {
         name: officer.name,
         position: officer.position,
         role: officer.role,
-        active: true,
+        active: true
       },
       create: {
         email: officer.email,
@@ -40,8 +40,8 @@ async function main() {
         position: officer.position,
         role: officer.role,
         mustChangePassword: true,
-        active: true,
-      },
+        active: true
+      }
     })
     console.log(`  ✓ ${officer.name} (${officer.position})`)
   }

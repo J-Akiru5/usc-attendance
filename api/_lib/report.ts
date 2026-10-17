@@ -38,13 +38,13 @@ export const REPORT_COLUMNS = [
   'Method',
   'Recorded By',
   'Location',
-  'E-Signature',
+  'E-Signature'
 ] as const
 
 export const CONTENT_TYPES: Record<ReportFormat, string> = {
   csv: 'text/csv; charset=utf-8',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  pdf: 'application/pdf',
+  pdf: 'application/pdf'
 }
 
 export function parseFormat(input: unknown): ReportFormat | null {
@@ -62,9 +62,9 @@ export function formatManila(d: Date): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
+    hour12: false
   }).formatToParts(d)
-  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? '00'
+  const g = (t: string) => parts.find(p => p.type === t)?.value ?? '00'
   return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}:${g('second')}`
 }
 
@@ -92,7 +92,7 @@ function rowValues(r: ReportRow): string[] {
     r.method,
     r.recordedBy,
     r.location,
-    r.signatureRef ?? '',
+    r.signatureRef ?? ''
   ]
 }
 
@@ -107,7 +107,7 @@ function csvField(value: string): string {
 export function buildCsv(model: ReportModel): string {
   const lines = [
     [...REPORT_COLUMNS].map(csvField).join(','),
-    ...model.rows.map((r) => rowValues(r).map(csvField).join(',')),
+    ...model.rows.map(r => rowValues(r).map(csvField).join(','))
   ]
   // BOM so Excel opens UTF-8 names (e.g. "Aquiño") correctly.
   return '﻿' + lines.join('\r\n') + '\r\n'
@@ -122,11 +122,11 @@ export async function buildXlsx(model: ReportModel): Promise<Buffer> {
   wb.created = new Date()
   const ws = wb.addWorksheet('Attendance', {
     views: [{ state: 'frozen', ySplit: 5 }],
-    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
   })
 
   const widths = [6, 28, 22, 20, 20, 10, 22, 22, 22]
-  ws.columns = widths.map((width) => ({ width }))
+  ws.columns = widths.map(width => ({ width }))
 
   ws.mergeCells('A1:I1')
   ws.getCell('A1').value = safeCell(model.title)
@@ -159,7 +159,7 @@ export async function buildXlsx(model: ReportModel): Promise<Buffer> {
       ws.addImage(imageId, {
         tl: { col: SIG_COL + 0.05, row: rowNumber - 1 + 0.08 },
         ext: { width: 120, height: 36 },
-        editAs: 'oneCell',
+        editAs: 'oneCell'
       })
       row.getCell(SIG_COL + 1).value = '' // image sits in the cell; ref stays in the PDF/CSV
     }
@@ -179,7 +179,7 @@ const COL_W = [26, 130, 104, 82, 82, 46, 100, 86, 100] // sums to 756 = PAGE_W -
 
 function fit(text: string, font: PDFFont, size: number, maxWidth: number): string {
   // pdf-lib standard fonts only encode WinAnsi; drop anything else instead of throwing.
-  let t = text.replace(/[^\x20-\x7E -ÿ]/g, '?')
+  let t = text.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '?')
   if (font.widthOfTextAtSize(t, size) <= maxWidth) return t
   while (t.length > 1 && font.widthOfTextAtSize(t + '...', size) > maxWidth) t = t.slice(0, -1)
   return t + '...'
@@ -283,7 +283,7 @@ export async function buildPdf(model: ReportModel): Promise<Buffer> {
 export async function buildReport(
   model: ReportModel,
   format: ReportFormat
-): Promise<{ body: Buffer | string; contentType: string; extension: ReportFormat }> {
+): Promise<{ body: Buffer | string, contentType: string, extension: ReportFormat }> {
   if (format === 'csv') return { body: buildCsv(model), contentType: CONTENT_TYPES.csv, extension: 'csv' }
   if (format === 'xlsx') return { body: await buildXlsx(model), contentType: CONTENT_TYPES.xlsx, extension: 'xlsx' }
   return { body: await buildPdf(model), contentType: CONTENT_TYPES.pdf, extension: 'pdf' }

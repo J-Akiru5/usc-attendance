@@ -14,7 +14,7 @@ export function manilaDow(d: Date = new Date()): number {
  * Half-open [gte, lt) range covering the Manila calendar day containing `d`.
  * Manila has no DST, so the day is always exactly 24h starting at +08:00.
  */
-export function manilaDayRange(d: Date = new Date()): { gte: Date; lt: Date } {
+export function manilaDayRange(d: Date = new Date()): { gte: Date, lt: Date } {
   const gte = new Date(`${manilaYmd(d)}T00:00:00+08:00`)
   return { gte, lt: new Date(gte.getTime() + 86_400_000) }
 }
@@ -25,9 +25,9 @@ export function manilaHHMM(d: Date = new Date()): string {
     timeZone: MANILA,
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hour12: false
   }).formatToParts(d)
-  const hh = parts.find((p) => p.type === 'hour')?.value ?? '00'
-  const mm = parts.find((p) => p.type === 'minute')?.value ?? '00'
+  const hh = parts.find(p => p.type === 'hour')?.value ?? '00'
+  const mm = parts.find(p => p.type === 'minute')?.value ?? '00'
   return `${hh}:${mm}`
 }

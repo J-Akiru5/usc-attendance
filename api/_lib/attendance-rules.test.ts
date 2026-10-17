@@ -10,7 +10,7 @@ import {
   haversine,
   isStaff,
   requireStaffRole,
-  type Actor,
+  type Actor
 } from './attendance-rules.js'
 
 const officer: Actor = { id: 'user-officer', role: 'client' }
@@ -67,7 +67,7 @@ describe('authorizeEventSelfCheckIn (F1)', () => {
       targetUserId: officer.id,
       lat: 10.7202,
       lng: 122.5621,
-      geofence: venue,
+      geofence: venue
     })
     expect(result).toEqual({ lat: 10.7202, lng: 122.5621 })
   })
@@ -80,7 +80,7 @@ describe('authorizeEventSelfCheckIn (F1)', () => {
           targetUserId: 'user-victim',
           lat: 10.7202,
           lng: 122.5621,
-          geofence: venue,
+          geofence: venue
         }),
       403,
       'your own account'
@@ -93,7 +93,7 @@ describe('authorizeEventSelfCheckIn (F1)', () => {
         authorizeEventSelfCheckIn({
           actor: officer,
           targetUserId: officer.id,
-          geofence: venue,
+          geofence: venue
         }),
       400,
       'Location'
@@ -108,7 +108,7 @@ describe('authorizeEventSelfCheckIn (F1)', () => {
           targetUserId: officer.id,
           lat: undefined,
           lng: undefined,
-          geofence: venue,
+          geofence: venue
         }),
       400
     )
@@ -122,7 +122,7 @@ describe('authorizeEventSelfCheckIn (F1)', () => {
           targetUserId: officer.id,
           lat: 10.7302,
           lng: 122.5621,
-          geofence: venue,
+          geofence: venue
         }),
       403,
       'Must be within 50m'
@@ -135,7 +135,7 @@ describe('authorizeEventSelfCheckIn (F1)', () => {
       targetUserId: officer.id,
       lat: '10.7202',
       lng: '122.5621',
-      geofence: venue,
+      geofence: venue
     })
     expect(result).toEqual({ lat: 10.7202, lng: 122.5621 })
   })
@@ -145,7 +145,7 @@ describe('authorizeDutySelfCheckIn', () => {
   it('allows checking in your own account', () => {
     const result = authorizeDutySelfCheckIn({
       actor: officer,
-      targetUserId: officer.id,
+      targetUserId: officer.id
     })
     expect(result).toEqual({ lat: null, lng: null })
   })
@@ -163,7 +163,7 @@ describe('authorizeDutySelfCheckIn', () => {
       actor: officer,
       targetUserId: officer.id,
       lat: 10.7202,
-      lng: 122.5621,
+      lng: 122.5621
     })
     expect(result).toEqual({ lat: 10.7202, lng: 122.5621 })
   })

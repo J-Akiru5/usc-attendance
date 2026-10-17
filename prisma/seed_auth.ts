@@ -54,16 +54,16 @@ const officers = [
   { email: 'jmartinez@isufst.edu.ph', name: 'Jeff Edrick C. Martinez', position: 'Officer in Charge', role: 'staff' },
   { email: 'aperisme@isufst.edu.ph', name: 'Andro Renz D. Perisme', position: 'Senator', role: 'client' },
   { email: 'ralmirante@isufst.edu.ph', name: 'Reynald S. Almirante', position: 'Senator', role: 'client' },
-  { email: 'jfrial@isufst.edu.ph', name: 'Jona Ross P. Frial', position: 'Senator', role: 'client' },
+  { email: 'jfrial@isufst.edu.ph', name: 'Jona Ross P. Frial', position: 'Senator', role: 'client' }
 ]
 
 async function main() {
   console.log('Seeding Supabase Auth users and syncing with Prisma DB...\n')
 
-  const credentials: { name: string; email: string; password: string; position: string }[] = []
-  const skippedMismatches: { email: string; authId: string; dbId: string }[] = []
+  const credentials: { name: string, email: string, password: string, position: string }[] = []
+  const skippedMismatches: { email: string, authId: string, dbId: string }[] = []
   const skippedAlreadyChanged: string[] = []
-  const failedUpdates: { email: string; message: string }[] = []
+  const failedUpdates: { email: string, message: string }[] = []
 
   // Fetch all auth users once to avoid repeated API calls
   const { data: authList, error: listError } = await supabaseAdmin.auth.admin.listUsers()
@@ -140,14 +140,14 @@ async function main() {
             position: u.position,
             role: u.role,
             mustChangePassword: true,
-            active: true,
+            active: true
           }
         })
       } else {
         // IDs mismatch — check for related records before repairing
         const [attendanceCount, dutyCount] = await Promise.all([
           prisma.attendance.count({ where: { userId: existingDbUser.id } }),
-          prisma.officeDuty.count({ where: { userId: existingDbUser.id } }),
+          prisma.officeDuty.count({ where: { userId: existingDbUser.id } })
         ])
 
         if (attendanceCount > 0 || dutyCount > 0) {
@@ -166,7 +166,7 @@ async function main() {
               position: u.position,
               role: u.role,
               mustChangePassword: true,
-              active: true,
+              active: true
             }
           })
           status = 'id repaired'
@@ -182,13 +182,13 @@ async function main() {
           position: u.position,
           role: u.role,
           mustChangePassword: true,
-          active: true,
+          active: true
         }
       })
       status = 'created'
     }
 
-    const failedUpdate = failedUpdates.find((f) => f.email === u.email)
+    const failedUpdate = failedUpdates.find(f => f.email === u.email)
     if (failedUpdate) {
       status = `FAILED — password update rejected: ${failedUpdate.message}`
     }

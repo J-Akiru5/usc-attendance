@@ -515,11 +515,19 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] Semesters entered in Settings
 
 ### P0 Foundation
-- [ ] Nuxt 4 + Nuxt UI Dashboard template scaffolded on `feat/p0-nuxt-foundation`
-- [ ] `@nuxtjs/supabase` auth + route middleware
-- [ ] Theme (USC navy/gold), layouts (dashboard / public / auth)
-- [ ] CI: lint, typecheck, unit tests
-- [ ] Vercel preview deploy
+- [x] Nuxt 4 + Nuxt UI Dashboard template scaffolded on `feat/p0-nuxt-foundation` (2026-10-17)
+  - Vite app removed from the branch (recoverable at tag/`main`); `api/`, `prisma/`, `scripts/`, `public/`, `docs/` untouched
+  - `prisma/data/officers.ts` moved out of `src/` so seed scripts still run
+- [x] `@nuxtjs/supabase` auth + route middleware (2026-10-17)
+  - Pages: `/login`, `/confirm` (OAuth/PKCE callback), `/reset-password` (request + set-new-password)
+  - Global middleware redirects all non-excluded routes to `/login` without a session; `NUXT_PUBLIC_SUPABASE_*` override `SUPABASE_URL`/`SUPABASE_ANON_KEY` at runtime
+- [x] Theme (USC navy/gold), layouts (dashboard / public / auth) (2026-10-17)
+  - Tailwind 4 `@theme` tokens in `app/assets/css/main.css`; Nuxt UI primary = navy
+- [x] CI: lint, typecheck, unit tests (2026-10-17)
+  - `.github/workflows/ci.yml`: npm ci → lint → `nuxt typecheck` → `typecheck:legacy` (api/prisma/scripts) → vitest (92 tests green)
+- [x] Vercel preview deploy (2026-10-17) — see PR for the preview URL
+  - Nitro emits Build Output API v3 on Vercel; live site untouched until P1 cutover
+  - Note: `h3@^1.15` pinned as a devDependency so the root copy matches Nitro's h3 v1 (an h3 v2 hoist from the eslint config-inspector broke Supabase SSR cookie reads)
 
 ### P1 Parity
 - [ ] `server/utils/` ports of all `api/_lib` modules with tests passing

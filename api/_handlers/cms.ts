@@ -16,7 +16,7 @@ export const content = handle(async (req: VercelRequest, res: VercelResponse) =>
   }
 
   const siteContent = await prisma.siteContent.findUnique({
-    where: { key: page },
+    where: { key: page }
   })
 
   if (!siteContent) {
@@ -35,7 +35,7 @@ export const events = handle(async (req: VercelRequest, res: VercelResponse) => 
   }
 
   const cmsEvents = await prisma.publicEvent.findMany({
-    orderBy: { date: 'desc' },
+    orderBy: { date: 'desc' }
   })
 
   return res.status(200).json(cmsEvents)
@@ -63,7 +63,7 @@ export const officers = handle(async (req: VercelRequest, res: VercelResponse) =
 
   const officersList = await prisma.officer.findMany({
     where: whereClause,
-    orderBy: { name: 'asc' },
+    orderBy: { name: 'asc' }
   })
 
   return res.status(200).json(officersList)
@@ -91,7 +91,7 @@ export const projects = handle(async (req: VercelRequest, res: VercelResponse) =
 
   const projectsList = await prisma.project.findMany({
     where: whereClause,
-    orderBy: { title: 'asc' },
+    orderBy: { title: 'asc' }
   })
 
   return res.status(200).json(projectsList)

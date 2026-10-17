@@ -10,7 +10,7 @@ import {
   parseFormat,
   safeCell,
   type ReportModel,
-  type ReportRow,
+  type ReportRow
 } from './report.js'
 
 // 1x1 transparent PNG
@@ -33,7 +33,7 @@ function row(over: Partial<ReportRow> = {}): ReportRow {
     location: '',
     signatureRef: null,
     signaturePng: null,
-    ...over,
+    ...over
   }
 }
 
@@ -44,7 +44,7 @@ function model(rows: ReportRow[]): ReportModel {
     venue: 'Main Gym',
     generatedAt: '2026-11-10 12:00:00',
     generatedBy: 'Jared S. Demonteverde',
-    rows,
+    rows
   }
 }
 
@@ -57,7 +57,7 @@ describe('helpers', () => {
   })
   it('safeCell neutralises formula injection', () => {
     for (const bad of ['=1+1', '+1', '-1', '@SUM(A1)', '\tx']) {
-      expect(safeCell(bad).startsWith("'")).toBe(true)
+      expect(safeCell(bad).startsWith('\'')).toBe(true)
     }
     expect(safeCell('Normal Name')).toBe('Normal Name')
   })

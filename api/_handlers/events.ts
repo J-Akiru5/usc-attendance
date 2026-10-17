@@ -15,8 +15,8 @@ export const events = handle(async (req: VercelRequest, res: VercelResponse) => 
       orderBy: { date: 'desc' },
       include: {
         creator: { select: { id: true, name: true, position: true, role: true } },
-        _count: { select: { attendance: true } },
-      },
+        _count: { select: { attendance: true } }
+      }
     })
     return res.status(200).json(eventsList)
   }
@@ -37,11 +37,11 @@ export const events = handle(async (req: VercelRequest, res: VercelResponse) => 
         lat: parseFloat(lat),
         lng: parseFloat(lng),
         radiusMeters: radiusMeters ? parseInt(radiusMeters) : 50,
-        createdBy: user.id,
+        createdBy: user.id
       },
       include: {
-        creator: { select: { id: true, name: true, position: true, role: true } },
-      },
+        creator: { select: { id: true, name: true, position: true, role: true } }
+      }
     })
 
     return res.status(201).json(event)
@@ -68,12 +68,12 @@ export const eventById = handle(async (req: VercelRequest, res: VercelResponse, 
           attendance: {
             include: {
               user: { select: { id: true, name: true, position: true, role: true } },
-              recorder: { select: { id: true, name: true, position: true } },
+              recorder: { select: { id: true, name: true, position: true } }
             },
-            orderBy: { createdAt: 'desc' as const },
-          },
-        }),
-      },
+            orderBy: { createdAt: 'desc' as const }
+          }
+        })
+      }
     })
 
     if (!event) {
@@ -95,8 +95,8 @@ export const eventById = handle(async (req: VercelRequest, res: VercelResponse, 
         ...(date && { date: new Date(date) }),
         ...(lat !== undefined && { lat: parseFloat(lat) }),
         ...(lng !== undefined && { lng: parseFloat(lng) }),
-        ...(radiusMeters !== undefined && { radiusMeters: parseInt(radiusMeters) }),
-      },
+        ...(radiusMeters !== undefined && { radiusMeters: parseInt(radiusMeters) })
+      }
     })
 
     return res.status(200).json(event)

@@ -31,7 +31,7 @@ export interface DelegationDb {
   }
   auditLog: {
     create(args: {
-      data: { userId: string; action: string; details: string; performedBy: string }
+      data: { userId: string, action: string, details: string, performedBy: string }
     }): Promise<unknown>
   }
 }
@@ -108,7 +108,7 @@ export async function hasEventScope(
   eventId: string,
   scope: DelegationScope,
   now: Date = new Date()
-): Promise<{ allowed: boolean; viaDelegation: boolean }> {
+): Promise<{ allowed: boolean, viaDelegation: boolean }> {
   if (isStaff(actor)) return { allowed: true, viaDelegation: false }
   const grant = await db.eventDelegate.findFirst({
     where: {
@@ -116,9 +116,9 @@ export async function hasEventScope(
       eventId,
       revokedAt: null,
       expiresAt: { gt: now },
-      scopes: { has: scope },
+      scopes: { has: scope }
     },
-    select: { id: true },
+    select: { id: true }
   })
   return { allowed: grant !== null, viaDelegation: grant !== null }
 }
@@ -153,7 +153,7 @@ export async function auditDelegationUse(
       userId: actor.id,
       action: 'delegation_used',
       details: JSON.stringify({ eventId, scope, ...extra }),
-      performedBy: actor.id,
-    },
+      performedBy: actor.id
+    }
   })
 }

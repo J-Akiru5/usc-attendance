@@ -16,14 +16,14 @@ export const retention = handle(async (req: VercelRequest, res: VercelResponse) 
   if (req.method === 'GET') {
     const [settings, semesters] = await Promise.all([
       getSettings(prisma),
-      prisma.semester.findMany({ orderBy: { startsOn: 'asc' } }),
+      prisma.semester.findMany({ orderBy: { startsOn: 'asc' } })
     ])
     const live = await prisma.attendanceSignature.count({ where: { purgedAt: null } })
-    const inSemester =
-      semesters.length === 0
+    const inSemester
+      = semesters.length === 0
         ? 0
         : await prisma.attendanceSignature.count({
-            where: { purgedAt: null, OR: semesters.map((s) => ({ signedAt: { gte: s.startsOn, lt: s.endsOn } })) },
+            where: { purgedAt: null, OR: semesters.map(s => ({ signedAt: { gte: s.startsOn, lt: s.endsOn } })) }
           })
     return res.status(200).json({
       signatureRetentionSemesters: settings.signatureRetentionSemesters,
@@ -32,7 +32,7 @@ export const retention = handle(async (req: VercelRequest, res: VercelResponse) 
       lastPurgeCount: settings.lastPurgeCount,
       semesters,
       liveSignatures: live,
-      unassignedSignatures: live - inSemester,
+      unassignedSignatures: live - inSemester
     })
   }
 
@@ -41,11 +41,11 @@ export const retention = handle(async (req: VercelRequest, res: VercelResponse) 
     const settings = await getSettings(prisma)
     const updated = await prisma.settings.update({ where: { id: settings.id }, data: input })
     await prisma.auditLog.create({
-      data: { userId: null, action: 'retention_changed', details: JSON.stringify(input), performedBy: actor.id },
+      data: { userId: null, action: 'retention_changed', details: JSON.stringify(input), performedBy: actor.id }
     })
     return res.status(200).json({
       signatureRetentionSemesters: updated.signatureRetentionSemesters,
-      purgeGraceDays: updated.purgeGraceDays,
+      purgeGraceDays: updated.purgeGraceDays
     })
   }
 
@@ -65,7 +65,7 @@ export const semesters = handle(async (req: VercelRequest, res: VercelResponse) 
   const data = validateSemester(req.body ?? {}, existing)
   const created = await prisma.semester.create({ data: { name: data.name, startsOn: data.startsOn, endsOn: data.endsOn } })
   await prisma.auditLog.create({
-    data: { userId: null, action: 'semester_added', details: JSON.stringify({ id: created.id, name: created.name }), performedBy: actor.id },
+    data: { userId: null, action: 'semester_added', details: JSON.stringify({ id: created.id, name: created.name }), performedBy: actor.id }
   })
   return res.status(201).json(created)
 })
@@ -79,7 +79,7 @@ export const semesterById = handle(async (req: VercelRequest, res: VercelRespons
   if (!sem) throw notFound('Semester not found')
   await prisma.semester.delete({ where: { id } })
   await prisma.auditLog.create({
-    data: { userId: null, action: 'semester_removed', details: JSON.stringify({ id, name: sem.name }), performedBy: actor.id },
+    data: { userId: null, action: 'semester_removed', details: JSON.stringify({ id, name: sem.name }), performedBy: actor.id }
   })
   return res.status(204).end()
 })
@@ -126,15 +126,15 @@ export const eventWindow = handle(async (req: VercelRequest, res: VercelResponse
   const updated = await prisma.event.update({
     where: { id },
     data,
-    select: { id: true, checkInOpensAt: true, checkInClosesAt: true },
+    select: { id: true, checkInOpensAt: true, checkInClosesAt: true }
   })
   await prisma.auditLog.create({
     data: {
       userId: null,
       action: 'checkin_window_set',
       details: JSON.stringify({ eventId: id, opens: data.checkInOpensAt, closes: data.checkInClosesAt }),
-      performedBy: actor.id,
-    },
+      performedBy: actor.id
+    }
   })
   return res.status(200).json(updated)
 })
