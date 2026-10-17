@@ -113,8 +113,8 @@ async function startEmailCapture(): Promise<{
   }
 }
 
-function startDevServer(env: NodeJS.ProcessEnv, onLog: (chunk: string) => void): ChildProcess {
-  const child = spawn('npx.cmd', ['nuxt', 'dev'], {
+function startDevServer(env: NodeJS.ProcessEnv, port: number, onLog: (chunk: string) => void): ChildProcess {
+  const child = spawn('npx.cmd', ['nuxt', 'dev', '--port', String(port)], {
     cwd: rootDir,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -172,10 +172,16 @@ function runSuite(file: string, env: NodeJS.ProcessEnv): Promise<number> {
 
 async function main(): Promise<void> {
   const capture = await startEmailCapture()
-  const baseUrl = 'http://localhost:3000'
+  // Default off 3000: other projects commonly hold that port on dev machines,
+  // and Nuxt would silently move to 3001 while the runner probed 3000.
+  const port = Number(process.env.E2E_PORT ?? 3300)
+  const baseUrl = `http://127.0.0.1:${port}`
   const captureUrl = `http://127.0.0.1:${capture.port}`
   const env: NodeJS.ProcessEnv = {
     ...process.env,
+    BASE_URL: baseUrl,
+    PORT: String(port),
+    NITRO_PORT: String(port),
     NUXT_PUBLIC_SITE_URL: baseUrl,
     SITE_URL: baseUrl,
     QR_SECRET: process.env.QR_SECRET ?? randomBytes(32).toString('hex'),
@@ -186,9 +192,9 @@ async function main(): Promise<void> {
 
   console.log(`[e2e] email capture on ${captureUrl} (POST /emails, GET /emails)`)
 
-  if (await portInUse(3000)) {
-    console.error('[e2e] port 3000 is already in use — a stray `nuxt dev` is running.')
-    console.error('[e2e] stop it first (Windows: taskkill /PID <pid> /T /F), then re-run.')
+  if (await portInUse(port)) {
+    console.error(`[e2e] port ${port} is already in use — a stray server is running.`)
+    console.error('[e2e] stop it first (Windows: taskkill /PID <pid> /T /F) or set E2E_PORT, then re-run.')
     await capture.close()
     process.exit(1)
   }
@@ -196,7 +202,7 @@ async function main(): Promise<void> {
   console.log('[e2e] starting nuxt dev ...')
 
   let devLog = ''
-  const dev = startDevServer(env, (chunk) => {
+  const dev = startDevServer(env, port, (chunk) => {
     devLog += chunk
   })
 

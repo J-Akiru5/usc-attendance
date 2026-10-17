@@ -7,7 +7,7 @@
 // `_h`) so check labels and counts stay identical.
 import 'dotenv/config'
 
-export const BASE_URL = (process.env.BASE_URL || 'http://localhost:3000').replace(/\/+$/, '')
+export const BASE_URL = (process.env.BASE_URL || 'http://127.0.0.1:3300').replace(/\/+$/, '')
 
 export interface ApiResult {
   _s: number
