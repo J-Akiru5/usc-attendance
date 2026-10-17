@@ -21,7 +21,7 @@ export const PUBLIC_ROUTES = [
   '/portal/features',
   '/portal/how-it-works',
   '/portal/security',
-  '/portal/faq',
+  '/portal/faq'
 ]
 
 const BASELINE = (process.env.BASELINE_URL ?? 'https://usc.syntaxure.dev').replace(/\/+$/, '')
@@ -56,7 +56,7 @@ async function open(
   role: 'baseline' | 'candidate',
   base: string,
   route: string,
-  viewport: { width: number; height: number }
+  viewport: { width: number, height: number }
 ) {
   const context = await browser.newContext({ ...contextOptions(base), viewport, reducedMotion: 'reduce' })
   const page = await context.newPage()
@@ -66,7 +66,10 @@ async function open(
   // Self-test only: PARITY_FAULT_CSS is injected into the CANDIDATE to prove the gate catches changes.
   if (role === 'candidate' && process.env.PARITY_FAULT_CSS) await page.addStyleTag({ content: process.env.PARITY_FAULT_CSS })
   if (role === 'candidate' && process.env.PARITY_FAULT_TEXT) {
-    await page.evaluate((t) => { const h = document.querySelector('h1, h2'); if (h) h.textContent = t }, process.env.PARITY_FAULT_TEXT)
+    await page.evaluate((t) => {
+      const h = document.querySelector('h1, h2')
+      if (h) h.textContent = t
+    }, process.env.PARITY_FAULT_TEXT)
   }
   await page.evaluate(() => document.fonts.ready)
   // Scroll through the page so lazy images and on-scroll sections render, then back to top.
@@ -74,7 +77,7 @@ async function open(
     const step = window.innerHeight
     for (let y = 0; y < document.body.scrollHeight; y += step) {
       window.scrollTo(0, y)
-      await new Promise((r) => setTimeout(r, 120))
+      await new Promise(r => setTimeout(r, 120))
     }
     window.scrollTo(0, 0)
   })
@@ -83,7 +86,7 @@ async function open(
 }
 
 async function shot(page: Page) {
-  const buf = await page.screenshot({ fullPage: true, mask: MASK.map((s) => page.locator(s)), animations: 'disabled' })
+  const buf = await page.screenshot({ fullPage: true, mask: MASK.map(s => page.locator(s)), animations: 'disabled' })
   return PNG.sync.read(buf)
 }
 
