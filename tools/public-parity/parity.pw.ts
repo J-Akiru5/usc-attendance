@@ -1,4 +1,4 @@
-import { test, expect, type Browser, type BrowserContextOptions, type Page } from '@playwright/test'
+import { test, expect, type Browser, type Page } from '@playwright/test'
 import pixelmatch from 'pixelmatch'
 import { PNG } from 'pngjs'
 
@@ -43,12 +43,22 @@ const FREEZE_CSS = `
   }
 `
 
-function contextOptions(url: string): BrowserContextOptions {
+/**
+ * Protected Vercel previews need the automation bypass. It is minted as a
+ * cookie for the preview host only: sending it as a context-wide
+ * `extraHTTPHeaders` value also attached it to third-party requests, and
+ * Google Fonts rejects them — the webfonts then never loaded and every page
+ * drifted from the baseline by ~0.4% for reasons that had nothing to do with
+ * the build under test.
+ */
+async function primeBypass(page: Page, base: string, route: string): Promise<void> {
   const bypass = process.env.VERCEL_BYPASS
-  if (bypass && url.includes('.vercel.app')) {
-    return { extraHTTPHeaders: { 'x-vercel-protection-bypass': bypass, 'x-vercel-set-bypass-cookie': 'true' } }
-  }
-  return {}
+  if (!bypass || !base.includes('.vercel.app')) return
+  const separator = route.includes('?') ? '&' : '?'
+  await page.goto(
+    `${base}${route}${separator}x-vercel-protection-bypass=${bypass}&x-vercel-set-bypass-cookie=true`,
+    { waitUntil: 'domcontentloaded', timeout: 60_000 }
+  )
 }
 
 async function open(
@@ -58,8 +68,9 @@ async function open(
   route: string,
   viewport: { width: number, height: number }
 ) {
-  const context = await browser.newContext({ ...contextOptions(base), viewport, reducedMotion: 'reduce' })
+  const context = await browser.newContext({ viewport, reducedMotion: 'reduce' })
   const page = await context.newPage()
+  await primeBypass(page, base, route)
   await page.clock.install({ time: FIXED_TIME })
   const res = await page.goto(base + route, { waitUntil: 'networkidle', timeout: 60_000 })
   await page.addStyleTag({ content: FREEZE_CSS })
