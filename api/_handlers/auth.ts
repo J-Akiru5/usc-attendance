@@ -30,7 +30,7 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
     const allUsers = await prisma.user.findMany({
       where: { active: true },
       select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: 'asc' }
     })
 
     return res.status(200).json(allUsers)
@@ -48,7 +48,7 @@ export const users = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { name, position },
+      data: { name, position }
     })
 
     return res.status(200).json({ user: updatedUser })
@@ -85,8 +85,8 @@ export async function requestPasswordReset(req: VercelRequest, res: VercelRespon
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${siteUrl()}/reset-password`,
-      },
+        redirectTo: `${siteUrl()}/reset-password`
+      }
     })
 
     if (linkError) {
@@ -122,7 +122,7 @@ export async function requestPasswordReset(req: VercelRequest, res: VercelRespon
             — USC Attendance · ISUFST Dingle Campus
           </p>
         </div>
-      `,
+      `
     })
 
     if (sendError) {
@@ -170,7 +170,7 @@ export const changePassword = handle(async (req: VercelRequest, res: VercelRespo
   // Clear mustChangePassword flag in Prisma
   await prisma.user.update({
     where: { id: authUser.id },
-    data: { mustChangePassword: false },
+    data: { mustChangePassword: false }
   })
 
   return res.status(200).json({ success: true })
@@ -204,9 +204,9 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
       data: {
         ...(canManageContent !== undefined && { canManageContent }),
         ...(canDelegate !== undefined && { canDelegate }),
-        ...(canConfigure !== undefined && { canConfigure }),
+        ...(canConfigure !== undefined && { canConfigure })
       },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
+      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true }
     })
 
     if (canConfigure !== undefined) {
@@ -214,8 +214,8 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
         data: {
           userId: id,
           action: canConfigure ? 'settings_access_granted' : 'settings_access_removed',
-          performedBy: user.id,
-        },
+          performedBy: user.id
+        }
       })
     }
 
@@ -224,8 +224,8 @@ export const userById = handle(async (req: VercelRequest, res: VercelResponse, i
         data: {
           userId: id,
           action: canDelegate ? 'delegate_power_granted' : 'delegate_power_removed',
-          performedBy: user.id,
-        },
+          performedBy: user.id
+        }
       })
     }
 

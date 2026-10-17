@@ -41,7 +41,7 @@ const rq = (token: string | null, method: string, body: any = {}, query: any = {
 const ids: string[] = []
 const eventIds: string[] = []
 const semIds: string[] = []
-let original: { id: string; keep: number; grace: number; lastPurgeAt: Date | null; lastPurgeCount: number | null } | null = null
+let original: { id: string, keep: number, grace: number, lastPurgeAt: Date | null, lastPurgeCount: number | null } | null = null
 
 async function mkUser(key: string, role: string, extra: Record<string, unknown> = {}) {
   const email = `${tag}-${key}@example.invalid`
@@ -118,7 +118,7 @@ async function main() {
   const live = async (id: string) => (await prisma.attendanceSignature.findUnique({ where: { attendanceId: id } }))!
   check('keep=2: semester 1 image deleted', r._s === 200 && (await live(inS1)).png === null && (await live(inS1)).purgedAt !== null, `${r._s} ${JSON.stringify(r._b)}`)
   check('keep=2: semester 2 image still kept (waits for a later semester)', (await live(inS2)).png !== null)
-  check("a signature outside every semester is never touched", (await live(aNow.id)).png !== null)
+  check('a signature outside every semester is never touched', (await live(aNow.id)).png !== null)
   check('attendance row, hash and reference survive a purge', !!(await prisma.attendance.findUnique({ where: { id: inS1 } })) && (await live(inS1)).sha256.length === 64)
 
   r = res(); await St.retention(rq(manager.token, 'PUT', { signatureRetentionSemesters: 1, purgeGraceDays: 0 }), r)
@@ -191,7 +191,7 @@ async function cleanup() {
   if (original) {
     await prisma.settings.update({
       where: { id: original.id },
-      data: { signatureRetentionSemesters: original.keep, purgeGraceDays: original.grace, lastPurgeAt: original.lastPurgeAt, lastPurgeCount: original.lastPurgeCount },
+      data: { signatureRetentionSemesters: original.keep, purgeGraceDays: original.grace, lastPurgeAt: original.lastPurgeAt, lastPurgeCount: original.lastPurgeCount }
     })
   }
   await prisma.auditLog.deleteMany({
@@ -200,9 +200,9 @@ async function cleanup() {
         { userId: { in: ids } },
         { performedBy: { in: ids } },
         { action: 'signatures_purged', createdAt: { gte: startedAt } },
-        { details: { contains: tag } },
-      ],
-    },
+        { details: { contains: tag } }
+      ]
+    }
   })
   for (const id of ids) {
     await prisma.user.delete({ where: { id } }).catch(() => {})

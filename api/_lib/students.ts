@@ -71,7 +71,7 @@ export function parseRegistration(body: unknown): RegistrationInput {
     email,
     name: normalizeName(b.name),
     studentNo: normalizeStudentNo(b.studentNo),
-    program: programRaw || null,
+    program: programRaw || null
   }
 }
 
@@ -84,7 +84,7 @@ export function clientIp(headers: Record<string, string | string[] | undefined>)
 
 export interface RateLimitDb {
   auditLog: {
-    count(args: { where: { action: string; createdAt: { gt: Date }; details: { contains: string } } }): Promise<number>
+    count(args: { where: { action: string, createdAt: { gt: Date }, details: { contains: string } } }): Promise<number>
   }
 }
 
@@ -101,7 +101,7 @@ export async function overLimit(
   now: Date = new Date()
 ): Promise<boolean> {
   const n = await db.auditLog.count({
-    where: { action, createdAt: { gt: new Date(now.getTime() - windowMs) }, details: { contains: key } },
+    where: { action, createdAt: { gt: new Date(now.getTime() - windowMs) }, details: { contains: key } }
   })
   return n >= max
 }

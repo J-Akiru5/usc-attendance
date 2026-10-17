@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 import { readFileSync } from 'fs'
-import { officers } from '../src/data/officers.js'
+import { officers } from './data/officers.js'
 
 const prisma = new PrismaClient()
 
@@ -35,7 +35,7 @@ async function main() {
   let officerSkipped = 0
   for (const o of officers) {
     const existing = await prisma.officer.findFirst({
-      where: { name: o.name, academicYear },
+      where: { name: o.name, academicYear }
     })
     if (existing) {
       console.log(`  ✗ Officer SKIPPED (already exists): ${o.name}`)
@@ -49,8 +49,8 @@ async function main() {
         tier: o.tier,
         email: o.email,
         photo: o.photo,
-        academicYear,
-      },
+        academicYear
+      }
     })
     console.log(`  ✓ Officer inserted: ${o.name}`)
     officerInserted++
@@ -81,12 +81,12 @@ async function main() {
         status: e.status,
         featured: e.featured,
         coverImage: e.coverImage ?? null,
-        gallery: e.gallery ?? null,
+        gallery: e.gallery ?? Prisma.DbNull,
         trailerUrl: e.trailerUrl ?? null,
-        tags: e.tags ?? null,
+        tags: e.tags ?? Prisma.DbNull,
         icon: e.icon ?? null,
-        academicYear,
-      },
+        academicYear
+      }
     })
     console.log(`  ✓ Event inserted: ${e.id}`)
     eventInserted++

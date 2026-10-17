@@ -13,9 +13,9 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
   if (req.method === 'GET') {
     const dutiesList = await prisma.officeDuty.findMany({
       include: {
-        user: { select: { id: true, name: true, position: true, role: true } },
+        user: { select: { id: true, name: true, position: true, role: true } }
       },
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }]
     })
 
     return res.status(200).json(dutiesList)
@@ -36,11 +36,11 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
         dayOfWeek: parseInt(dayOfWeek),
         startTime,
         endTime,
-        active: active !== false,
+        active: active !== false
       },
       include: {
-        user: { select: { id: true, name: true, position: true, role: true } },
-      },
+        user: { select: { id: true, name: true, position: true, role: true } }
+      }
     })
 
     return res.status(201).json(duty)
@@ -66,11 +66,11 @@ export const duties = handle(async (req: VercelRequest, res: VercelResponse) => 
         ...(dayOfWeek !== undefined && { dayOfWeek: parseInt(dayOfWeek) }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
-        ...(active !== undefined && { active }),
+        ...(active !== undefined && { active })
       },
       include: {
-        user: { select: { id: true, name: true, position: true, role: true } },
-      },
+        user: { select: { id: true, name: true, position: true, role: true } }
+      }
     })
 
     return res.status(200).json(updated)

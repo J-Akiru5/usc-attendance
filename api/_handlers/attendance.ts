@@ -6,13 +6,13 @@ import {
   forbidden,
   handle,
   isUniqueViolation,
-  notFound,
+  notFound
 } from '../_lib/http.js'
 import {
   authorizeDutySelfCheckIn,
   authorizeEventSelfCheckIn,
   authorizeManualCheckIn,
-  authorizeScanLocation,
+  authorizeScanLocation
 } from '../_lib/attendance-rules.js'
 import { auditDelegationUse, requireEventScope } from '../_lib/delegation.js'
 import { assertCheckInOpen } from '../_lib/retention.js'
@@ -41,9 +41,9 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
       include: {
         user: { select: { id: true, name: true, position: true, role: true } },
         recorder: { select: { id: true, name: true, position: true } },
-        signature: { select: { signedAt: true } },
+        signature: { select: { signedAt: true } }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     })
 
     return res.status(200).json(records)
@@ -72,11 +72,11 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
     }
 
     if (method !== 'self' && method !== 'manual') {
-      throw badRequest("method must be 'self' or 'manual'. QR check-ins go through /api/attendance/qr with a signed token.")
+      throw badRequest('method must be \'self\' or \'manual\'. QR check-ins go through /api/attendance/qr with a signed token.')
     }
 
     // Resolve who may record whom, how, and where — all server-side.
-    let resolved: { lat: number | null; lng: number | null } = { lat: null, lng: null }
+    let resolved: { lat: number | null, lng: number | null } = { lat: null, lng: null }
     let delegatedScope: 'manual_checkin' | null = null
     if (method === 'self') {
       if (attendanceType === 'event') {
@@ -90,7 +90,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
           targetUserId: userId,
           lat,
           lng,
-          geofence: event,
+          geofence: event
         })
       } else {
         resolved = authorizeDutySelfCheckIn({ actor: user, targetUserId: userId, lat, lng })
@@ -119,7 +119,7 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
     // Check for open (not-yet-checked-out) record
     if (attendanceType === 'event') {
       const existing = await prisma.attendance.findFirst({
-        where: { eventId, userId, checkOutAt: null },
+        where: { eventId, userId, checkOutAt: null }
       })
       if (existing) {
         throw forbidden(ALREADY_CHECKED_IN)
@@ -131,8 +131,8 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
           userId,
           type: 'duty',
           dutyDate: { gte, lt },
-          checkOutAt: null,
-        },
+          checkOutAt: null
+        }
       })
       if (existing) {
         throw forbidden(ALREADY_CHECKED_IN)
@@ -149,17 +149,17 @@ export const index = handle(async (req: VercelRequest, res: VercelResponse) => {
           method,
           lat: resolved.lat,
           lng: resolved.lng,
-          recordedBy: user.id,
+          recordedBy: user.id
         },
         include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-        },
+          user: { select: { id: true, name: true, position: true, role: true } }
+        }
       })
 
       if (delegatedScope) {
         await auditDelegationUse(prisma, user, eventId, delegatedScope, {
           attendanceId: record.id,
-          targetUserId: userId,
+          targetUserId: userId
         })
       }
 
@@ -214,7 +214,7 @@ export const checkout = handle(async (req: VercelRequest, res: VercelResponse) =
   let openRecord
   if (eventId) {
     openRecord = await prisma.attendance.findFirst({
-      where: { eventId, userId, checkOutAt: null },
+      where: { eventId, userId, checkOutAt: null }
     })
   } else {
     const { gte, lt } = manilaDayRange(new Date(dutyDate))
@@ -223,8 +223,8 @@ export const checkout = handle(async (req: VercelRequest, res: VercelResponse) =
         userId,
         type: 'duty',
         dutyDate: { gte, lt },
-        checkOutAt: null,
-      },
+        checkOutAt: null
+      }
     })
   }
 
@@ -250,15 +250,15 @@ export const checkout = handle(async (req: VercelRequest, res: VercelResponse) =
     where: { id: openRecord.id },
     data: { checkOutAt: new Date() },
     include: {
-      user: { select: { id: true, name: true, position: true, role: true } },
-    },
+      user: { select: { id: true, name: true, position: true, role: true } }
+    }
   })
 
   if (delegatedCheckout && eventId) {
     await auditDelegationUse(prisma, user, eventId, 'manual_checkin', {
       attendanceId: updated.id,
       targetUserId: userId,
-      action: 'checkout',
+      action: 'checkout'
     })
   }
 
@@ -280,8 +280,8 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
     const duties = await prisma.officeDuty.findMany({
       where: { dayOfWeek, active: true },
       include: {
-        user: { select: { id: true, name: true, position: true, role: true } },
-      },
+        user: { select: { id: true, name: true, position: true, role: true } }
+      }
     })
 
     // Get attendance records for that Manila day
@@ -289,12 +289,12 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
     const attendance = await prisma.attendance.findMany({
       where: {
         type: 'duty',
-        dutyDate: { gte, lt },
+        dutyDate: { gte, lt }
       },
       include: {
         user: { select: { id: true, name: true, position: true, role: true } },
-        recorder: { select: { id: true, name: true, position: true } },
-      },
+        recorder: { select: { id: true, name: true, position: true } }
+      }
     })
 
     return res.status(200).json({ duties, attendance })
@@ -313,7 +313,7 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     // Verify officer has duty on that Manila day
     const dutyRecord = await prisma.officeDuty.findFirst({
-      where: { userId, dayOfWeek, active: true },
+      where: { userId, dayOfWeek, active: true }
     })
 
     if (!dutyRecord) {
@@ -338,8 +338,8 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
         userId,
         type: 'duty',
         dutyDate: { gte, lt },
-        checkOutAt: null,
-      },
+        checkOutAt: null
+      }
     })
     if (existing) {
       throw forbidden(ALREADY_CHECKED_IN)
@@ -347,7 +347,7 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
 
     // Who may record whom: self check-in is open; recording someone else is staff-only.
     // recordedBy is always the authenticated user, never from the body.
-    let resolved: { lat: number | null; lng: number | null }
+    let resolved: { lat: number | null, lng: number | null }
     let method: 'self' | 'manual'
     if (userId === user.id) {
       method = 'self'
@@ -367,11 +367,11 @@ export const duty = handle(async (req: VercelRequest, res: VercelResponse) => {
           method,
           lat: resolved.lat,
           lng: resolved.lng,
-          recordedBy: user.id,
+          recordedBy: user.id
         },
         include: {
-          user: { select: { id: true, name: true, position: true, role: true } },
-        },
+          user: { select: { id: true, name: true, position: true, role: true } }
+        }
       })
 
       return res.status(201).json(record)
@@ -420,16 +420,16 @@ export const exportAttendance = handle(async (req: VercelRequest, res: VercelRes
     where: { eventId },
     include: {
       user: { select: { name: true, position: true } },
-      recorder: { select: { name: true } },
+      recorder: { select: { name: true } }
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'asc' }
   })
 
   const sigs = await prisma.attendanceSignature.findMany({
-    where: { attendanceId: { in: records.map((r) => r.id) } },
-    select: { attendanceId: true, png: true, sha256: true },
+    where: { attendanceId: { in: records.map(r => r.id) } },
+    select: { attendanceId: true, png: true, sha256: true }
   })
-  const sigById = new Map(sigs.map((s) => [s.attendanceId, s]))
+  const sigById = new Map(sigs.map(s => [s.attendanceId, s]))
 
   const METHOD_LABEL: Record<string, string> = { self: 'Self', qr: 'QR', manual: 'Manual' }
   const model: ReportModel = {
@@ -449,8 +449,8 @@ export const exportAttendance = handle(async (req: VercelRequest, res: VercelRes
       location: r.lat != null && r.lng != null ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}` : '',
       signatureRef: sigById.has(r.id) ? signatureRef(sigById.get(r.id)!.sha256) : null,
       signaturePng: sigById.get(r.id)?.png ? new Uint8Array(sigById.get(r.id)!.png!) : null,
-      signatureExpired: sigById.has(r.id) && !sigById.get(r.id)!.png,
-    })),
+      signatureExpired: sigById.has(r.id) && !sigById.get(r.id)!.png
+    }))
   }
 
   const report = await buildReport(model, format)
@@ -517,7 +517,7 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
 
   // Check for open (not-yet-checked-out) record
   const existing = await prisma.attendance.findFirst({
-    where: { eventId: payload.e, userId: payload.u, checkOutAt: null },
+    where: { eventId: payload.e, userId: payload.u, checkOutAt: null }
   })
   if (existing) {
     throw forbidden(ALREADY_CHECKED_IN)
@@ -532,17 +532,17 @@ export const qr = handle(async (req: VercelRequest, res: VercelResponse) => {
         method: 'qr',
         lat: scannedAt.lat,
         lng: scannedAt.lng,
-        recordedBy: user.id,
+        recordedBy: user.id
       },
       include: {
-        user: { select: { id: true, name: true, position: true, role: true } },
-      },
+        user: { select: { id: true, name: true, position: true, role: true } }
+      }
     })
 
     if (viaDelegation) {
       await auditDelegationUse(prisma, user, payload.e, 'scan', {
         attendanceId: record.id,
-        targetUserId: payload.u,
+        targetUserId: payload.u
       })
     }
 

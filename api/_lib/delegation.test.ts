@@ -8,7 +8,7 @@ import {
   parseScopes,
   requireCanDelegate,
   requireEventScope,
-  type DelegationDb,
+  type DelegationDb
 } from './delegation.js'
 
 const NOW = new Date('2026-11-10T02:00:00Z') // 10:00 Manila
@@ -46,21 +46,21 @@ function fakeDb(grants: Grant[]): DelegationDb & { audit: unknown[] } {
     eventDelegate: {
       async findFirst({ where }) {
         const g = grants.find(
-          (x) =>
-            x.userId === where.userId &&
-            x.eventId === where.eventId &&
-            x.revokedAt === null &&
-            x.expiresAt.getTime() > where.expiresAt.gt.getTime() &&
-            x.scopes.includes(where.scopes.has)
+          x =>
+            x.userId === where.userId
+            && x.eventId === where.eventId
+            && x.revokedAt === null
+            && x.expiresAt.getTime() > where.expiresAt.gt.getTime()
+            && x.scopes.includes(where.scopes.has)
         )
         return g ? { id: 'grant-1' } : null
-      },
+      }
     },
     auditLog: {
       async create(args) {
         audit.push(args.data)
-      },
-    },
+      }
+    }
   }
 }
 
@@ -70,7 +70,7 @@ const activeGrant = (over: Partial<Grant> = {}): Grant => ({
   scopes: ['scan'],
   expiresAt: DAY_END,
   revokedAt: null,
-  ...over,
+  ...over
 })
 
 describe('parseScopes', () => {
@@ -143,7 +143,7 @@ describe('hasEventScope / requireEventScope', () => {
   it('denies the wrong scope, wrong event, other users grant, expired and revoked', async () => {
     const db = fakeDb([
       activeGrant({ scopes: ['scan'] }),
-      activeGrant({ userId: 'someone-else', scopes: ['export'] }),
+      activeGrant({ userId: 'someone-else', scopes: ['export'] })
     ])
     expect((await hasEventScope(db, client, 'e1', 'export', NOW)).allowed).toBe(false)
     expect((await hasEventScope(db, client, 'e2', 'scan', NOW)).allowed).toBe(false)
@@ -154,7 +154,7 @@ describe('hasEventScope / requireEventScope', () => {
   })
   it('requireEventScope throws 403 when denied and resolves when allowed', async () => {
     await expect(requireEventScope(fakeDb([]), client, 'e1', 'scan', NOW)).rejects.toMatchObject({
-      status: 403,
+      status: 403
     })
     await expect(
       requireEventScope(fakeDb([activeGrant()]), client, 'e1', 'scan', NOW)

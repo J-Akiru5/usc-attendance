@@ -19,7 +19,7 @@ import * as SA from '../../api/_handlers/student-admin.js'
 process.env.QR_SECRET ||= 'e2e-' + randomBytes(8).toString('hex')
 process.env.RESEND_FROM_EMAIL ||= 'e2e@example.invalid'
 
-const sent: { to: string; html: string }[] = []
+const sent: { to: string, html: string }[] = []
 ;(resend.emails as any).send = async (m: any) => { sent.push({ to: m.to, html: m.html }); return { data: { id: 'stub' }, error: null } }
 
 const prisma = new PrismaClient()
@@ -169,7 +169,7 @@ async function main() {
   if (rowC) { ids.push(rowC.id); await admin.auth.admin.updateUserById(rowC.id, { password: passC, email_confirm: true }) }
   const { data: sC } = await anon().auth.signInWithPassword({ email: emailC, password: passC })
   r = res(); await G.sign(rq(sC.session!.access_token, 'POST', { attendanceId, signature: await inkPng() }), r)
-  check("cannot sign someone else's attendance (404)", r._s === 404, `${r._s}`)
+  check('cannot sign someone else\'s attendance (404)', r._s === 404, `${r._s}`)
 
   r = res(); await G.sign(rq(st, 'POST', { attendanceId, signature: await inkPng() }), r)
   check('valid signature accepted (201) with a SIG- reference', r._s === 201 && /^SIG-[0-9A-F]{10}$/.test(r._b?.ref ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
@@ -227,7 +227,7 @@ async function cleanup() {
   if (eventId) await prisma.event.delete({ where: { id: eventId } }).catch(() => {})
   // any student rows created under the test tag (even from replaced sign-ups)
   const strays = await prisma.user.findMany({ where: { email: { startsWith: tag } }, select: { id: true } })
-  const all = [...new Set([...ids, ...strays.map((s) => s.id)])]
+  const all = [...new Set([...ids, ...strays.map(s => s.id)])]
   await prisma.auditLog.deleteMany({ where: { OR: [{ details: { contains: tag } }, { userId: { in: all } }, { performedBy: { in: all } }] } })
   for (const id of all) {
     await prisma.user.delete({ where: { id } }).catch(() => {})

@@ -1,0 +1,43 @@
+@import "tailwindcss" theme(static);
+@import "@nuxt/ui";
+
+@theme static {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* USC navy — brand core at 500/600, deep at 700 (old tokens: navy, navy.light, navy.deep) */
+  --color-navy-50: #EDF1F8;
+  --color-navy-100: #D6DFF0;
+  --color-navy-200: #ACBEE0;
+  --color-navy-300: #6C8CC4;
+  --color-navy-400: #1E4A9E;
+  --color-navy-500: #142850;
+  --color-navy-600: #101F42;
+  --color-navy-700: #0C1B36;
+  --color-navy-800: #081228;
+  --color-navy-900: #050B1A;
+  --color-navy-950: #030712;
+
+  /* USC gold — brand core at 500, soft at 300, dark at 700 (old tokens: gold, gold.soft, gold.dark) */
+  --color-gold-50: #FBF7EC;
+  --color-gold-100: #F6EDD3;
+  --color-gold-200: #ECDCA6;
+  --color-gold-300: #E4CD8E;
+  --color-gold-400: #D7B860;
+  --color-gold-500: #C9A24B;
+  --color-gold-600: #B08A3A;
+  --color-gold-700: #8A6D2F;
+  --color-gold-800: #6E5626;
+  --color-gold-900: #57431E;
+  --color-gold-950: #332711;
+
+  /* Legacy flat brand tokens (ported public pages use bg-paper, text-ink, border-line, …) */
+  --color-paper: #F7F5F0;
+  --color-panel: #FFFFFF;
+  --color-ink: #1B1B1D;
+  --color-line: #DCD6C8;
+  --color-slate: #5C6773;
+  --color-success: #3F7D5C;
+  --color-danger: #A23E3E;
+}

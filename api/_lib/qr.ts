@@ -32,7 +32,7 @@ export function issueQrToken(
   userId: string,
   eventId: string,
   now: number = Math.floor(Date.now() / 1000)
-): { token: string; exp: number } {
+): { token: string, exp: number } {
   const payload: QrTokenPayload = { u: userId, e: eventId, i: now, x: now + TOKEN_TTL_SECONDS }
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
   return { token: `${body}.${sign(body)}`, exp: payload.x }
@@ -64,10 +64,10 @@ export function verifyQrToken(
   }
 
   if (
-    typeof payload?.u !== 'string' ||
-    typeof payload?.e !== 'string' ||
-    typeof payload?.i !== 'number' ||
-    typeof payload?.x !== 'number'
+    typeof payload?.u !== 'string'
+    || typeof payload?.e !== 'string'
+    || typeof payload?.i !== 'number'
+    || typeof payload?.x !== 'number'
   ) {
     throw new HttpError(400, 'Malformed QR token')
   }

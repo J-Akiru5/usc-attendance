@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   console.log('--- USC Attendance Database Scratchpad ---')
-  
+
   // 1. Fetch count of users
   const userCount = await prisma.user.count()
   console.log(`Total users in database: ${userCount}`)
@@ -16,7 +16,7 @@ async function main() {
       name: true,
       email: true,
       role: true,
-      position: true,
+      position: true
     }
   })
   console.log('\nUsers List:')

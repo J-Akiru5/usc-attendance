@@ -8,7 +8,7 @@ import {
   parseWindow,
   requireSettingsManager,
   validateSemester,
-  type SemesterLike,
+  type SemesterLike
 } from './retention.js'
 
 const d = (s: string) => new Date(s + 'T00:00:00+08:00')
@@ -75,13 +75,13 @@ describe('expiredSemesters', () => {
     const justAfter = new Date(S1.endsOn.getTime() + 10 * 86_400_000)
     expect(expiredSemesters([S1, S2, S3], 1, 30, justAfter)).toEqual([])
     const afterGrace = new Date(S1.endsOn.getTime() + 31 * 86_400_000)
-    expect(expiredSemesters([S1, S2, S3], 1, 30, afterGrace).map((s) => s.name)).toEqual(['1st 2025-26'])
+    expect(expiredSemesters([S1, S2, S3], 1, 30, afterGrace).map(s => s.name)).toEqual(['1st 2025-26'])
   })
   it('keep=2: also waits for the next semester to end', () => {
     const afterS1Grace = new Date(S1.endsOn.getTime() + 60 * 86_400_000)
     expect(expiredSemesters([S1, S2, S3], 2, 30, afterS1Grace)).toEqual([])
     const afterS2Grace = new Date(S2.endsOn.getTime() + 31 * 86_400_000)
-    expect(expiredSemesters([S1, S2, S3], 2, 30, afterS2Grace).map((s) => s.name)).toEqual(['1st 2025-26'])
+    expect(expiredSemesters([S1, S2, S3], 2, 30, afterS2Grace).map(s => s.name)).toEqual(['1st 2025-26'])
   })
   it('never expires when the later semesters are not defined yet', () => {
     const far = new Date('2030-01-01')
@@ -90,7 +90,7 @@ describe('expiredSemesters', () => {
   })
   it('works regardless of input order and with zero grace', () => {
     const out = expiredSemesters([S3, S1, S2], 1, 0, new Date(S2.endsOn.getTime() + 1))
-    expect(out.map((s) => s.name)).toEqual(['1st 2025-26', '2nd 2025-26'])
+    expect(out.map(s => s.name)).toEqual(['1st 2025-26', '2nd 2025-26'])
   })
 })
 

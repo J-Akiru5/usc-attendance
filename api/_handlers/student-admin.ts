@@ -12,7 +12,7 @@ const select = {
   email: true,
   active: true,
   createdAt: true,
-  studentProfile: { select: { studentNo: true, program: true } },
+  studentProfile: { select: { studentNo: true, program: true } }
 } as const
 
 // ---------------------------------------------------------------------------
@@ -32,14 +32,14 @@ export const students = handle(async (req: VercelRequest, res: VercelResponse) =
       OR: [
         { name: { contains: q, mode: 'insensitive' as const } },
         { email: { contains: q, mode: 'insensitive' as const } },
-        { studentProfile: { studentNo: { contains: q, mode: 'insensitive' as const } } },
-      ],
-    }),
+        { studentProfile: { studentNo: { contains: q, mode: 'insensitive' as const } } }
+      ]
+    })
   }
 
   const [total, rows] = await Promise.all([
     prisma.user.count({ where }),
-    prisma.user.findMany({ where, select, orderBy: { name: 'asc' }, skip: (page - 1) * PAGE, take: PAGE }),
+    prisma.user.findMany({ where, select, orderBy: { name: 'asc' }, skip: (page - 1) * PAGE, take: PAGE })
   ])
   return res.status(200).json({ total, page, pageSize: PAGE, students: rows })
 })
@@ -64,11 +64,11 @@ export const studentById = handle(async (req: VercelRequest, res: VercelResponse
     throw badRequest('Program must be text up to 60 characters')
   }
 
-  const userData: { name?: string; active?: boolean } = {}
+  const userData: { name?: string, active?: boolean } = {}
   if (name !== undefined) userData.name = normalizeName(name)
   if (active !== undefined) userData.active = active
 
-  const profileData: { studentNo?: string; program?: string | null } = {}
+  const profileData: { studentNo?: string, program?: string | null } = {}
   if (studentNo !== undefined) profileData.studentNo = normalizeStudentNo(studentNo)
   if (program !== undefined) profileData.program = program.trim() || null
 
@@ -79,18 +79,18 @@ export const studentById = handle(async (req: VercelRequest, res: VercelResponse
         data: {
           ...userData,
           ...(Object.keys(profileData).length > 0 && {
-            studentProfile: { update: profileData },
-          }),
+            studentProfile: { update: profileData }
+          })
         },
-        select,
+        select
       })
       await tx.auditLog.create({
         data: {
           userId: id,
           action: 'student_updated',
           details: JSON.stringify({ changed: Object.keys({ ...userData, ...profileData }), active: userData.active }),
-          performedBy: actor.id,
-        },
+          performedBy: actor.id
+        }
       })
       return u
     })

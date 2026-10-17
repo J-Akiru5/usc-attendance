@@ -1,15 +1,19 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
 dist/
 
 # Environment
 .env
 .env.local
-
-# Prisma
-# (keep migrations tracked for Vercel deploys)
+.env.*
+!.env.example
 
 # IDE
 .vscode/
@@ -18,4 +22,10 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Vercel
 .vercel
+
+# Logs
+logs/
+*.log

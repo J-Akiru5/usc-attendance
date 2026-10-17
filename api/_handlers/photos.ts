@@ -16,7 +16,7 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
-  'image/avif': 'avif',
+  'image/avif': 'avif'
 }
 
 // ---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ export const photos = handle(async (req: VercelRequest, res: VercelResponse) => 
       where: { eventSlug },
       orderBy: { createdAt: 'asc' },
       take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
     })
 
     const hasMore = photosList.length > limit
@@ -63,8 +63,8 @@ export const photos = handle(async (req: VercelRequest, res: VercelResponse) => 
         eventSlug,
         storageKeyFull,
         storageKeyThumb,
-        uploadedBy: user.id,
-      },
+        uploadedBy: user.id
+      }
     })
 
     return res.status(201).json(photo)
@@ -104,8 +104,8 @@ export const presign = handle(async (req: VercelRequest, res: VercelResponse) =>
     endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
+      secretAccessKey: R2_SECRET_ACCESS_KEY
+    }
   })
 
   const expiresIn = 900 // 15 minutes
@@ -114,19 +114,19 @@ export const presign = handle(async (req: VercelRequest, res: VercelResponse) =>
     getSignedUrl(s3, new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: fullKey,
-      ContentType: contentType,
+      ContentType: contentType
     }), { expiresIn }),
     getSignedUrl(s3, new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: thumbKey,
-      ContentType: contentType,
-    }), { expiresIn }),
+      ContentType: contentType
+    }), { expiresIn })
   ])
 
   return res.status(200).json({
     fullKey,
     thumbKey,
     fullUploadUrl,
-    thumbUploadUrl,
+    thumbUploadUrl
   })
 })
