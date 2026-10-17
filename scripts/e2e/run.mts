@@ -114,7 +114,9 @@ async function startEmailCapture(): Promise<{
 }
 
 function startDevServer(env: NodeJS.ProcessEnv, port: number, onLog: (chunk: string) => void): ChildProcess {
-  const child = spawn('npx.cmd', ['nuxt', 'dev', '--port', String(port)], {
+  // --host is explicit: the default "localhost" can bind IPv6-only on Windows,
+  // and the runner (and BASE_URL) talk to 127.0.0.1.
+  const child = spawn('npx.cmd', ['nuxt', 'dev', '--port', String(port), '--host', '127.0.0.1'], {
     cwd: rootDir,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
