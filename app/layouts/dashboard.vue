@@ -1,97 +1,35 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+// Ported from the legacy `AppShell.vue` (P1c): same header/sidebar/bottom-nav
+// chrome and the same pending-sync banner. The Pinia store call is identical
+// because `useAuthStore` is a `useState`-backed composable with the same API.
+import { useAuthStore } from '@/stores/auth'
+import { useOfflineQueue } from '@/composables/useOfflineQueue'
+import AppSidebar from '@/components/layout/AppSidebar.vue'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import BottomNav from '@/components/layout/BottomNav.vue'
+import PendingSignature from '@/components/PendingSignature.vue'
 
-const open = ref(false)
-
-// P0 shell: only routes that exist on this branch. Real USC modules
-// (events, attendance, students, …) are ported in P1.
-const links = [[{
-  label: 'Home',
-  icon: 'i-lucide-house',
-  to: '/',
-  onSelect: () => {
-    open.value = false
-  }
-}, {
-  label: 'Settings',
-  to: '/settings',
-  icon: 'i-lucide-settings',
-  defaultOpen: true,
-  type: 'trigger',
-  children: [{
-    label: 'General',
-    to: '/settings',
-    exact: true,
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Members',
-    to: '/settings/members',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Notifications',
-    to: '/settings/notifications',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Security',
-    to: '/settings/security',
-    onSelect: () => {
-      open.value = false
-    }
-  }]
-}]] satisfies NavigationMenuItem[][]
-
-const groups = computed(() => [{
-  id: 'links',
-  label: 'Go to',
-  items: links.flat()
-}])
+const auth = useAuthStore()
+const { queueLength } = useOfflineQueue()
 </script>
 
 <template>
-  <UDashboardGroup unit="rem">
-    <UDashboardSidebar
-      id="default"
-      v-model:open="open"
-      collapsible
-      resizable
-      class="bg-elevated/25"
-      :ui="{ footer: 'lg:border-t lg:border-default' }"
-    >
-      <template #header="{ collapsed }">
-        <NuxtLink to="/" class="flex items-center gap-2 mx-auto lg:mx-0 lg:px-2 lg:py-1.5" :aria-label="collapsed ? 'USC Attendance — home' : undefined">
-          <UIcon name="i-lucide-landmark" class="size-6 shrink-0 text-primary" />
-          <div v-if="!collapsed" class="flex flex-col overflow-hidden">
-            <span class="text-sm font-semibold text-highlighted truncate">USC Attendance</span>
-            <span class="text-xs text-muted truncate">ISUFST Student Council</span>
-          </div>
-        </NuxtLink>
-      </template>
+  <div class="min-h-screen bg-paper flex">
+    <AppSidebar v-if="auth.isAuthenticated" />
 
-      <template #default="{ collapsed }">
-        <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-default" />
+    <div class="flex-1 flex flex-col min-h-screen">
+      <AppHeader v-if="auth.isAuthenticated" />
 
-        <UNavigationMenu
-          :collapsed="collapsed"
-          :items="links"
-          orientation="vertical"
-          tooltip
-          popover
-        />
-      </template>
+      <main class="flex-1 p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
+        <div v-if="queueLength > 0" class="mb-4 rounded-lg border border-warning bg-gold/10 px-4 py-3 text-sm text-gold-dark flex items-center gap-2">
+          <span class="font-mono text-xs bg-gold/20 rounded-full px-2 py-0.5">{{ queueLength }}</span>
+          <span>check-in{{ queueLength > 1 ? 's' : '' }} pending sync — will upload when online</span>
+        </div>
+        <slot />
+      </main>
+    </div>
 
-      <template #footer="{ collapsed }">
-        <UserMenu :collapsed="collapsed" />
-      </template>
-    </UDashboardSidebar>
-
-    <UDashboardSearch :groups="groups" />
-
-    <slot />
-  </UDashboardGroup>
+    <BottomNav v-if="auth.isAuthenticated" />
+    <PendingSignature v-if="auth.isAuthenticated && !auth.user?.mustChangePassword" />
+  </div>
 </template>

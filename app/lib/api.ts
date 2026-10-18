@@ -11,6 +11,10 @@ export function setSupabaseClient(client: SupabaseClient) {
   supabaseClient = client
 }
 
+export function getSupabaseClient(): SupabaseClient | null {
+  return supabaseClient
+}
+
 const API_BASE = '/api'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
