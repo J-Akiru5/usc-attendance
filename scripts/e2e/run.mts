@@ -213,7 +213,7 @@ async function main(): Promise<void> {
     await waitForServer(baseUrl, 120000)
     console.log('[e2e] dev server ready')
 
-    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
+    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'rbac.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)

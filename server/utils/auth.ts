@@ -5,6 +5,7 @@ import { serverSupabaseSession } from '#supabase/server'
 import { supabaseAdmin } from './supabase'
 import { prisma } from './prisma'
 import { HttpError } from './http'
+import { mergeCapabilities, requireCapability, type Capability } from './rbac'
 
 export interface AuthUser {
   id: string
@@ -15,6 +16,8 @@ export interface AuthUser {
   canManageContent: boolean
   canDelegate: boolean
   canConfigure: boolean
+  /** Capabilities from the user's roles, unioned with the legacy flags (plan §7.2). */
+  capabilities: string[]
 }
 
 /**
@@ -70,13 +73,16 @@ export async function authenticate(
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
 
   if (user) {
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { roles: { include: { role: { include: { capabilities: true } } } } }
+    })
     if (!dbUser) {
       console.error('[auth] No Prisma user found for authenticated Supabase id:', user.id, 'email:', user.email)
       throw new HttpError(401, 'User not found in database')
     }
     assertAccountUsable(dbUser, !!user.email_confirmed_at, options)
-    return dbUser as AuthUser
+    return withCapabilities(dbUser)
   }
 
   // Fallback: verify JWT signature using project's HS256 secret
@@ -92,7 +98,10 @@ export async function authenticate(
     const userId = payload.sub
     if (!userId) throw new HttpError(401, 'Token has no sub claim')
 
-    const dbUser = await prisma.user.findUnique({ where: { id: userId } })
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { roles: { include: { role: { include: { capabilities: true } } } } }
+    })
     if (!dbUser) {
       console.error('[auth] JWT fallback: no Prisma user for id:', userId, 'email:', payload.email)
       throw new HttpError(401, 'User not found in database')
@@ -103,12 +112,31 @@ export async function authenticate(
       confirmed = !!au?.user?.email_confirmed_at
     }
     assertAccountUsable(dbUser, confirmed, options)
-    return dbUser as AuthUser
+    return withCapabilities(dbUser)
   } catch (jwtErr) {
     if (jwtErr instanceof HttpError) throw jwtErr
     console.error('[auth] JWT verification failed:', jwtErr)
     throw new HttpError(401, 'Invalid or expired token')
   }
+}
+
+/** Attaches the capability list (from roles, unioned with the legacy flags). */
+function withCapabilities(
+  dbUser: {
+    id: string
+    email: string
+    name: string
+    position: string
+    role: string
+    canManageContent: boolean
+    canDelegate: boolean
+    canConfigure: boolean
+    roles: Array<{ role: { capabilities: Array<{ capability: string }> } }>
+  }
+): AuthUser {
+  const fromRoles = dbUser.roles.flatMap(r => r.role.capabilities.map(c => c.capability)) as Capability[]
+  const { roles: _roles, ...rest } = dbUser
+  return { ...rest, capabilities: mergeCapabilities(fromRoles, dbUser) }
 }
 
 export function requireRole(user: AuthUser, ...roles: string[]) {
@@ -118,17 +146,16 @@ export function requireRole(user: AuthUser, ...roles: string[]) {
 }
 
 export function requireStaff(user: AuthUser) {
-  requireRole(user, 'super_admin', 'staff')
+  // legacy role check (super_admin | staff) expressed as a capability
+  requireCapability(user, 'staff.access')
 }
 
 export function requireSuperAdmin(user: AuthUser) {
-  requireRole(user, 'super_admin')
+  requireCapability(user, 'admin.all')
 }
 
 export function requireContentAccess(user: AuthUser) {
-  if (user.role !== 'super_admin' && !user.canManageContent) {
-    throw new HttpError(403, 'Access denied. Content management permission required.')
-  }
+  requireCapability(user, 'content.manage')
 }
 
 /** Students may only use their own QR/signature flows; block them from officer features. */

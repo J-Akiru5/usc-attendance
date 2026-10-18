@@ -30,14 +30,15 @@ function http(fn: () => unknown, status: number, part?: string) {
 }
 
 describe('who can manage settings', () => {
-  it('super admin, President/Secretary (canDelegate) and canConfigure only', () => {
+  it('the super admin, and holders of settings.manage (President/Secretary/adviser) only', () => {
     expect(canManageSettings({ role: 'super_admin' })).toBe(true)
     expect(canManageSettings({ role: 'staff', canDelegate: true })).toBe(true)
     expect(canManageSettings({ role: 'client', canConfigure: true })).toBe(true)
     expect(canManageSettings({ role: 'staff' })).toBe(false)
     expect(canManageSettings({ role: 'student', canConfigure: false })).toBe(false)
-    http(() => requireSettingsManager({ role: 'client' }), 403, 'adviser')
-    expect(() => requireSettingsManager({ role: 'client', canConfigure: true })).not.toThrow()
+    http(() => requireSettingsManager({ capabilities: ['staff.access'] }), 403, 'settings.manage')
+    expect(() => requireSettingsManager({ capabilities: ['settings.manage'] })).not.toThrow()
+    expect(() => requireSettingsManager({ capabilities: ['admin.all'] })).not.toThrow()
   })
 })
 
