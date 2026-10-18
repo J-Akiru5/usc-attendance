@@ -243,10 +243,14 @@ model Section {
 /// apart from "attendance" so roster queries never pull image bytes.
 model AttendanceSignature {
   attendanceId String   @id
-  png          Bytes?   // null once purged by the retention rule
+  png          Bytes?   // null once purged by the retention rule (or stored in R2)
   sha256       String
   signedAt     DateTime @default(now())
   purgedAt     DateTime?
+  /// Object-storage key when the image lives in R2 (plan §11.1); rows written
+  /// before the switch keep their bytes in `png`. Readers go by the row.
+  storageKey     String?
+  storageBackend String?
 
   attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
 

@@ -5,6 +5,7 @@ import { badRequest, defineApiHandler, notFound, respond } from '../../utils/htt
 import { auditDelegationUse, requireEventScope } from '../../utils/delegation'
 import { buildReport, fileStem, formatManila, parseFormat, type ReportModel } from '../../utils/report'
 import { signatureRef } from '../../utils/signature'
+import { signatureStore, readSignaturePng } from '../../utils/signature-storage'
 
 // ---------------------------------------------------------------------------
 // GET /api/attendance/export?eventId=&format=csv|xlsx|pdf   (default csv)
@@ -48,9 +49,16 @@ export default defineApiHandler(async (event) => {
 
   const sigs = await prisma.attendanceSignature.findMany({
     where: { attendanceId: { in: records.map(r => r.id) } },
-    select: { attendanceId: true, png: true, sha256: true }
+    select: { attendanceId: true, png: true, sha256: true, storageKey: true }
   })
   const sigById = new Map(sigs.map(s => [s.attendanceId, s]))
+
+  // Signature images may live in Postgres or in R2, depending on the row.
+  const store = signatureStore()
+  const signaturePngById = new Map<string, Uint8Array | null>()
+  for (const sig of sigs) {
+    signaturePngById.set(sig.attendanceId, await readSignaturePng(store, sig))
+  }
 
   const METHOD_LABEL: Record<string, string> = { self: 'Self', qr: 'QR', manual: 'Manual' }
   const model: ReportModel = {
@@ -69,8 +77,8 @@ export default defineApiHandler(async (event) => {
       recordedBy: r.recorder.name,
       location: r.lat != null && r.lng != null ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}` : '',
       signatureRef: sigById.has(r.id) ? signatureRef(sigById.get(r.id)!.sha256) : null,
-      signaturePng: sigById.get(r.id)?.png ? new Uint8Array(sigById.get(r.id)!.png!) : null,
-      signatureExpired: sigById.has(r.id) && !sigById.get(r.id)!.png
+      signaturePng: signaturePngById.get(r.id) ?? null,
+      signatureExpired: sigById.has(r.id) && !signaturePngById.get(r.id)
     }))
   }
 
