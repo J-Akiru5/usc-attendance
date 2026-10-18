@@ -568,7 +568,10 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] Offline scanner queue
 
 ### P0/P1 free-tier hardening
-- [ ] Move signature images (and future uploads) from Postgres to R2
+- [x] Move signature images (and future uploads) from Postgres to R2 (2026-10-18, `feat/p1i-signatures-r2`)
+  - additive `storageKey`/`storageBackend` columns; `storeSignature`/`readSignaturePng` decide **per row**, so old rows keep their bytes and the switch is reversible
+  - `SIGNATURE_STORAGE=db` (default) · `r2` (production, needs the existing `R2_*` vars) · `filesystem` (dev + e2e); exports read from either place, and the retention purge deletes the objects before clearing the rows
+  - verified end-to-end with the filesystem backend (same code path as R2); flipping production to `r2` is an env change on Vercel, no code change
 - [x] DB-backed health endpoint (`/api/health`, 2026-10-18, `chore/p1-hardening`) — public, minimal, `SELECT 1` round-trip, 503 when the database is unreachable
   - keeps the Supabase project awake and gives the uptime monitor something meaningful to watch; **the UptimeRobot monitor itself still needs to be created** (external account)
 - [x] Daily email-quota guard for Resend (2026-10-18, same PR)

@@ -29,3 +29,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Local signature store (SIGNATURE_STORAGE=filesystem)
+.signature-store/
