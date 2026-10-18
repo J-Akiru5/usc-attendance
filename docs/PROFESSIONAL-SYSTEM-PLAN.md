@@ -542,9 +542,13 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
     - the five Pinia stores became `useState`-backed composables with the same APIs (`app/stores/*`); router guards became `middleware/auth.global.ts`
     - new dependencies (legacy parity, approved by Jeff): `clsx`, `tailwind-merge`, `idb`, `leaflet`, `html5-qrcode`
 - [ ] RBAC tables + migration of existing flags (VP = President capabilities)
-- [ ] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD
+- [x] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD (2026-10-18, `feat/p1e-academic-and-profile`)
+  - additive migration `20261018120000_add_academic_reference_data` (colleges/programs/sections + profile FKs); `npm run db:seed-academic` seeds CICI · CoAg · CBMSD · CoEd
+  - `GET /api/reference/academic` (public, feeds registration) + manager-only CRUD on `/api/reference/{colleges,programs,sections}` (archive instead of delete while referenced, audited)
+  - admin UI at `/manage/academics`; renames go through foreign keys, never copied text
 - [ ] `useDataTable` with server filters, saved views, exports
-- [ ] Student profile: college / program / year / section
+- [x] Student profile: college / program / year / section (2026-10-18, `feat/p1e-academic-and-profile`)
+  - nullable `collegeId`/`programId`/`yearLevel`/`sectionId`/`contactNumber` on `student_profiles`; registration uses cascading dropdowns; super-admins can correct or clear the placement from `/manage/students`
 - [ ] QR refresh 30 s
 - [ ] Cutover to Nuxt on `usc.syntaxure.dev` (tag `pre-nuxt` kept for rollback)
 
