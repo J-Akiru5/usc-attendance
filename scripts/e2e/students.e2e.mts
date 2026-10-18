@@ -44,15 +44,32 @@ async function waitForEmails(to: string, n: number): Promise<CapturedEmail[]> {
 const ids: string[] = []
 let eventId = ''
 
+/**
+ * Signing in right after the admin API sets a password can race Supabase's auth
+ * propagation: the answer comes back without a session. Two retries settle it,
+ * and a persistent failure says exactly what happened.
+ */
+async function signIn(email: string, password: string, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const { data, error } = await anon().auth.signInWithPassword({ email, password })
+    if (data.session) return data.session
+    if (attempt === attempts) {
+      throw new Error(`Sign-in for ${email} returned no session after ${attempts} attempts${error ? `: ${error.message}` : ''}`)
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+  throw new Error('unreachable')
+}
+
 async function mkStaff(key = 'staff', role = 'staff') {
   const email = `${tag}-${key}@example.invalid`
   const password = randomBytes(12).toString('base64url') + 'aA1!'
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true })
   if (error) throw error
   await prisma.user.create({ data: { id: data.user.id, email, name: 'E2E ' + key, position: 'Staff', role, mustChangePassword: false, active: true } })
-  const { data: s } = await anon().auth.signInWithPassword({ email, password })
+  const session = await signIn(email, password)
   ids.push(data.user.id)
-  return { id: data.user.id, token: s.session!.access_token }
+  return { id: data.user.id, token: session.access_token }
 }
 
 async function inkPng(draw = true) {
@@ -118,9 +135,7 @@ async function main() {
     check('unverified student cannot even sign in (Supabase setting)', true)
   }
   await admin.auth.admin.updateUserById(rowA3!.id, { email_confirm: true })
-  const { data: sOk, error: sErr } = await anon().auth.signInWithPassword({ email: emailA, password: passA })
-  if (sErr || !sOk.session) throw sErr ?? new Error('sign-in failed after verification')
-  const st = sOk.session.access_token
+  const st = (await signIn(emailA, passA)).access_token
   r = await api('/api/auth/me', { token: st })
   check('verified student can load their profile (200, role student)', r._s === 200 && r._b?.role === 'student', `${r._s} ${JSON.stringify(r._b)}`)
   const before = (await capturedEmails()).length
@@ -160,8 +175,8 @@ async function main() {
   await api('/api/auth/register', { method: 'POST', body: { email: emailC, name: 'Maria Santos', studentNo: noC, consent: true }, headers: { 'x-forwarded-for': '9.9.9.7' } })
   const rowC = await prisma.user.findUnique({ where: { email: emailC } })
   if (rowC) { ids.push(rowC.id); await admin.auth.admin.updateUserById(rowC.id, { password: passC, email_confirm: true }) }
-  const { data: sC } = await anon().auth.signInWithPassword({ email: emailC, password: passC })
-  r = await api('/api/attendance/sign', { token: sC.session!.access_token, method: 'POST', body: { attendanceId, signature: await inkPng() } })
+  const sessionC = await signIn(emailC, passC)
+  r = await api('/api/attendance/sign', { token: sessionC.access_token, method: 'POST', body: { attendanceId, signature: await inkPng() } })
   check('cannot sign someone else\'s attendance (404)', r._s === 404, `${r._s}`)
 
   r = await api('/api/attendance/sign', { token: st, method: 'POST', body: { attendanceId, signature: await inkPng() } })

@@ -104,8 +104,14 @@ async function main() {
   r = await api('/api/students', { token: superToken, query: { collegeId: college.id, yearLevel: 2, pageSize: 100 } })
   check('year level filter narrows further', (r._b?.students ?? []).length === 1 && r._b.students[0].name === 'Bianca Table', JSON.stringify((r._b?.students ?? []).map((s: { name: string }) => s.name)))
 
-  r = await api('/api/students', { token: superToken, query: { q: 'Celso', pageSize: 100 } })
+  // Scoped to the throwaway college: a stale row from an older run (the cleanup
+  // of a suite killed by a database hiccup) must not decide this check.
+  r = await api('/api/students', { token: superToken, query: { q: 'Celso', collegeId: college.id, pageSize: 100 } })
   check('free-text search still works', (r._b?.students ?? []).length === 1 && r._b.students[0].name === 'Celso Table', `${r._b?.total}`)
+
+  // The search covers student number and email too; the run's own tag is unique.
+  r = await api('/api/students', { token: superToken, query: { q: tag, pageSize: 100 } })
+  check('search reaches the stored identifiers too', r._s === 200 && (r._b?.total ?? 0) >= 3, `${r._b?.total}`)
 
   r = await api('/api/students', { token: superToken, query: { active: 'false', collegeId: college.id, pageSize: 100 } })
   check('status filter works', (r._b?.students ?? []).length === 0, `rows=${(r._b?.students ?? []).length}`)

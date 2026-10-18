@@ -17,6 +17,24 @@ export function getSupabaseClient(): SupabaseClient | null {
 
 const API_BASE = '/api'
 
+/**
+ * An API failure with its HTTP status attached. `status === 0` means the
+ * request never reached the server (the offline scanner queue relies on that
+ * distinction: 0 is retried later, anything else is a real refusal).
+ */
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+export function isOfflineError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 0
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const session = supabaseClient ? (await supabaseClient.auth.getSession()).data.session : null
 
@@ -29,14 +47,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers.Authorization = `Bearer ${session.access_token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers
+    })
+  } catch {
+    // DNS, no signal, server unreachable — the caller decides what to do.
+    throw new ApiError('You appear to be offline. This will be recorded when the connection is back.', 0)
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(body.error || `API error: ${res.status}`)
+    throw new ApiError(body.error || `API error: ${res.status}`, res.status)
   }
 
   return res.json()
