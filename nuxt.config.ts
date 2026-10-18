@@ -71,6 +71,7 @@ export default defineNuxtConfig({
       // Public site (frozen pages ported in P1b) — everything else requires a session.
       exclude: [
         '/login',
+        '/register',
         '/confirm',
         '/reset-password',
         '/',

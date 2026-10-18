@@ -534,11 +534,13 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `http`/`auth`/`resend` rewritten for H3 events; the pure modules moved unchanged; 92 unit tests green
 - [x] All API routes ported (same URLs); 113 live e2e checks green against Nuxt (2026-10-17: export 10, delegation 26, retention 36, students 41 via `npm run test:e2e`)
   - `api/` deleted; `vercel.json` `rewrites` removed (Nitro serves `/api/**` directly), `crons` kept; Vercel Cron Jobs tab still to be verified at cutover
-- [ ] All pages ported (public site + portal)
+- [x] All pages ported (public site + portal)
   - [x] Public site ported verbatim — 14 routes, public-parity gate **28/28** against https://usc.syntaxure.dev (2026-10-18, `feat/p1b-public-site`)
     - layout / components / composables / data + Tailwind v3 compat layer (`app/assets/css/main.css`); `v-motion` shim (no new dependency)
     - live quirk preserved deliberately: `.font-serif` renders Inter because the v3 build emitted an unquoted family name — restoring real serif type needs Jeff's approval first
-  - [ ] Portal pages (dashboard, events, check-in, QR, scan, duty, attendance, manage/*, register, change-password)
+  - [x] Portal pages ported (2026-10-18, `feat/p1c-portal-pages`): dashboard, manage/events (+ detail), check-in, qr, scan, duty, attendance, manage/{schedules,settings,students,users}, register, change-password
+    - the five Pinia stores became `useState`-backed composables with the same APIs (`app/stores/*`); router guards became `middleware/auth.global.ts`
+    - new dependencies (legacy parity, approved by Jeff): `clsx`, `tailwind-merge`, `idb`, `leaflet`, `html5-qrcode`
 - [ ] RBAC tables + migration of existing flags (VP = President capabilities)
 - [ ] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD
 - [ ] `useDataTable` with server filters, saved views, exports

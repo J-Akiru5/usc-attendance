@@ -54,6 +54,15 @@
 }
 
 /*
+ * Used by the portal's bottom navigation (BottomNav.vue): keeps its own
+ * padding clear of the iOS home indicator. Defined here so the Tailwind class
+ * lint can resolve it (it only reads this entry stylesheet).
+ */
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/*
  * Public-site freeze compatibility layer.
  *
  * The public pages are ported from the Tailwind v3 build as-is, so the handful
