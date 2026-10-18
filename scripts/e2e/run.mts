@@ -129,13 +129,17 @@ function startDevServer(env: NodeJS.ProcessEnv, port: number, onLog: (chunk: str
 
 /**
  * Ready only when Nitro is actually serving: the legacy 404 catcher must answer
- * JSON (Nuxt's boot page answers `text/html` with 503 "Starting Nuxt…") and a
- * real data route must answer its expected 401 — otherwise the first suite runs
- * against a half-started server.
+ * JSON *with* its message (Nuxt's boot page answers `text/html` with 503, and a
+ * compiling Nitro can answer a bare JSON 503) and a real data route must answer
+ * its expected 401 — otherwise the first suite runs against a half-started
+ * server. The window is generous because a cold `nuxt dev` on a busy machine has
+ * taken over four minutes here.
  */
 async function waitForServer(baseUrl: string, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs
+  const startedAt = Date.now()
+  const deadline = startedAt + timeoutMs
   let lastError = ''
+  let lastNote = 0
   while (Date.now() < deadline) {
     try {
       const catcher = await fetch(`${baseUrl}/api/e2e-readiness-probe`, { redirect: 'manual' })
@@ -151,6 +155,11 @@ async function waitForServer(baseUrl: string, timeoutMs: number): Promise<void> 
       }
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error)
+    }
+    const waited = Math.round((Date.now() - startedAt) / 1000)
+    if (waited - lastNote >= 30) {
+      lastNote = waited
+      console.log(`[e2e] still waiting for the dev server (${waited}s): ${lastError}`)
     }
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
@@ -210,13 +219,13 @@ async function main(): Promise<void> {
 
   let exitCode = 1
   try {
-    // Cold `nuxt dev` boots on a busy machine have taken 100+ seconds here, so
-    // the readiness window is generous — it still only passes once Nitro (not
-    // Nuxt's boot page) answers.
-    await waitForServer(baseUrl, 300000)
+    // Cold `nuxt dev` boots on a busy machine have taken over four minutes here,
+    // and the first API request may itself trigger a slow compile — the window
+    // only ever passes once Nitro (not Nuxt's boot page) answers.
+    await waitForServer(baseUrl, 600000)
     console.log('[e2e] dev server ready')
 
-    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
+    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)

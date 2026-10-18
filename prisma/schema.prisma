@@ -120,13 +120,38 @@ model Event {
   radiusMeters Int      @default(50)
   checkInOpensAt  DateTime? // null = no limit
   checkInClosesAt DateTime? // null = no limit
+  /// Calendar grouping (plan §8.2); colour comes from the category.
+  categoryId           String?
+  /// Seat limit for attendance/registration; null = unlimited.
+  capacity             Int?
+  /// True when students are expected to register ahead of the event.
+  registrationRequired Boolean @default(false)
   createdBy    String
   creator      User     @relation("EventCreator", fields: [createdBy], references: [id])
+  category     EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   attendance   Attendance[]
   delegates    EventDelegate[]
   createdAt    DateTime @default(now())
 
+  @@index([categoryId])
   @@map("events")
+}
+
+/// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,
+/// Seminar, …. Editable by settings managers; archived rather than deleted
+/// while events still reference them.
+model EventCategory {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  color     String   @default("#C9A24B")
+  sortOrder Int      @default(0)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  events Event[]
+
+  @@map("event_categories")
 }
 
 model Attendance {
