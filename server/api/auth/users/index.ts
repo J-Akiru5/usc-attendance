@@ -14,7 +14,17 @@ export const usersHandler = defineApiHandler(async (event) => {
 
     const allUsers = await prisma.user.findMany({
       where: { active: true },
-      select: { id: true, email: true, name: true, position: true, role: true, canManageContent: true, canDelegate: true, canConfigure: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        position: true,
+        role: true,
+        canManageContent: true,
+        canDelegate: true,
+        canConfigure: true,
+        roles: { select: { role: { select: { key: true } } } }
+      },
       orderBy: { name: 'asc' }
     })
 

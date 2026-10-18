@@ -1,4 +1,5 @@
 import { HttpError, badRequest } from './http'
+import { requireCapability } from './rbac'
 
 export interface SemesterLike {
   id?: string
@@ -16,13 +17,9 @@ export function canManageSettings(u: { role: string, canDelegate?: boolean, canC
   return u.role === 'super_admin' || u.canDelegate === true || u.canConfigure === true
 }
 
-export function requireSettingsManager(u: { role: string, canDelegate?: boolean, canConfigure?: boolean }): void {
-  if (!canManageSettings(u)) {
-    throw new HttpError(
-      403,
-      'Access denied. Only the admin, officer in charge, President, Secretary or adviser can change these settings.'
-    )
-  }
+/** Settings managers: the super admin, or anyone holding `settings.manage`. */
+export function requireSettingsManager(u: { capabilities?: readonly string[] }): void {
+  requireCapability(u, 'settings.manage')
 }
 
 export function parseRetention(body: unknown): { signatureRetentionSemesters: number, purgeGraceDays: number } {

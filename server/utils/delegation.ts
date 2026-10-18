@@ -1,4 +1,5 @@
 import { HttpError, badRequest } from './http'
+import { requireCapability } from './rbac'
 import { isStaff, type Actor } from './attendance-rules'
 import { manilaDayRange } from './time'
 
@@ -77,10 +78,9 @@ export function computeExpiry(eventDate: Date, requested: unknown, now: Date = n
 }
 
 /** Only officers flagged canDelegate (President/Secretary) may grant or revoke. */
-export function requireCanDelegate(actor: { canDelegate?: boolean }): void {
-  if (actor.canDelegate !== true) {
-    throw new HttpError(403, 'Access denied. Only the President or Secretary can manage event access.')
-  }
+/** Only holders of `delegation.grant` (President/Secretary, or super admin) may manage event access. */
+export function requireCanDelegate(actor: { capabilities?: readonly string[] }): void {
+  requireCapability(actor, 'delegation.grant')
 }
 
 export function isGrantActive(grant: Pick<GrantLike, 'expiresAt' | 'revokedAt'>, now: Date = new Date()): boolean {

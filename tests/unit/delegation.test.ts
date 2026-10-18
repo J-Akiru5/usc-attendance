@@ -106,9 +106,10 @@ describe('computeExpiry', () => {
 })
 
 describe('requireCanDelegate', () => {
-  it('allows only canDelegate === true', () => {
-    expect(() => requireCanDelegate({ canDelegate: true })).not.toThrow()
-    expectHttp(() => requireCanDelegate({ canDelegate: false }), 403)
+  it('allows only holders of delegation.grant', () => {
+    expect(() => requireCanDelegate({ capabilities: ['delegation.grant'] })).not.toThrow()
+    expect(() => requireCanDelegate({ capabilities: ['admin.all'] })).not.toThrow()
+    expectHttp(() => requireCanDelegate({ capabilities: ['staff.access'] }), 403)
     expectHttp(() => requireCanDelegate({}), 403)
   })
 })

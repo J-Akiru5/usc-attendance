@@ -35,8 +35,50 @@ model User {
   grantedDelegations EventDelegate[] @relation("DelegateGranter")
   revokedDelegations EventDelegate[] @relation("DelegateRevoker")
   studentProfile     StudentProfile?
+  roles              UserRole[]
 
   @@map("users")
+}
+
+/// Capability-based RBAC (plan §7.2). `roles` are bundles of capabilities;
+/// `user_roles` assigns them. The legacy `role`/`can*` columns stay in sync
+/// (they are what the still-live Vite app reads) until the cutover.
+model Role {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  name         String
+  system       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  capabilities RoleCapability[]
+  users        UserRole[]
+
+  @@map("roles")
+}
+
+model RoleCapability {
+  roleId     String
+  capability String
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, capability])
+  @@index([capability])
+  @@map("role_capabilities")
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
 }
 
 model Event {

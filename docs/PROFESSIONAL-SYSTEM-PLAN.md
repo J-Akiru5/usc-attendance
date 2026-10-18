@@ -541,7 +541,10 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - [x] Portal pages ported (2026-10-18, `feat/p1c-portal-pages`): dashboard, manage/events (+ detail), check-in, qr, scan, duty, attendance, manage/{schedules,settings,students,users}, register, change-password
     - the five Pinia stores became `useState`-backed composables with the same APIs (`app/stores/*`); router guards became `middleware/auth.global.ts`
     - new dependencies (legacy parity, approved by Jeff): `clsx`, `tailwind-merge`, `idb`, `leaflet`, `html5-qrcode`
-- [ ] RBAC tables + migration of existing flags (VP = President capabilities)
+- [x] RBAC tables + migration of existing flags (VP = President capabilities) (2026-10-18, `feat/p1f-rbac`)
+  - migration `20261018140000_add_rbac`: `roles`, `role_capabilities`, `user_roles` + the seven system roles; every existing account was backfilled from its `role` + flags (17/17), so nothing changed for them
+  - `authenticate()` now carries `capabilities` (roles ∪ legacy flags); the guard helpers (`requireStaff`, `requireSuperAdmin`, `requireSettingsManager`, `requireContentAccess`, `requireCanDelegate`) are capability checks with identical behaviour
+  - the legacy `can*` columns stay mirrored whenever roles change, so the Vite app that is still live reads the same truth until cutover
 - [x] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD (2026-10-18, `feat/p1e-academic-and-profile`)
   - additive migration `20261018120000_add_academic_reference_data` (colleges/programs/sections + profile FKs); `npm run db:seed-academic` seeds CICI · CoAg · CBMSD · CoEd
   - `GET /api/reference/academic` (public, feeds registration) + manager-only CRUD on `/api/reference/{colleges,programs,sections}` (archive instead of delete while referenced, audited)
