@@ -37,6 +37,7 @@ model User {
   studentProfile     StudentProfile?
   roles              UserRole[]
   savedViews         SavedView[]
+  registrations      EventRegistration[]
 
   @@map("users")
 }
@@ -131,10 +132,32 @@ model Event {
   category     EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   attendance   Attendance[]
   delegates    EventDelegate[]
+  registrations EventRegistration[]
   createdAt    DateTime @default(now())
 
   @@index([categoryId])
   @@map("events")
+}
+
+/// Who is coming to an event (plan §8.2): a seat, or a place in the queue.
+/// Cancelling keeps the row so re-registering reuses it and the history stays
+/// readable.
+model EventRegistration {
+  id         String   @id @default(uuid())
+  eventId    String
+  userId     String
+  status     String   // "registered" | "waitlisted" | "cancelled"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  promotedAt DateTime?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+  @@index([userId])
+  @@map("event_registrations")
 }
 
 /// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,

@@ -567,7 +567,11 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - portal calendar at `/manage/calendar` (month / week / list, coloured by category, click-through to the event); category management card in Settings; the event form takes a category, capacity and the registration flag
   - the frozen public `/events` page is untouched — the calendar lives in the portal
 - [ ] Recurring events
-- [ ] Registration, capacity, waitlist
+- [x] Registration, capacity, waitlist (2026-10-18, `feat/p2b-registrations`)
+  - additive migration `20261019020000_add_event_registrations`: one row per person per event (`registered` · `waitlisted` · `cancelled`, `promotedAt`), kept after cancelling so re-registering reuses it; seats are per event `capacity` (null = unlimited)
+  - `/api/events/:id/registration` (self: read your stand, join — a seat or the queue — or give it up), `/api/events/:id/registrations` (the roster: staff or a `view_roster` grant), `/api/registrations/mine`; every move audited
+  - first-come-first-served queue: cancelling a seat promotes the longest waiter, leaving the queue promotes nobody, and rejoining always takes the back of the queue (the promotion rules live in `server/utils/registrations.ts`, unit-tested with an injected store)
+  - student dashboard shows Register / Cancel and the waitlist position on events that require registration (the QR flow is untouched); the staff event page gained a registrations panel with seats, queue and promotion marks
 - [ ] Student-ID barcode scanning
 - [ ] Offline scanner queue
 
