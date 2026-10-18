@@ -1,11 +1,27 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { api } from '@/lib/api'
 import Button from '@/components/ui/Button.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+// The bell (plan §8.4): the inbox count, refreshed whenever the page changes.
+const unread = ref(0)
+async function loadUnread() {
+  if (!auth.isAuthenticated) return
+  try {
+    const data = await api.get<{ unread: number }>('/notifications?limit=1')
+    unread.value = data.unread
+  } catch {
+    unread.value = 0
+  }
+}
+onMounted(loadUnread)
+watch(() => route.fullPath, loadUnread)
 
 const dropdownOpen = ref(false)
 const settingsOpen = ref(false)
@@ -68,6 +84,30 @@ async function saveSettings() {
 
     <!-- Right Profile / Dropdown Action -->
     <div class="flex items-center gap-3 relative">
+      <!-- Notifications (plan §8.4) -->
+      <NuxtLink
+        to="/notifications"
+        class="relative rounded-lg p-2 text-navy hover:bg-paper transition-all"
+        :aria-label="unread > 0 ? `${unread} unread notifications` : 'Notifications'"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          class="w-5 h-5"
+        >
+          <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 5 1.5 5H4.5S6 12 6 8Z" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M10 19a2 2 0 0 0 4 0" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span
+          v-if="unread > 0"
+          class="absolute -top-0.5 -right-0.5 min-w-[1.1rem] rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white"
+        >
+          {{ unread > 9 ? '9+' : unread }}
+        </span>
+      </NuxtLink>
+
       <!-- Clickable Profile Trigger -->
       <button
         class="flex items-center gap-3 text-left hover:opacity-80 transition-all p-1.5 rounded-lg hover:bg-paper focus:outline-none"

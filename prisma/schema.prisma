@@ -38,6 +38,9 @@ model User {
   roles              UserRole[]
   savedViews         SavedView[]
   registrations      EventRegistration[]
+  notifications      Notification[]      @relation("NotificationUser")
+  createdNotifications Notification[]    @relation("NotificationCreator")
+  notificationPreference NotificationPreference? @relation("NotificationPreference")
 
   @@map("users")
 }
@@ -160,8 +163,7 @@ model Event {
   @@map("events")
 }
 
-/// Who is coming to an event (plan §8.2): a seat, or a place in the queue.
-/// Cancelling keeps the row so re-registering reuses it and the history stays
+/// Who is coming to an event (plan §8.2): a seat, or a place in the queue./// Cancelling keeps the row so re-registering reuses it and the history stays
 /// readable.
 model EventRegistration {
   id         String   @id @default(uuid())
@@ -179,6 +181,46 @@ model EventRegistration {
   @@index([eventId, status])
   @@index([userId])
   @@map("event_registrations")
+}
+
+/// In-app notifications (plan §8.4). `dedupeKey` makes the reminder cron safe to
+/// re-run: the unique (userId, dedupeKey) index refuses a second row for the
+/// same event and window (NULL keys are distinct, so one-offs are unaffected).
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  kind      String
+  title     String
+  body      String
+  link      String?
+  dedupeKey String?
+  /// How it was delivered: "inApp" | "email" | "push". The inbox shows rows that
+  /// carry "inApp"; every row is kept so the cron can tell what it already sent.
+  channels  String[]
+  readAt    DateTime?
+  createdBy String?
+  createdAt DateTime  @default(now())
+
+  user    User  @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  creator User? @relation("NotificationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+/// Per-user channel choices. A missing row means the defaults (in-app and email
+/// on, push off until the PWA channel lands).
+model NotificationPreference {
+  userId    String   @id
+  inApp     Boolean  @default(true)
+  email     Boolean  @default(true)
+  push      Boolean  @default(false)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation("NotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
 
 /// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,
