@@ -205,19 +205,61 @@ async function waitForServer(baseUrl: string, timeoutMs: number): Promise<void> 
   throw new Error(`Dev server did not become ready at ${baseUrl} (${lastError})`)
 }
 
-function runSuite(file: string, env: NodeJS.ProcessEnv): Promise<number> {
+function runSuite(file: string, env: NodeJS.ProcessEnv): Promise<{ code: number, output: string }> {
   return new Promise((resolve) => {
     const child = spawn('npx.cmd', ['tsx', path.join('scripts', 'e2e', file)], {
       cwd: rootDir,
       env,
-      stdio: 'inherit',
+      // Piped so a failure can be inspected, echoed so the log stays readable.
+      stdio: ['inherit', 'pipe', 'pipe'],
       shell: process.platform === 'win32'
     })
+
+    let output = ''
+    child.stdout?.on('data', (chunk: Buffer) => {
+      output += chunk.toString()
+      process.stdout.write(chunk)
+    })
+    child.stderr?.on('data', (chunk: Buffer) => {
+      output += chunk.toString()
+      process.stderr.write(chunk)
+    })
+
     child.on('close', (code) => {
       killTree(child)
-      resolve(code ?? 1)
+      resolve({ code: code ?? 1, output })
     })
   })
+}
+
+/**
+ * Supabase has short turns where its pooler accepts connections but never
+ * answers, and its auth API flakes the same way; a suite then dies partway with
+ * 401s and Prisma connection errors through no fault of the code. Those runs are
+ * retried (in the loop below) — anything else is a real failure, never retried.
+ */
+const INFRASTRUCTURE_FLAKES = [
+  /Can't reach database server/i,
+  /PrismaClientInitializationError/i,
+  /PrismaClientKnownRequestError/i,
+  /P1001|P1002|P1017|P2024/,
+  /Timed out fetching a new connection/i,
+  /AuthRetryableFetchError/i,
+  /EAI_AGAIN/
+]
+
+function isInfrastructureFlake(output: string): boolean {
+  return INFRASTRUCTURE_FLAKES.some(pattern => pattern.test(output))
+}
+
+/**
+ * Fresh Node processes per suite each open a Prisma pool; against a shared pooler
+ * that adds up. A small limit is plenty for tests and keeps the footprint flat.
+ */
+function withConnectionLimit(url: string | undefined, limit: number): string | undefined {
+  if (!url) return url
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}connection_limit=${limit}`
 }
 
 async function main(): Promise<void> {
@@ -237,7 +279,9 @@ async function main(): Promise<void> {
     QR_SECRET: process.env.QR_SECRET ?? randomBytes(32).toString('hex'),
     CRON_SECRET: process.env.CRON_SECRET ?? randomBytes(32).toString('hex'),
     EMAIL_CAPTURE_URL: captureUrl,
-    RESEND_BASE_URL: captureUrl
+    RESEND_BASE_URL: captureUrl,
+    // Many fresh Node clients share one pooler; keep each pool small.
+    ...(process.env.DATABASE_URL && { DATABASE_URL: withConnectionLimit(process.env.DATABASE_URL, 5) })
   }
 
   console.log(`[e2e] email capture on ${captureUrl} (POST /emails, GET /emails)`)
@@ -269,7 +313,27 @@ async function main(): Promise<void> {
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)
-      const code = await runSuite(suite, env)
+
+      // A database hiccup usually shows up as a 500 from the dev server, so the
+      // server's own log for this window is part of the flake check.
+      let logMark = devLog.length
+      const first = await runSuite(suite, env)
+      let code = first.code
+      let output = first.output + devLog.slice(logMark)
+
+      // Up to three attempts: a Supabase hiccup can outlast a single 30s pause.
+      let attempt = 1
+      while (code !== 0 && attempt < 3 && isInfrastructureFlake(output)) {
+        const pause = 30_000 * attempt
+        console.warn(`\n[e2e] ${suite} was cut short by a Supabase hiccup, not by the code — retry ${attempt} in ${pause / 1000}s`)
+        await new Promise(resolve => setTimeout(resolve, pause))
+        logMark = devLog.length
+        const retried = await runSuite(suite, env)
+        code = retried.code
+        output = retried.output + devLog.slice(logMark)
+        attempt++
+      }
+
       if (code !== 0) {
         failures.push(`${suite} (exit ${code})`)
       }
