@@ -545,7 +545,9 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] Academic reference data (colleges seeded, programs, year levels, sections) with admin CRUD
 - [ ] `useDataTable` with server filters, saved views, exports
 - [ ] Student profile: college / program / year / section
-- [ ] QR refresh 30 s
+- [x] QR refresh 30 s (2026-10-18, `feat/p1d-qr-30s`)
+  - server token TTL 60 s → 30 s (`server/utils/qr.ts`), portal QR page refreshes every 25 s and counts down from the token's own `exp`
+  - the frozen public copy on `/portal/features` + `/portal/security` still says "60 seconds" — correcting it is a public-site change needing Jeff's approval (parity gate freezes it)
 - [ ] Cutover to Nuxt on `usc.syntaxure.dev` (tag `pre-nuxt` kept for rollback)
 
 ### P2 Events
