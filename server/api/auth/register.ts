@@ -5,6 +5,7 @@ import { resend } from '../../utils/resend'
 import { supabaseAdmin } from '../../utils/supabase'
 import { siteUrl } from '../../utils/site'
 import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../../utils/students'
+import { parsePlacement, resolvePlacement } from '../../utils/academic'
 import { defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
 
 const GENERIC
@@ -39,7 +40,12 @@ export default defineApiHandler(async (event) => {
     throw new HttpError(429, 'Too many sign-up attempts. Please wait a few minutes and try again.')
   }
 
-  const input = parseRegistration(await readJsonBody(event))
+  const body = await readJsonBody(event)
+  const input = parseRegistration(body)
+  // Academic placement (optional): validated against the reference data. The
+  // legacy free-text `program` column is still filled in — with the program's
+  // official name when a placement was chosen — so older screens keep working.
+  const placement = await resolvePlacement(prisma, parsePlacement(body ?? {}))
 
   const emailKey = `|em=${input.email}|`
   if (await overLimit(prisma, 'student_register_attempt', emailKey, 3, ONE_HOUR)) {
@@ -93,7 +99,16 @@ export default defineApiHandler(async (event) => {
         role: STUDENT_ROLE,
         mustChangePassword: false,
         active: true,
-        studentProfile: { create: { studentNo: input.studentNo, program: input.program } }
+        studentProfile: {
+          create: {
+            studentNo: input.studentNo,
+            program: placement?.programName ?? input.program,
+            collegeId: placement?.collegeId ?? null,
+            programId: placement?.programId ?? null,
+            yearLevel: placement?.yearLevel ?? null,
+            sectionId: placement?.sectionId ?? null
+          }
+        }
       }
     })
   } catch (err) {
