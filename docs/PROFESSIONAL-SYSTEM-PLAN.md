@@ -599,7 +599,13 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `/api/settings/email-quota` (settings managers) + a card in `/manage/settings` showing sent / left today
 
 ### P3 Analytics & communications
-- [ ] Dashboards + Student 360
+- [x] Dashboards + Student 360 (2026-10-18, `feat/p3a-analytics`)
+  - `server/utils/analytics.ts` holds all the maths (rates, distinct-attendee counts, no-show lists, the Manila-hour check-in histogram, per-college/year/section grouping, top/bottom ranking, method mix, signature rate) with 12 unit tests; the routes are thin readers over `server/utils/analytics-data.ts`
+  - endpoints: `/api/analytics/overview` (event or semester), `/events` (the per-event table), `/breakdown` (by college / year / section), `/timing` (histogram + peak hour), `/students` (busy bees, and `order=bottom` **is** the no-show list), `/students/:id` (**Student 360**: profile, summary, full history, with signatures) — plus `GET /api/reference/semesters` for pickers (the legacy `/api/semesters` stays POST-only)
+  - permissions: dashboards are staff-only; a `view_roster` delegate sees **their event's** overview and timing but never the semester; Student 360 is staff **or the student themselves**
+  - UI: `/manage/analytics` (headline cards, a 24-bar timing histogram, group bars by college/year/section, the per-event table, most-present and never-present lists — hand-rolled bars, no new dependency), `/manage/students/:id` for Student 360, and the student's own attendance summary on their dashboard
+  - **acceptance (§8.3)**: the live suite reconciles the dashboard's numbers with the raw CSV export row for row (attended, expected, rate, and exactly which students the export names)
+  - "Expected" is defined once, in `expectedForEvent`: registrants for events that take registrations, otherwise every active student — the single place to change when §8.2's audience targeting lands
 - [ ] Official report templates
 - [ ] Announcements (in-app, email, push) + reminders + preferences
 
