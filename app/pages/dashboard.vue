@@ -8,6 +8,7 @@ import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
 import Badge from '@/components/ui/Badge.vue'
 import MyEventAccess from '@/components/MyEventAccess.vue'
+import { api } from '@/lib/api'
 import type { USCEvent } from '@/types'
 
 definePageMeta({ layout: 'dashboard', requiresAuth: true })
@@ -18,6 +19,58 @@ const dutyStore = useDutyStore()
 const router = useRouter()
 const todayEvents = ref<USCEvent[]>([])
 
+// Registration state for the signed-in person (plan §8.2): event id → status.
+interface MyRegistration { status: 'registered' | 'waitlisted', position?: number | null, eventTitle?: string }
+const myRegistrations = ref<Record<string, MyRegistration>>({})
+const registrationBusy = ref('')
+const registrationError = ref('')
+
+function portalField<T>(event: USCEvent, key: string): T | undefined {
+  return (event as unknown as Record<string, T | undefined>)[key]
+}
+
+async function loadRegistrations() {
+  try {
+    const rows = await api.get<Array<{ status: string, event: { id: string } }>>('/registrations/mine')
+    const map: Record<string, MyRegistration> = {}
+    for (const row of rows) {
+      map[row.event.id] = { status: row.status as MyRegistration['status'] }
+    }
+    myRegistrations.value = map
+  } catch {
+    myRegistrations.value = {}
+  }
+}
+
+async function toggleRegistration(event: USCEvent) {
+  registrationError.value = ''
+  registrationBusy.value = event.id
+  try {
+    const mine = myRegistrations.value[event.id]
+    if (mine) {
+      await api.delete(`/events/${event.id}/registration`)
+    } else {
+      const res = await api.post<{ status: string, position: number | null }>(`/events/${event.id}/registration`, {})
+      if (res.status === 'waitlisted') {
+        // Position is shown next to the badge; store it for this render.
+        myRegistrations.value = { ...myRegistrations.value, [event.id]: { status: 'waitlisted', position: res.position } }
+      }
+    }
+    await loadRegistrations()
+  } catch (err: unknown) {
+    registrationError.value = err instanceof Error ? err.message : 'Could not update your registration'
+  } finally {
+    registrationBusy.value = ''
+  }
+}
+
+function registrationLabel(event: USCEvent): string {
+  const mine = myRegistrations.value[event.id]
+  if (!mine) return 'Register'
+  if (mine.status === 'waitlisted') return mine.position ? `Waitlisted — #${mine.position}` : 'Waitlisted'
+  return 'Registered'
+}
+
 onMounted(async () => {
   await Promise.all([
     events.fetchEvents(),
@@ -25,6 +78,7 @@ onMounted(async () => {
   ])
   const today = new Date().toISOString().split('T')[0] ?? ''
   todayEvents.value = events.events.filter(e => e.date.startsWith(today))
+  if (auth.isStudent) await loadRegistrations()
 })
 
 function getGreeting() {
@@ -73,12 +127,14 @@ function formatTime(dateStr: string) {
       <div v-if="events.events.length === 0" class="text-sm text-slate bg-paper-panel rounded-xl border border-line p-6 text-center">
         No events yet
       </div>
+      <div v-if="registrationError" class="rounded-lg border border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+        {{ registrationError }}
+      </div>
       <div v-else class="space-y-3">
         <Card
           v-for="event in events.events.slice(0, 8)"
           :key="event.id"
-          class="cursor-pointer hover:shadow-md transition-shadow"
-          @click="router.push({ path: '/qr', query: { eventId: event.id } })"
+          class="hover:shadow-md transition-shadow"
         >
           <CardContent class="p-4 flex items-center justify-between gap-3">
             <div class="min-w-0">
@@ -89,7 +145,24 @@ function formatTime(dateStr: string) {
                 {{ new Date(event.date).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }) }}
               </div>
             </div>
-            <Badge variant="success">
+            <div v-if="portalField<boolean>(event, 'registrationRequired')" class="flex items-center gap-2 shrink-0">
+              <Badge :variant="myRegistrations[event.id] ? (myRegistrations[event.id]!.status === 'registered' ? 'success' : 'warning') : 'default'">
+                {{ registrationLabel(event) }}
+              </Badge>
+              <button
+                class="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-navy hover:bg-paper disabled:opacity-50"
+                :disabled="registrationBusy === event.id"
+                @click="toggleRegistration(event)"
+              >
+                {{ myRegistrations[event.id] ? 'Cancel' : 'Register' }}
+              </button>
+            </div>
+            <Badge
+              v-else
+              variant="success"
+              class="cursor-pointer"
+              @click="router.push({ path: '/qr', query: { eventId: event.id } })"
+            >
               Show my QR
             </Badge>
           </CardContent>

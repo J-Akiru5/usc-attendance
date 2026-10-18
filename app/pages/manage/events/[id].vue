@@ -11,6 +11,7 @@ import { downloadAttendance, type ExportFormat } from '@/lib/download'
 import EventAccessPanel from '@/components/EventAccessPanel.vue'
 import CheckInWindowPanel from '@/components/CheckInWindowPanel.vue'
 import { useAuthStore } from '@/stores/auth'
+import { api } from '@/lib/api'
 
 definePageMeta({ layout: 'dashboard', requiresAuth: true, roles: ['super_admin', 'staff'] })
 
@@ -21,9 +22,36 @@ const auth = useAuthStore()
 
 const eventId = computed(() => route.params.id as string)
 
+// Who is coming (plan §8.2): seats, queue and the list behind them.
+interface RegistrationRow {
+  id: string
+  status: string
+  createdAt: string
+  promotedAt: string | null
+  user: { id: string, name: string, email: string, studentProfile: { studentNo: string, yearLevel: number | null } | null }
+}
+interface Registrations {
+  capacity: number | null
+  registered: number
+  waitlisted: number
+  seatsLeft: number | null
+  registrations: RegistrationRow[]
+}
+const registrations = ref<Registrations | null>(null)
+const registrationsError = ref('')
+
+async function loadRegistrations() {
+  try {
+    registrations.value = await api.get<Registrations>(`/events/${eventId.value}/registrations`)
+  } catch (err: unknown) {
+    registrationsError.value = err instanceof Error ? err.message : 'Could not load registrations'
+  }
+}
+
 onMounted(() => {
   events.fetchEvent(eventId.value)
   events.fetchAttendance(eventId.value)
+  void loadRegistrations()
 })
 
 function formatDate(dateStr: string) {
@@ -158,6 +186,53 @@ function methodBadgeVariant(method: string) {
         :event-id="eventId"
         :can-grant="!!auth.user?.canDelegate"
       />
+
+      <!-- Registrations (plan §8.2) -->
+      <Card>
+        <CardContent class="p-6 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold text-navy">
+              Registrations
+            </div>
+            <div v-if="registrations" class="text-xs text-slate">
+              <span class="font-mono">{{ registrations.registered }}</span> registered ·
+              <span class="font-mono">{{ registrations.waitlisted }}</span> waitlisted ·
+              <span v-if="registrations.capacity !== null">
+                capacity <span class="font-mono">{{ registrations.capacity }}</span>
+              </span>
+              <span v-else>no capacity limit</span>
+            </div>
+          </div>
+
+          <div v-if="registrationsError" class="text-sm text-danger">
+            {{ registrationsError }}
+          </div>
+          <div v-else-if="!registrations" class="text-sm text-slate">
+            Loading…
+          </div>
+          <div v-else-if="registrations.registrations.length === 0" class="text-sm text-slate">
+            Nobody has registered yet.
+          </div>
+          <ul v-else class="divide-y divide-line text-sm">
+            <li
+              v-for="row in registrations.registrations"
+              :key="row.id"
+              class="flex items-center justify-between gap-3 py-2"
+            >
+              <span class="min-w-0">
+                <span class="font-medium text-navy">{{ row.user.name }}</span>
+                <span v-if="row.user.studentProfile" class="ml-2 font-mono text-xs text-slate">{{ row.user.studentProfile.studentNo }}</span>
+              </span>
+              <span class="flex items-center gap-2">
+                <Badge :variant="row.status === 'registered' ? 'success' : 'warning'">
+                  {{ row.status === 'registered' ? 'Seat' : 'Waitlist' }}
+                </Badge>
+                <span v-if="row.promotedAt" class="text-[10px] text-slate">promoted</span>
+              </span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
 
       <!-- Attendance Summary -->
       <Card>
