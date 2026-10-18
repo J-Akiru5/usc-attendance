@@ -210,10 +210,13 @@ async function main(): Promise<void> {
 
   let exitCode = 1
   try {
-    await waitForServer(baseUrl, 120000)
+    // Cold `nuxt dev` boots on a busy machine have taken 100+ seconds here, so
+    // the readiness window is generous — it still only passes once Nitro (not
+    // Nuxt's boot page) answers.
+    await waitForServer(baseUrl, 300000)
     console.log('[e2e] dev server ready')
 
-    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
+    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)
@@ -226,7 +229,8 @@ async function main(): Promise<void> {
       console.error(`\n[e2e] FAILED: ${failures.join(', ')}`)
       exitCode = 1
     } else {
-      console.log('\n[e2e] all suites passed (113 checks)')
+      // Each suite prints its own totals; the aggregate lives in the phase report.
+      console.log('\n[e2e] all suites passed')
       exitCode = 0
     }
   } catch (error) {
