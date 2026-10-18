@@ -25,6 +25,20 @@ const myRegistrations = ref<Record<string, MyRegistration>>({})
 const registrationBusy = ref('')
 const registrationError = ref('')
 
+// A student's own standing (plan §8.3: the same summary the staff view shows).
+interface MyAttendance { events: number, attended: number, rate: number, signatures: { signed: number, rate: number } }
+const myAttendance = ref<MyAttendance | null>(null)
+
+async function loadMyAttendance() {
+  if (!auth.user?.id) return
+  try {
+    const data = await api.get<{ summary: MyAttendance }>(`/analytics/students/${auth.user.id}`)
+    myAttendance.value = data.summary
+  } catch {
+    myAttendance.value = null
+  }
+}
+
 function portalField<T>(event: USCEvent, key: string): T | undefined {
   return (event as unknown as Record<string, T | undefined>)[key]
 }
@@ -78,7 +92,9 @@ onMounted(async () => {
   ])
   const today = new Date().toISOString().split('T')[0] ?? ''
   todayEvents.value = events.events.filter(e => e.date.startsWith(today))
-  if (auth.isStudent) await loadRegistrations()
+  if (auth.isStudent) {
+    await Promise.all([loadRegistrations(), loadMyAttendance()])
+  }
 })
 
 function getGreeting() {
@@ -121,6 +137,22 @@ function formatTime(dateStr: string) {
         An officer records your attendance by scanning your QR code at the venue. Pick the event below to show it,
         then sign on your phone when asked.
       </div>
+
+      <Card v-if="myAttendance">
+        <CardContent class="p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs uppercase tracking-wide text-slate">
+              My attendance
+            </div>
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+              <span class="text-slate">Attended <span class="font-mono font-semibold text-navy">{{ myAttendance.attended }}</span> of {{ myAttendance.events }}</span>
+              <span class="text-slate">Rate <span class="font-mono font-semibold text-navy">{{ Math.round(myAttendance.rate * 100) }}%</span></span>
+              <span class="text-slate">Signed <span class="font-mono font-semibold text-navy">{{ Math.round(myAttendance.signatures.rate * 100) }}%</span></span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <h2 class="text-lg font-semibold text-navy font-serif">
         Events
       </h2>
