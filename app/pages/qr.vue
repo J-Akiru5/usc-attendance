@@ -14,7 +14,7 @@ const events = useEventStore()
 const eventId = ref(route.query.eventId as string)
 const token = ref<string | null>(null)
 const error = ref<string | null>(null)
-const timeLeft = ref(60)
+const timeLeft = ref(30)
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 let countdownInterval: ReturnType<typeof setInterval> | null = null
 
@@ -26,7 +26,9 @@ async function refreshQR() {
     })
     token.value = res.token
     error.value = null
-    timeLeft.value = 60
+    // Count down from the token's own expiry (server-clock authority) rather
+    // than a hard-coded window, so the display can never disagree with it.
+    timeLeft.value = Math.max(0, res.exp - Math.floor(Date.now() / 1000))
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Could not generate QR token'
   }
@@ -38,7 +40,7 @@ onMounted(async () => {
   }
   if (auth.user && eventId.value) {
     refreshQR()
-    refreshInterval = setInterval(refreshQR, 45000) // refresh every 45s
+    refreshInterval = setInterval(refreshQR, 25000) // refresh every 25s, ahead of the 30s expiry
     countdownInterval = setInterval(() => {
       if (timeLeft.value > 0) timeLeft.value--
     }, 1000)
@@ -55,7 +57,7 @@ function selectEvent(id: string) {
   if (refreshInterval) clearInterval(refreshInterval)
   if (countdownInterval) clearInterval(countdownInterval)
   refreshQR()
-  refreshInterval = setInterval(refreshQR, 45000)
+  refreshInterval = setInterval(refreshQR, 25000) // refresh every 25s, ahead of the 30s expiry
   countdownInterval = setInterval(() => {
     if (timeLeft.value > 0) timeLeft.value--
   }, 1000)
@@ -145,7 +147,7 @@ function copyToken() {
         <div class="w-full h-1.5 bg-line rounded-full overflow-hidden mb-3">
           <div
             class="h-full bg-gold rounded-full transition-all duration-1000"
-            :style="{ width: `${(timeLeft / 60) * 100}%` }"
+            :style="{ width: `${(timeLeft / 30) * 100}%` }"
           />
         </div>
 

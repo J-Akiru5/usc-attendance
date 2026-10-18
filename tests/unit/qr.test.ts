@@ -20,6 +20,12 @@ function expectHttpError(fn: () => unknown, status: number, messagePart?: string
 }
 
 describe('issueQrToken / verifyQrToken', () => {
+  it('issues tokens with a 30 second window', () => {
+    const now = Math.floor(Date.now() / 1000)
+    const { exp } = issueQrToken('user-1', 'event-1', now)
+    expect(exp - now).toBe(30)
+  })
+
   it('round-trips a fresh token', () => {
     const { token, exp } = issueQrToken('user-1', 'event-1')
     expect(exp).toBeGreaterThan(Math.floor(Date.now() / 1000))

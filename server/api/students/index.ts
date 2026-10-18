@@ -12,7 +12,17 @@ const select = {
   email: true,
   active: true,
   createdAt: true,
-  studentProfile: { select: { studentNo: true, program: true } }
+  studentProfile: {
+    select: {
+      studentNo: true,
+      program: true,
+      yearLevel: true,
+      contactNumber: true,
+      college: { select: { id: true, code: true, name: true } },
+      programRef: { select: { id: true, code: true, name: true } },
+      section: { select: { id: true, name: true, yearLevel: true } }
+    }
+  }
 } as const
 
 // ---------------------------------------------------------------------------

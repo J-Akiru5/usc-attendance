@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { api } from '@/lib/api'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
@@ -8,14 +8,26 @@ import Button from '@/components/ui/Button.vue'
 
 definePageMeta({ layout: 'dashboard', requiresAuth: true, roles: ['super_admin'] })
 
+interface Placement {
+  yearLevel: number | null
+  contactNumber: string | null
+  college: { id: string, code: string, name: string } | null
+  programRef: { id: string, code: string, name: string } | null
+  section: { id: string, name: string, yearLevel: number } | null
+}
+
 interface Student {
   id: string
   name: string
   email: string
   active: boolean
   createdAt: string
-  studentProfile: { studentNo: string, program: string | null } | null
+  studentProfile: ({ studentNo: string, program: string | null } & Placement) | null
 }
+
+interface AcademicSection { id: string, yearLevel: number, name: string }
+interface AcademicProgram { id: string, code: string, name: string, yearLevels: number, sections: AcademicSection[] }
+interface AcademicCollege { id: string, code: string, name: string, programs: AcademicProgram[] }
 
 const students = ref<Student[]>([])
 const total = ref(0)
@@ -25,9 +37,28 @@ const q = ref('')
 const loading = ref(true)
 const error = ref('')
 const editing = ref<Student | null>(null)
-const form = ref({ name: '', studentNo: '', program: '' })
+const form = ref({ name: '', studentNo: '', program: '', yearLevel: '', sectionId: '', contactNumber: '' })
 const saving = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
+
+// Reference data for the placement picker in the edit dialog.
+const colleges = ref<AcademicCollege[]>([])
+const collegeId = ref('')
+const programId = ref('')
+
+const currentCollege = computed(() => colleges.value.find(c => c.id === collegeId.value) ?? null)
+const currentProgram = computed(() => currentCollege.value?.programs.find(p => p.id === programId.value) ?? null)
+const yearLevelOptions = computed(() => Array.from({ length: currentProgram.value?.yearLevels ?? 0 }, (_, i) => i + 1))
+const sectionsForYear = computed(() =>
+  (currentProgram.value?.sections ?? []).filter(s => String(s.yearLevel) === String(form.value.yearLevel))
+)
+
+function placementLabel(s: Student): string {
+  const p = s.studentProfile
+  if (!p) return ''
+  const parts = [p.college?.code, p.programRef?.name ?? p.program, p.yearLevel ? `Year ${p.yearLevel}` : null, p.section?.name]
+  return parts.filter(Boolean).join(' · ')
+}
 
 async function load() {
   loading.value = true
@@ -46,7 +77,15 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  try {
+    const res = await api.get<{ colleges: AcademicCollege[] }>('/reference/academic')
+    colleges.value = res.colleges
+  } catch {
+    // The placement picker degrades gracefully; the rest of the page still works.
+  }
+})
 
 function onSearch() {
   if (timer) clearTimeout(timer)
@@ -58,7 +97,32 @@ function onSearch() {
 
 function edit(s: Student) {
   editing.value = s
-  form.value = { name: s.name, studentNo: s.studentProfile?.studentNo ?? '', program: s.studentProfile?.program ?? '' }
+  const p = s.studentProfile
+  collegeId.value = p?.college?.id ?? ''
+  programId.value = p?.programRef?.id ?? ''
+  form.value = {
+    name: s.name,
+    studentNo: p?.studentNo ?? '',
+    program: p?.program ?? '',
+    yearLevel: p?.yearLevel ? String(p.yearLevel) : '',
+    sectionId: p?.section?.id ?? '',
+    contactNumber: p?.contactNumber ?? ''
+  }
+}
+
+function onCollegeChange() {
+  programId.value = ''
+  form.value.yearLevel = ''
+  form.value.sectionId = ''
+}
+
+function onProgramChange() {
+  form.value.yearLevel = ''
+  form.value.sectionId = ''
+}
+
+function onYearChange() {
+  form.value.sectionId = ''
 }
 
 async function patch(s: Student, body: Record<string, unknown>) {
@@ -77,7 +141,27 @@ async function patch(s: Student, body: Record<string, unknown>) {
 }
 
 function save() {
-  if (editing.value) patch(editing.value, { ...form.value })
+  if (!editing.value) return
+  const body: Record<string, unknown> = {
+    name: form.value.name,
+    studentNo: form.value.studentNo,
+    program: form.value.program,
+    contactNumber: form.value.contactNumber
+  }
+  const placementTouched = collegeId.value || programId.value || form.value.yearLevel
+  if (placementTouched) {
+    if (!(collegeId.value && programId.value && form.value.yearLevel)) {
+      error.value = 'Choose the college, program and year level together'
+      return
+    }
+    body.yearLevel = Number(form.value.yearLevel)
+    body.sectionId = form.value.sectionId || null
+  } else if (editing.value.studentProfile?.college) {
+    // Clearing the picker removes the placement but keeps the free-text program.
+    body.yearLevel = null
+    body.sectionId = null
+  }
+  patch(editing.value, body)
 }
 
 function toggleActive(s: Student) {
@@ -130,6 +214,9 @@ const input = 'w-full rounded-lg border border-line px-3 py-2 text-sm'
             <div class="text-xs text-slate mt-0.5">
               {{ s.studentProfile?.studentNo }}<span v-if="s.studentProfile?.program"> · {{ s.studentProfile.program }}</span>
             </div>
+            <div v-if="placementLabel(s)" class="text-xs text-slate/80 mt-0.5">
+              {{ placementLabel(s) }}
+            </div>
             <div class="text-xs text-slate/60 truncate">
               {{ s.email }}
             </div>
@@ -173,6 +260,64 @@ const input = 'w-full rounded-lg border border-line px-3 py-2 text-sm'
         </label>
         <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">Program
           <input v-model="form.program" :class="input" class="mt-1 font-normal normal-case tracking-normal">
+        </label>
+
+        <div class="grid grid-cols-2 gap-2">
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">College
+            <select
+              v-model="collegeId"
+              :class="input"
+              class="mt-1 font-normal normal-case tracking-normal"
+              @change="onCollegeChange"
+            >
+              <option value="">Not set</option>
+              <option v-for="c in colleges" :key="c.id" :value="c.id">{{ c.code }}</option>
+            </select>
+          </label>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">Program (list)
+            <select
+              v-model="programId"
+              :class="input"
+              class="mt-1 font-normal normal-case tracking-normal"
+              :disabled="!currentCollege"
+              @change="onProgramChange"
+            >
+              <option value="">Not set</option>
+              <option v-for="p in currentCollege?.programs ?? []" :key="p.id" :value="p.id">{{ p.code }}</option>
+            </select>
+          </label>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">Year level
+            <select
+              v-model="form.yearLevel"
+              :class="input"
+              class="mt-1 font-normal normal-case tracking-normal"
+              :disabled="!currentProgram"
+              @change="onYearChange"
+            >
+              <option value="">Not set</option>
+              <option v-for="y in yearLevelOptions" :key="y" :value="String(y)">{{ y }}</option>
+            </select>
+          </label>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">Section
+            <select
+              v-model="form.sectionId"
+              :class="input"
+              class="mt-1 font-normal normal-case tracking-normal"
+              :disabled="!form.yearLevel || sectionsForYear.length === 0"
+            >
+              <option value="">{{ sectionsForYear.length ? 'Not set' : 'None listed' }}</option>
+              <option v-for="sec in sectionsForYear" :key="sec.id" :value="sec.id">{{ sec.name }}</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">Contact number
+          <input
+            v-model="form.contactNumber"
+            :class="input"
+            class="mt-1 font-normal normal-case tracking-normal"
+            placeholder="0917 …"
+          >
         </label>
         <div class="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" @click="editing = null">

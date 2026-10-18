@@ -137,11 +137,76 @@ model StudentProfile {
   userId    String   @id
   studentNo String   @unique
   program   String?
+  /// Academic placement (P1: reference data below); nullable so accounts
+  /// created before the reference tables stay valid.
+  collegeId     String?
+  programId     String?
+  yearLevel     Int?
+  sectionId     String?
+  contactNumber String?
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college College? @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  programRef Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
 
+  @@index([collegeId])
+  @@index([programId])
+  @@index([sectionId])
   @@map("student_profiles")
+}
+
+/// Academic reference data (plan §8.1) — all editable by admins. Renames happen
+/// through the foreign keys (never copied text); rows referenced by students
+/// cannot be deleted, only archived.
+model College {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  programs Program[]
+  students StudentProfile[]
+
+  @@map("colleges")
+}
+
+/// A program belongs to a college. `yearLevels` is the programme's length
+/// (default 4, editable — e.g. a 5-year course).
+model Program {
+  id         String   @id @default(uuid())
+  collegeId  String
+  code       String
+  name       String
+  yearLevels Int      @default(4)
+  archived   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  college  College          @relation(fields: [collegeId], references: [id], onDelete: Restrict)
+  sections Section[]
+  students StudentProfile[]
+
+  @@unique([collegeId, code])
+  @@map("programs")
+}
+
+/// A section belongs to a program + year level; names are encoded by the admin
+/// (they vary per term).
+model Section {
+  id        String   @id @default(uuid())
+  programId String
+  yearLevel Int
+  name      String
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  program  Program          @relation(fields: [programId], references: [id], onDelete: Restrict)
+  students StudentProfile[]
+
+  @@unique([programId, yearLevel, name])
+  @@map("sections")
 }
 
 /// The attendee's own drawn signature for one attendance record (PNG), kept

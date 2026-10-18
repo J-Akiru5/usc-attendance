@@ -14,6 +14,7 @@ const navItems = [
   { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Scan QR', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },
   { label: 'Students', to: '/manage/students', icon: '🎓', roles: ['super_admin'] },
+  { label: 'Academics', to: '/manage/academics', icon: '🏛', roles: ['super_admin', 'staff', 'client'], managers: true },
   { label: 'Settings', to: '/manage/settings', icon: '⚙', roles: ['super_admin', 'staff', 'client'], managers: true },
   { label: 'Schedules', to: '/manage/schedules', icon: '📋', roles: ['super_admin'] }
 ]
