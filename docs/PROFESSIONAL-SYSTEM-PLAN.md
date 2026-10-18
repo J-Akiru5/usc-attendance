@@ -549,7 +549,10 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - additive migration `20261018120000_add_academic_reference_data` (colleges/programs/sections + profile FKs); `npm run db:seed-academic` seeds CICI · CoAg · CBMSD · CoEd
   - `GET /api/reference/academic` (public, feeds registration) + manager-only CRUD on `/api/reference/{colleges,programs,sections}` (archive instead of delete while referenced, audited)
   - admin UI at `/manage/academics`; renames go through foreign keys, never copied text
-- [ ] `useDataTable` with server filters, saved views, exports
+- [x] `useDataTable` with server filters, saved views, exports (2026-10-18, `feat/p1g-datatable`)
+  - `app/composables/useDataTable.ts` keeps page/sort/filters/columns in the URL (linkable, bookmarkable) and fetches every page from the server; `app/components/DataTable.vue` is the toolbar + table (search, page filters slot, column chooser, saved views, CSV of the current filter)
+  - additive migration `20261018160000_add_saved_views` + `/api/views` CRUD (personal views per user + resource, name-unique, 404 across users)
+  - `/api/students` gained server-side paging/sorting (name/email/createdAt/yearLevel) and college/program/year/section/status filters; the page is the reference consumer
 - [x] Student profile: college / program / year / section (2026-10-18, `feat/p1e-academic-and-profile`)
   - nullable `collegeId`/`programId`/`yearLevel`/`sectionId`/`contactNumber` on `student_profiles`; registration uses cascading dropdowns; super-admins can correct or clear the placement from `/manage/students`
 - [x] QR refresh 30 s (2026-10-18, `feat/p1d-qr-30s`)
