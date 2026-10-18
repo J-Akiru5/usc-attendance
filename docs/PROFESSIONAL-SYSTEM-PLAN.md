@@ -581,7 +581,11 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `GET /api/events/:id/student-lookup?q=` (staff, or a `manual_checkin` delegate, up to 8 rows, name/number only — never the full student list) resolves a scanned number exactly and otherwise offers candidates to the officer
   - the officer's scanner page gained the event picker (also settable with `?eventId=`), an ambiguous-match chooser and the **manual fallback** — type a student number or name (an exact number records straight away, since phone-less and unreadable IDs are the norm until ISUFST adds barcodes to IDs)
   - `POST /api/attendance` accepts `method: 'barcode'` alongside `self`/`manual`, reusing the same geofence, check-in-window, delegation-scope and duplicate guards (staff keep the door-open override; delegates must be at the venue)
-- [ ] Offline scanner queue
+- [x] Offline scanner queue (2026-10-18, `feat/p2e-offline-queue`)
+  - the scanner keeps scans on the phone (IndexedDB, via the existing `idb` dependency) when the request cannot reach the server, sends them **in the order they were taken** the moment the connection returns (also on an `online` event or a **Sync now** tap), and parks real refusals — already checked in, outside the venue, no grant — in a list with their reason so nothing vanishes silently
+  - the queue sends the moment each scan happened (`scannedAt`), and the server judges it **as of that moment**: a QR token that has since expired is still accepted when the scan fell inside its life (signature + `exp` checked against the scan time, and a scan cannot predate its own token), delegate grants and the check-in window are evaluated at the scan time too, and the record is stamped with the scan moment rather than the sync time
+  - `server/utils/offline.ts` holds those rules (bounds: nothing further than 48 h in the past, 5 min of clock skew into the future, 15 s of skew against the token's issue time) with unit tests; `app/utils/scan-queue.ts` holds the pure flush planner; out-of-band records carry both moments in the delegation audit trail
+  - `app/lib/api.ts` now throws a typed `ApiError` with its status (`0` = never reached the server), so the queue can tell "no signal, retry later" from "the server said no" — previously everything looked like a plain `Error`
 
 ### P0/P1 free-tier hardening
 - [x] Move signature images (and future uploads) from Postgres to R2 (2026-10-18, `feat/p1i-signatures-r2`)

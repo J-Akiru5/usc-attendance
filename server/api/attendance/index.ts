@@ -18,6 +18,7 @@ import {
 } from '../../utils/attendance-rules'
 import { auditDelegationUse, requireEventScope } from '../../utils/delegation'
 import { assertCheckInOpen } from '../../utils/retention'
+import { hasExplicitScanTime, resolveScanTime } from '../../utils/offline'
 import { manilaDayRange } from '../../utils/time'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
@@ -51,11 +52,16 @@ export default defineApiHandler(async (event) => {
   }
 
   if (routeMethod === 'POST') {
-    const { type, eventId, dutyDate, userId, method, lat, lng, accuracy } = await readJsonBody(event) ?? {}
+    const { type, eventId, dutyDate, userId, method, lat, lng, accuracy, scannedAt: rawScannedAt } = await readJsonBody(event) ?? {}
 
     if (!userId || !method) {
       throw badRequest('Missing required fields')
     }
+
+    // A queued offline scan carries the moment it happened; the guards below are
+    // then applied as of that moment rather than the sync time (plan §8.2).
+    const scanTime = resolveScanTime(rawScannedAt)
+    const stamped = hasExplicitScanTime(rawScannedAt)
 
     const attendanceType = type || 'event'
 
@@ -101,7 +107,7 @@ export default defineApiHandler(async (event) => {
         // Staff, or an officer holding an active "manual_checkin" grant for this event.
         // A barcode scan of a student ID rides this same path: the officer is the
         // one identifying the student, only the identifier differs.
-        const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin')
+        const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin', scanTime)
         if (userId === user.id) {
           throw forbidden('You cannot manually record your own attendance.')
         }
@@ -110,7 +116,7 @@ export default defineApiHandler(async (event) => {
           // A temporary helper must be at the venue; staff overrides stay exempt.
           const event = await prisma.event.findUnique({ where: { id: eventId } })
           if (!event) throw notFound('Event not found')
-          assertCheckInOpen(event)
+          assertCheckInOpen(event, scanTime)
           const here = authorizeScanLocation(event, lat, lng, accuracy)
           resolved = { lat: here.lat, lng: here.lng }
         }
@@ -152,7 +158,8 @@ export default defineApiHandler(async (event) => {
           method,
           lat: resolved.lat,
           lng: resolved.lng,
-          recordedBy: user.id
+          recordedBy: user.id,
+          ...(stamped && { createdAt: scanTime })
         },
         include: {
           user: { select: { id: true, name: true, position: true, role: true } }
@@ -162,7 +169,8 @@ export default defineApiHandler(async (event) => {
       if (delegatedScope) {
         await auditDelegationUse(prisma, user, eventId, delegatedScope, {
           attendanceId: record.id,
-          targetUserId: userId
+          targetUserId: userId,
+          ...(stamped && { scannedAt: scanTime.toISOString(), syncedAt: new Date().toISOString() })
         })
       }
 
