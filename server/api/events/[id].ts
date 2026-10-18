@@ -1,8 +1,9 @@
 import { getMethod, getRouterParam } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
-import { badRequest, defineApiHandler, noContent, notFound, readJsonBody, respond } from '../../utils/http'
+import { badRequest, defineApiHandler, HttpError, noContent, notFound, readJsonBody, respond } from '../../utils/http'
 import { hasEventScope } from '../../utils/delegation'
+import { planOccurrences, syncOccurrences, type SeriesTemplate } from '../../utils/event-series'
 
 /** The calendar/registration fields (plan §8.2) an update may carry. */
 async function parseExtras(body: Record<string, unknown>) {
@@ -53,7 +54,10 @@ export default defineApiHandler(async (event) => {
       include: {
         creator: { select: { id: true, name: true, position: true, role: true } },
         category: { select: { id: true, code: true, name: true, color: true } },
-        _count: { select: { attendance: true } },
+        _count: { select: { attendance: true, occurrences: true } },
+        // Recurring series (plan §8.2): a master carries the rule, an instance
+        // points back at the master.
+        series: { select: { id: true, date: true, rrule: true, _count: { select: { occurrences: true } } } },
         ...(canViewRoster && {
           attendance: {
             include: {
@@ -93,9 +97,62 @@ export default defineApiHandler(async (event) => {
       include: {
         creator: { select: { id: true, name: true, position: true, role: true } },
         category: { select: { id: true, code: true, name: true, color: true } },
-        _count: { select: { attendance: true } }
+        _count: { select: { attendance: true, occurrences: true } }
       }
     })
+
+    // A rule change re-writes the series (plan §8.2); instances that already hold
+    // attendance or registrations are kept and reported instead of deleted.
+    if (body.rrule !== undefined) {
+      if (eventRow.seriesId) throw badRequest('This is one instance of a recurring series — edit the series itself')
+
+      const template: SeriesTemplate = {
+        title: eventRow.title,
+        lat: eventRow.lat,
+        lng: eventRow.lng,
+        radiusMeters: eventRow.radiusMeters,
+        categoryId: eventRow.categoryId,
+        capacity: eventRow.capacity,
+        registrationRequired: eventRow.registrationRequired,
+        createdBy: eventRow.createdBy
+      }
+
+      const rruleText = typeof body.rrule === 'string' ? body.rrule.trim() : ''
+      if (!rruleText) {
+        const sync = await syncOccurrences(prisma, id, [eventRow.date], template)
+        const cleared = await prisma.event.update({
+          where: { id },
+          data: { rrule: null, recurrenceIndex: 0 },
+          include: { category: { select: { id: true, code: true, name: true, color: true } } }
+        })
+        await prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'event_series_updated',
+            details: JSON.stringify({ eventId: id, cleared: true, ...sync }),
+            performedBy: user.id
+          }
+        })
+        return { ...cleared, occurrenceCount: 1, seriesChange: sync }
+      }
+
+      const { dates, rrule } = planOccurrences(rruleText, eventRow.date)
+      const sync = await syncOccurrences(prisma, id, dates, template)
+      const master = await prisma.event.update({
+        where: { id },
+        data: { rrule, recurrenceIndex: 0 },
+        include: { category: { select: { id: true, code: true, name: true, color: true } } }
+      })
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'event_series_updated',
+          details: JSON.stringify({ eventId: id, rrule, occurrences: dates.length, ...sync }),
+          performedBy: user.id
+        }
+      })
+      return { ...master, occurrenceCount: dates.length, seriesChange: sync }
+    }
 
     return eventRow
   }
@@ -103,7 +160,24 @@ export default defineApiHandler(async (event) => {
   if (getMethod(event) === 'DELETE') {
     requireStaff(user)
 
+    // A series master takes its occurrences with it (cascade); count them first
+    // so the audit says how much went, and refuse rather than trip the
+    // attendance foreign key when there is history to lose.
+    const attendance = await prisma.attendance.count({ where: { OR: [{ eventId: id }, { event: { seriesId: id } }] } })
+    if (attendance > 0) {
+      throw new HttpError(409, 'This event has recorded attendance — it cannot be deleted')
+    }
+
+    const occurrences = await prisma.event.count({ where: { seriesId: id } })
     await prisma.event.delete({ where: { id } })
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'event_deleted',
+        details: JSON.stringify({ eventId: id, occurrences }),
+        performedBy: user.id
+      }
+    })
     return noContent(event, 204)
   }
 

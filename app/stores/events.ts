@@ -6,6 +6,8 @@ export interface EventCreateInput extends Omit<USCEvent, 'id' | 'createdAt' | 'c
   categoryId?: string | null
   capacity?: number | null
   registrationRequired?: boolean
+  /** RFC 5545 subset for a recurring series (plan §8.2); empty = a one-off. */
+  rrule?: string
 }
 
 /** Ported from the legacy Pinia store — same API, `useState`-backed, `reactive()`-unwrapped. */

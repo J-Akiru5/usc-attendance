@@ -566,7 +566,11 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `/api/reference/categories` (officers read; settings managers write; archive instead of delete while events reference it, audited) and `/api/events` gained `categoryId` / `capacity` / `registrationRequired` plus category and date-range filters
   - portal calendar at `/manage/calendar` (month / week / list, coloured by category, click-through to the event); category management card in Settings; the event form takes a category, capacity and the registration flag
   - the frozen public `/events` page is untouched — the calendar lives in the portal
-- [ ] Recurring events
+- [x] Recurring events (2026-10-18, `feat/p2c-recurrence`)
+  - additive `seriesId` / `rrule` / `recurrenceIndex` on events: a series is the master event (the first occurrence, carrying the rule) plus **one real event row per later occurrence**, so attendance, registration, the QR flow and the calendar all stay per occurrence (§8.2's acceptance: creating a series simply puts its instances on the calendar)
+  - `server/utils/recurrence.ts` holds a documented RFC 5545 subset (FREQ daily/weekly/monthly, INTERVAL, BYDAY, UNTIL, COUNT, capped at 200, no new dependency) for parsing, expansion and the "instance 3 of 12" caption; `server/utils/event-series.ts` creates and re-syncs instances
+  - `POST /api/events` takes an `rrule`; `PUT /api/events/:id` re-writes the series without ever deleting an instance that holds attendance or registrations (those are kept and reported), and refuses a rule change on a single instance; deleting a series that has recorded attendance answers 409 instead of tripping the foreign key
+  - the create form gained a repeat section (daily/weekly/monthly, interval, weekdays, ends after N or on a date) with a plain-language preview; the event page shows the instance caption and rule
 - [x] Registration, capacity, waitlist (2026-10-18, `feat/p2b-registrations`)
   - additive migration `20261019020000_add_event_registrations`: one row per person per event (`registered` · `waitlisted` · `cancelled`, `promotedAt`), kept after cancelling so re-registering reuses it; seats are per event `capacity` (null = unlimited)
   - `/api/events/:id/registration` (self: read your stand, join — a seat or the queue — or give it up), `/api/events/:id/registrations` (the roster: staff or a `view_roster` grant), `/api/registrations/mine`; every move audited

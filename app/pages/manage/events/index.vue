@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEventStore } from '@/stores/events'
 import { useAuthStore } from '@/stores/auth'
@@ -30,8 +30,62 @@ const form = ref({
   radiusMeters: '50',
   categoryId: '',
   capacity: '',
-  registrationRequired: false
+  registrationRequired: false,
+  repeat: 'none' as 'none' | 'daily' | 'weekly' | 'monthly',
+  repeatInterval: '1',
+  repeatDays: [] as number[],
+  repeatEnds: 'count' as 'count' | 'date',
+  repeatCount: '10',
+  repeatUntil: ''
 })
+
+/** Recurrence (plan §8.2) — a small RRULE builder the server then validates. */
+const DAY_TOKENS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']
+const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const intervalUnit = computed(() => {
+  const n = Number(form.value.repeatInterval) || 1
+  const base = form.value.repeat === 'daily' ? 'day' : form.value.repeat === 'monthly' ? 'month' : 'week'
+  return n === 1 ? `every ${base}` : `every ${n} ${base}s`
+})
+
+function dayLabel(index: number): string {
+  return DAY_LABELS[index]!.slice(0, 3)
+}
+
+function toggleRepeatDay(index: number) {
+  const days = form.value.repeatDays
+  form.value.repeatDays = days.includes(index) ? days.filter(d => d !== index) : [...days, index].sort((a, b) => a - b)
+}
+
+function buildRrule(): string | undefined {
+  if (form.value.repeat === 'none') return undefined
+  const parts = [`FREQ=${form.value.repeat.toUpperCase()}`]
+  const interval = Number(form.value.repeatInterval) || 1
+  if (interval > 1) parts.push(`INTERVAL=${interval}`)
+  if (form.value.repeat === 'weekly' && form.value.repeatDays.length > 0) {
+    parts.push(`BYDAY=${[...form.value.repeatDays].sort((a, b) => a - b).map(d => DAY_TOKENS[d]).join(',')}`)
+  }
+  if (form.value.repeatEnds === 'count') {
+    const count = Number(form.value.repeatCount)
+    if (count >= 2) parts.push(`COUNT=${count}`)
+  } else if (form.value.repeatUntil) {
+    parts.push(`UNTIL=${form.value.repeatUntil}`)
+  }
+  return parts.join(';')
+}
+
+const recurrencePreview = computed(() => {
+  if (form.value.repeat === 'none') return ''
+  const on = form.value.repeat === 'weekly' && form.value.repeatDays.length > 0
+    ? ` on ${form.value.repeatDays.map(d => DAY_LABELS[d]).join(', ')}`
+    : ''
+  const ends = form.value.repeatEnds === 'count'
+    ? `, ${Number(form.value.repeatCount) || 10} times`
+    : form.value.repeatUntil ? `, until ${form.value.repeatUntil}` : ''
+  return `Repeats ${intervalUnit.value}${on}${ends}.`
+})
+
+const seriesNotice = ref('')
 
 // Categories for the calendar grouping (plan §8.2).
 interface Category { id: string, code: string, name: string, color: string }
@@ -48,7 +102,7 @@ onMounted(async () => {
 
 async function handleCreate() {
   const dateTime = `${form.value.date}T${form.value.time}:00`
-  await events.createEvent({
+  const created = await events.createEvent({
     title: form.value.title,
     date: dateTime,
     lat: parseFloat(form.value.lat),
@@ -56,8 +110,12 @@ async function handleCreate() {
     radiusMeters: parseInt(form.value.radiusMeters),
     categoryId: form.value.categoryId || null,
     capacity: form.value.capacity ? Number(form.value.capacity) : null,
-    registrationRequired: form.value.registrationRequired
-  })
+    registrationRequired: form.value.registrationRequired,
+    rrule: buildRrule()
+  }) as { occurrenceCount?: number }
+  seriesNotice.value = (created?.occurrenceCount ?? 1) > 1
+    ? `Series created — ${created.occurrenceCount} occurrences on the calendar.`
+    : ''
   showCreate.value = false
   form.value = {
     title: '',
@@ -68,7 +126,13 @@ async function handleCreate() {
     radiusMeters: '50',
     categoryId: '',
     capacity: '',
-    registrationRequired: false
+    registrationRequired: false,
+    repeat: 'none',
+    repeatInterval: '1',
+    repeatDays: [],
+    repeatEnds: 'count',
+    repeatCount: '10',
+    repeatUntil: ''
   }
 }
 
@@ -161,6 +225,84 @@ function formatTime(dateStr: string) {
               <input v-model="form.registrationRequired" type="checkbox">
               Registration required
             </label>
+          </div>
+
+          <div class="rounded-lg border border-line bg-paper-panel/50 p-4 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="space-y-2">
+                <Label>Repeats</Label>
+                <select v-model="form.repeat" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                  <option value="none">
+                    Does not repeat
+                  </option>
+                  <option value="daily">
+                    Daily
+                  </option>
+                  <option value="weekly">
+                    Weekly
+                  </option>
+                  <option value="monthly">
+                    Monthly
+                  </option>
+                </select>
+              </div>
+              <div v-if="form.repeat !== 'none'" class="space-y-2">
+                <Label>Interval</Label>
+                <div class="flex items-center gap-2">
+                  <Input v-model="form.repeatInterval" type="number" class="w-24" />
+                  <span class="text-sm text-slate">{{ intervalUnit }}</span>
+                </div>
+              </div>
+              <div v-if="form.repeat !== 'none'" class="space-y-2">
+                <Label>Ends</Label>
+                <select v-model="form.repeatEnds" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                  <option value="count">
+                    After a number of occurrences
+                  </option>
+                  <option value="date">
+                    On a date
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div v-if="form.repeat === 'weekly'" class="space-y-2">
+              <Label>On these days (empty = the event's own weekday)</Label>
+              <div class="flex flex-wrap gap-1">
+                <button
+                  v-for="(_, index) in DAY_LABELS"
+                  :key="index"
+                  type="button"
+                  class="rounded-lg border px-2.5 py-1 text-xs font-semibold"
+                  :class="form.repeatDays.includes(index) ? 'border-navy bg-navy text-white' : 'border-line text-slate hover:bg-paper'"
+                  @click="toggleRepeatDay(index)"
+                >
+                  {{ dayLabel(index) }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="form.repeat !== 'none' && form.repeatEnds === 'count'" class="space-y-2">
+              <Label>Occurrences (2–200)</Label>
+              <Input
+                v-model="form.repeatCount"
+                type="number"
+                min="2"
+                max="200"
+              />
+            </div>
+            <div v-if="form.repeat !== 'none' && form.repeatEnds === 'date'" class="space-y-2">
+              <Label>Until</Label>
+              <Input v-model="form.repeatUntil" type="date" />
+            </div>
+
+            <p v-if="form.repeat !== 'none'" class="text-xs text-slate">
+              {{ recurrencePreview }} Each occurrence is a real event, so attendance and registration are taken per session.
+            </p>
+          </div>
+
+          <div v-if="seriesNotice" class="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-navy">
+            {{ seriesNotice }}
           </div>
 
           <div class="flex items-end">
