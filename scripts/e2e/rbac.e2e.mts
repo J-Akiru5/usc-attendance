@@ -121,9 +121,9 @@ async function main() {
 
   r = await api(`/api/auth/users/${promoter.id}`, { method: 'PATCH', token: superToken, body: { roles: [] } })
   check('clearing the roles removes the granted capability', r._s === 200
-    && !(r._b?.capabilities ?? []).includes('settings.manage')
-    && (r._b?.roles ?? []).length === 0
-    && (r._b?.capabilities ?? []).includes('staff.access'),
+  && !(r._b?.capabilities ?? []).includes('settings.manage')
+  && (r._b?.roles ?? []).length === 0
+  && (r._b?.capabilities ?? []).includes('staff.access'),
   JSON.stringify({ roles: r._b?.roles, caps: r._b?.capabilities }))
   const mirroredOff = await prisma.user.findUnique({ where: { id: promoter.id }, select: { canConfigure: true } })
   check('the legacy flag is cleared too', mirroredOff?.canConfigure === false)
