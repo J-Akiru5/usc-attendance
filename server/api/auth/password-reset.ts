@@ -1,6 +1,6 @@
 import { getMethod } from 'h3'
 import { prisma } from '../../utils/prisma'
-import { resend } from '../../utils/resend'
+import { sendEmail } from '../../utils/resend'
 import { supabaseAdmin } from '../../utils/supabase'
 import { siteUrl } from '../../utils/site'
 import { defineApiHandler, readJsonBody, respond } from '../../utils/http'
@@ -45,7 +45,7 @@ export default defineApiHandler(async (event) => {
     const actionLink = linkData.properties.action_link
 
     // Send the reset email via Resend.
-    const { error: sendError } = await resend.emails.send({
+    const { error: sendError } = await sendEmail('password_reset', {
       from: process.env.RESEND_FROM_EMAIL!,
       to: email,
       subject: 'Reset your USC Attendance password',

@@ -82,6 +82,18 @@ model UserRole {
   @@map("user_roles")
 }
 
+/// Free-tier hardening (plan §11.1): one row per outbound transactional email,
+/// kind + timestamp only — never the recipient.
+/// See server/utils/email-quota.ts for the daily guard.
+model EmailSend {
+  id        String   @id @default(uuid())
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("email_sends")
+}
+
 /// A saved table view (plan §8.1): the query string a table puts in the URL,
 /// stored per user + resource + name so it can be restored with one click.
 model SavedView {

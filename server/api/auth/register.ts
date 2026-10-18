@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import { getMethod } from 'h3'
 import { prisma } from '../../utils/prisma'
-import { resend } from '../../utils/resend'
+import { sendEmail } from '../../utils/resend'
 import { supabaseAdmin } from '../../utils/supabase'
 import { siteUrl } from '../../utils/site'
 import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../../utils/students'
@@ -117,7 +117,7 @@ export default defineApiHandler(async (event) => {
     return { message: GENERIC }
   }
 
-  const { error: sendError } = await resend.emails.send({
+  const { error: sendError } = await sendEmail('student_verification', {
     from: process.env.RESEND_FROM_EMAIL!,
     to: input.email,
     subject: 'Verify your USC Attendance account',
