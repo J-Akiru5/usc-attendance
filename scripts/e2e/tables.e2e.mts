@@ -85,10 +85,11 @@ async function main() {
   const celsoAt = descNames.indexOf('Celso Table')
   check('descending really reverses', celsoAt !== -1 && antonAt !== -1 && celsoAt < antonAt, JSON.stringify(descNames.slice(0, 4)))
 
-  r = await api('/api/students', { token: superToken, query: { sort: 'yearLevel', dir: 'desc', pageSize: 100 } })
+  // Scope to the throwaway college: real students without a placement have a
+  // null year level, and Postgres puts NULLs first on DESC.
+  r = await api('/api/students', { token: superToken, query: { collegeId: college.id, sort: 'yearLevel', dir: 'desc', pageSize: 100 } })
   const years = (r._b?.students ?? []).map((s: { studentProfile?: { yearLevel?: number } }) => s.studentProfile?.yearLevel ?? 0)
-  const sortedYears = [...years].sort((a: number, b: number) => b - a)
-  check('sorting by the profile relation works', JSON.stringify(years) === JSON.stringify(sortedYears), JSON.stringify(years))
+  check('sorting by the profile relation works', JSON.stringify(years) === JSON.stringify([3, 2, 1]), JSON.stringify(years))
 
   r = await api('/api/students', { token: superToken, query: { sort: 'password' } })
   check('an unknown sort column is refused (400)', r._s === 400, `${r._s}`)
