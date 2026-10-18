@@ -10,6 +10,7 @@ import CardHeader from '@/components/ui/CardHeader.vue'
 import CardTitle from '@/components/ui/CardTitle.vue'
 import Badge from '@/components/ui/Badge.vue'
 import Input from '@/components/ui/Input.vue'
+import { api } from '@/lib/api'
 import Label from '@/components/ui/Label.vue'
 import LocationPicker from '@/components/ui/LocationPicker.vue'
 
@@ -26,11 +27,23 @@ const form = ref({
   time: '',
   lat: '',
   lng: '',
-  radiusMeters: '50'
+  radiusMeters: '50',
+  categoryId: '',
+  capacity: '',
+  registrationRequired: false
 })
 
-onMounted(() => {
+// Categories for the calendar grouping (plan §8.2).
+interface Category { id: string, code: string, name: string, color: string }
+const categories = ref<Category[]>([])
+
+onMounted(async () => {
   events.fetchEvents()
+  try {
+    categories.value = await api.get<Category[]>('/reference/categories')
+  } catch {
+    // Optional: without the list the form simply has no category choices.
+  }
 })
 
 async function handleCreate() {
@@ -40,10 +53,23 @@ async function handleCreate() {
     date: dateTime,
     lat: parseFloat(form.value.lat),
     lng: parseFloat(form.value.lng),
-    radiusMeters: parseInt(form.value.radiusMeters)
+    radiusMeters: parseInt(form.value.radiusMeters),
+    categoryId: form.value.categoryId || null,
+    capacity: form.value.capacity ? Number(form.value.capacity) : null,
+    registrationRequired: form.value.registrationRequired
   })
   showCreate.value = false
-  form.value = { title: '', date: '', time: '', lat: '', lng: '', radiusMeters: '50' }
+  form.value = {
+    title: '',
+    date: '',
+    time: '',
+    lat: '',
+    lng: '',
+    radiusMeters: '50',
+    categoryId: '',
+    capacity: '',
+    registrationRequired: false
+  }
 }
 
 function formatDate(dateStr: string) {
@@ -115,6 +141,28 @@ function formatTime(dateStr: string) {
             />
           </div>
 
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="space-y-2">
+              <Label>Category</Label>
+              <select v-model="form.categoryId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <option value="">
+                  Uncategorised
+                </option>
+                <option v-for="c in categories" :key="c.id" :value="c.id">
+                  {{ c.name }}
+                </option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <Label>Capacity (optional)</Label>
+              <Input v-model="form.capacity" type="number" placeholder="Unlimited" />
+            </div>
+            <label class="flex items-end gap-2 pb-2 text-sm text-slate">
+              <input v-model="form.registrationRequired" type="checkbox">
+              Registration required
+            </label>
+          </div>
+
           <div class="flex items-end">
             <Button type="submit" variant="default" class="w-full">
               Create Event
@@ -140,8 +188,15 @@ function formatTime(dateStr: string) {
       >
         <CardContent class="p-4 flex items-center justify-between">
           <div>
-            <div class="font-bold text-navy">
-              {{ event.title }}
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-navy">{{ event.title }}</span>
+              <span
+                v-if="(event as { category?: { name: string, color: string } | null }).category"
+                class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                :style="{ backgroundColor: (event as { category?: { name: string, color: string } | null }).category?.color }"
+              >
+                {{ (event as { category?: { name: string, color: string } | null }).category?.name }}
+              </span>
             </div>
             <div class="text-sm text-slate">
               {{ formatDate(event.date) }} · {{ formatTime(event.date) }}

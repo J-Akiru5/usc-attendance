@@ -1,6 +1,13 @@
 import { api } from '@/lib/api'
 import type { Attendance, USCEvent } from '@/types'
 
+/** What the portal's create-event form may send (plan §8.2's calendar fields). */
+export interface EventCreateInput extends Omit<USCEvent, 'id' | 'createdAt' | 'createdBy'> {
+  categoryId?: string | null
+  capacity?: number | null
+  registrationRequired?: boolean
+}
+
 /** Ported from the legacy Pinia store — same API, `useState`-backed, `reactive()`-unwrapped. */
 export function useEventStore() {
   const events = useState<USCEvent[]>('events:list', () => [])
@@ -26,7 +33,7 @@ export function useEventStore() {
     }
   }
 
-  async function createEvent(data: Omit<USCEvent, 'id' | 'createdAt' | 'createdBy'>) {
+  async function createEvent(data: EventCreateInput) {
     const event = await api.post<USCEvent>('/events', data)
     events.value.unshift(event)
     return event

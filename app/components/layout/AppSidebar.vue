@@ -10,6 +10,7 @@ const route = useRoute()
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: '⊞', roles: ['super_admin', 'staff', 'client', 'student'] },
   { label: 'Events', to: '/manage/events', icon: '📅', roles: ['super_admin', 'staff'] },
+  { label: 'Calendar', to: '/manage/calendar', icon: '🗓', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Check In', to: '/check-in', icon: '📍', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Office Duty', to: '/duty', icon: '🏠', roles: ['super_admin', 'staff', 'client'] },
   { label: 'Scan QR', to: '/scan', icon: '📷', roles: ['super_admin', 'staff'] },

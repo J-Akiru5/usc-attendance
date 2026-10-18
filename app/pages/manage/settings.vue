@@ -20,9 +20,12 @@ interface Retention {
 }
 
 interface Quota { count: number, limit: number, remaining: number, exceeded: boolean, dayStart: string }
+interface Category { id: string, code: string, name: string, color: string, sortOrder: number }
 
 const data = ref<Retention | null>(null)
 const quota = ref<Quota | null>(null)
+const categories = ref<Category[]>([])
+const categoryForm = ref({ code: '', name: '', color: '#C9A24B' })
 const keep = ref(1)
 const grace = ref(30)
 const loading = ref(true)
@@ -48,6 +51,62 @@ async function load() {
   } catch {
     // Only settings managers see the quota; everyone else just misses the card.
     quota.value = null
+  }
+  try {
+    categories.value = await api.get<Category[]>('/reference/categories')
+  } catch {
+    categories.value = []
+  }
+}
+
+async function loadCategories() {
+  try {
+    categories.value = await api.get<Category[]>('/reference/categories')
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not load event categories'
+  }
+}
+
+async function addCategory() {
+  busy.value = true
+  error.value = ''
+  try {
+    await api.post('/reference/categories', { ...categoryForm.value })
+    categoryForm.value = { code: '', name: '', color: '#C9A24B' }
+    await loadCategories()
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not add the category'
+  } finally {
+    busy.value = false
+  }
+}
+
+async function renameCategory(category: Category) {
+  const name = window.prompt('Category name', category.name)
+  if (!name) return
+  const color = window.prompt('Colour (#rrggbb)', category.color)
+  if (!color) return
+  busy.value = true
+  try {
+    await api.patch('/reference/categories', { id: category.id, name, color })
+    await loadCategories()
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not update the category'
+  } finally {
+    busy.value = false
+  }
+}
+
+async function archiveCategory(category: Category) {
+  if (!window.confirm(`Archive ${category.name}? Events keep their colour until reassigned.`)) return
+  busy.value = true
+  try {
+    await api.patch('/reference/categories', { id: category.id, archived: true })
+    await loadCategories()
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not archive the category'
+  } finally {
+    busy.value = false
   }
 }
 onMounted(load)
@@ -231,6 +290,61 @@ const lbl = 'block text-[10px] font-bold uppercase tracking-wider text-navy'
         </CardContent>
       </Card>
 
+      <Card v-if="categories.length || data">
+        <CardContent class="space-y-3">
+          <div class="text-sm font-semibold text-navy">
+            Event categories
+          </div>
+          <p class="text-xs text-slate">
+            Colour-coded groupings for the calendar (General Assembly, Flag Ceremony, …). Managers can add, rename, recolour and archive them.
+          </p>
+          <form class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end" @submit.prevent="addCategory">
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-navy">Code
+              <input v-model="categoryForm.code" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm font-normal normal-case tracking-normal" placeholder="seminar">
+            </label>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-navy sm:col-span-2">Name
+              <input v-model="categoryForm.name" class="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm font-normal normal-case tracking-normal" placeholder="Seminar">
+            </label>
+            <div class="flex items-end gap-2">
+              <input
+                v-model="categoryForm.color"
+                type="color"
+                class="h-9 w-12 rounded border border-line"
+                aria-label="Category colour"
+              >
+              <Button type="submit" variant="gold" :disabled="busy || !categoryForm.code || !categoryForm.name">
+                Add
+              </Button>
+            </div>
+          </form>
+          <ul class="divide-y divide-line">
+            <li v-for="category in categories" :key="category.id" class="flex items-center justify-between gap-3 py-2 text-sm">
+              <span class="flex items-center gap-2 text-navy">
+                <span class="inline-block h-3 w-3 rounded-sm" :style="{ backgroundColor: category.color }" />
+                <span class="font-medium">{{ category.name }}</span>
+                <span class="font-mono text-xs text-slate">{{ category.code }}</span>
+              </span>
+              <span class="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="busy"
+                  @click="renameCategory(category)"
+                >Edit</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="busy"
+                  @click="archiveCategory(category)"
+                >Archive</Button>
+              </span>
+            </li>
+            <li v-if="categories.length === 0" class="py-2 text-xs text-slate">
+              No categories yet.
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
       <Card v-if="quota">
         <CardContent>
           <div class="text-sm font-semibold text-navy">
