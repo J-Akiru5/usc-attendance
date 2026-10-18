@@ -7,11 +7,22 @@ import { emailQuota, recordEmailSend } from './email-quota'
  * `RESEND_BASE_URL` repoints the SDK at another API host. The e2e runner sets it
  * to a local capture server so tests never send real email; when it is unset
  * (production and normal development) the SDK talks to api.resend.com as before.
+ *
+ * The client is built on first *use*, never at import: modules that merely might
+ * send mail (the notifier) are imported by unit tests, and `new Resend()` throws
+ * when there is no API key — which CI, correctly, does not have.
  */
-export const resend = new Resend(
-  process.env.RESEND_API_KEY,
-  process.env.RESEND_BASE_URL ? { baseUrl: process.env.RESEND_BASE_URL } : undefined
-)
+let client: Resend | null = null
+
+function resendClient(): Resend {
+  if (!client) {
+    client = new Resend(
+      process.env.RESEND_API_KEY,
+      process.env.RESEND_BASE_URL ? { baseUrl: process.env.RESEND_BASE_URL } : undefined
+    )
+  }
+  return client
+}
 
 export interface SendEmailResult {
   /** The SDK error, or null when the mail was accepted (or intentionally skipped). */
@@ -27,13 +38,18 @@ export interface SendEmailResult {
  * did when they called `resend.emails.send` directly.
  */
 export async function sendEmail(kind: string, payload: CreateEmailOptions): Promise<SendEmailResult> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn(`[email] RESEND_API_KEY is not set; skipping ${kind}`)
+    return { error: null, skipped: true }
+  }
+
   const quota = await emailQuota(prisma)
   if (quota.exceeded) {
     console.warn(`[email] daily quota reached (${quota.count}/${quota.limit}); skipping ${kind}`)
     return { error: null, skipped: true }
   }
 
-  const { error } = await resend.emails.send(payload)
+  const { error } = await resendClient().emails.send(payload)
   if (error) {
     console.error(`[email] ${kind} send failed:`, error.message)
     return { error }
