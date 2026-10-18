@@ -36,6 +36,7 @@ model User {
   revokedDelegations EventDelegate[] @relation("DelegateRevoker")
   studentProfile     StudentProfile?
   roles              UserRole[]
+  savedViews         SavedView[]
 
   @@map("users")
 }
@@ -79,6 +80,23 @@ model UserRole {
   @@id([userId, roleId])
   @@index([roleId])
   @@map("user_roles")
+}
+
+/// A saved table view (plan §8.1): the query string a table puts in the URL,
+/// stored per user + resource + name so it can be restored with one click.
+model SavedView {
+  id        String   @id @default(uuid())
+  userId    String
+  resource  String
+  name      String
+  query     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resource, name])
+  @@map("saved_views")
 }
 
 model Event {
