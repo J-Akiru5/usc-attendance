@@ -1,17 +1,61 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
 
 definePageMeta({ layout: false, guest: true })
 
+interface AcademicSection { id: string, yearLevel: number, name: string }
+interface AcademicProgram { id: string, code: string, name: string, yearLevels: number, sections: AcademicSection[] }
+interface AcademicCollege { id: string, code: string, name: string, programs: AcademicProgram[] }
+
 const name = ref('')
 const studentNo = ref('')
-const program = ref('')
 const email = ref('')
 const consent = ref(false)
 const loading = ref(false)
 const error = ref('')
 const done = ref('')
+
+// Academic placement (plan §8.1): dropdowns come from the reference data.
+const colleges = ref<AcademicCollege[]>([])
+const collegeId = ref('')
+const programId = ref('')
+const yearLevel = ref('')
+const sectionId = ref('')
+
+const currentCollege = computed(() => colleges.value.find(c => c.id === collegeId.value) ?? null)
+const programs = computed(() => currentCollege.value?.programs ?? [])
+const currentProgram = computed(() => programs.value.find(p => p.id === programId.value) ?? null)
+const yearLevelOptions = computed(() =>
+  Array.from({ length: currentProgram.value?.yearLevels ?? 0 }, (_, i) => i + 1)
+)
+const sectionsForYear = computed(() =>
+  (currentProgram.value?.sections ?? []).filter(s => String(s.yearLevel) === String(yearLevel.value))
+)
+
+onMounted(async () => {
+  try {
+    const res = await api.get<{ colleges: AcademicCollege[] }>('/reference/academic')
+    colleges.value = res.colleges
+  } catch {
+    // The placement is optional: registration still works without the list.
+  }
+})
+
+function onCollegeChange() {
+  programId.value = ''
+  yearLevel.value = ''
+  sectionId.value = ''
+}
+
+function onProgramChange() {
+  yearLevel.value = ''
+  sectionId.value = ''
+}
+
+function onYearChange() {
+  sectionId.value = ''
+}
 
 async function submit() {
   error.value = ''
@@ -23,14 +67,26 @@ async function submit() {
     error.value = 'Please accept the Data Privacy notice to continue'
     return
   }
+  const placementComplete = collegeId.value && programId.value && yearLevel.value
+  if ((collegeId.value || programId.value || yearLevel.value) && !placementComplete) {
+    error.value = 'Please choose your college, program and year level'
+    return
+  }
   loading.value = true
   try {
     const res = await api.post<{ message: string }>('/auth/register', {
       name: name.value,
       studentNo: studentNo.value,
-      program: program.value,
       email: email.value,
-      consent: consent.value
+      consent: consent.value,
+      ...(placementComplete
+        ? {
+            collegeId: collegeId.value,
+            programId: programId.value,
+            yearLevel: Number(yearLevel.value),
+            sectionId: sectionId.value || null
+          }
+        : {})
     })
     done.value = res.message
   } catch (err: unknown) {
@@ -98,14 +154,73 @@ const label = 'block text-[10px] font-bold text-navy uppercase tracking-wider mb
           >
         </div>
         <div>
-          <label for="prog" :class="label">Program (optional)</label>
-          <input
+          <label for="college" :class="label">College (optional)</label>
+          <select
+            id="college"
+            v-model="collegeId"
+            :disabled="loading || colleges.length === 0"
+            :class="field"
+            @change="onCollegeChange"
+          >
+            <option value="">
+              Not specified
+            </option>
+            <option v-for="c in colleges" :key="c.id" :value="c.id">
+              {{ c.code }} — {{ c.name }}
+            </option>
+          </select>
+        </div>
+        <div v-if="collegeId">
+          <label for="prog" :class="label">Program</label>
+          <select
             id="prog"
-            v-model="program"
+            v-model="programId"
             :disabled="loading"
             :class="field"
-            placeholder="BSIT"
+            @change="onProgramChange"
           >
+            <option value="">
+              Choose your program
+            </option>
+            <option v-for="p in programs" :key="p.id" :value="p.id">
+              {{ p.code }} — {{ p.name }}
+            </option>
+          </select>
+        </div>
+        <div v-if="programId" class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="year" :class="label">Year level</label>
+            <select
+              id="year"
+              v-model="yearLevel"
+              :disabled="loading"
+              :class="field"
+              @change="onYearChange"
+            >
+              <option value="">
+                Year
+              </option>
+              <option v-for="y in yearLevelOptions" :key="y" :value="String(y)">
+                {{ y }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label for="sect" :class="label">Section (optional)</label>
+            <select
+              id="sect"
+              v-model="sectionId"
+              :disabled="loading || !yearLevel || sectionsForYear.length === 0"
+              :class="field"
+            >
+              <option value="">
+                {{ sectionsForYear.length ? 'Not specified' : 'None listed' }}
+              </option>
+              <option v-for="s in sectionsForYear" :key="s.id" :value="s.id">
+                {{ s.name }}
+              </option>
+            </select>
+          </div>
         </div>
         <div>
           <label for="email" :class="label">School email</label>
