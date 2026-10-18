@@ -19,7 +19,10 @@ interface Retention {
   unassignedSignatures: number
 }
 
+interface Quota { count: number, limit: number, remaining: number, exceeded: boolean, dayStart: string }
+
 const data = ref<Retention | null>(null)
+const quota = ref<Quota | null>(null)
 const keep = ref(1)
 const grace = ref(30)
 const loading = ref(true)
@@ -39,6 +42,12 @@ async function load() {
     error.value = err instanceof Error ? err.message : 'Failed to load settings'
   } finally {
     loading.value = false
+  }
+  try {
+    quota.value = await api.get<Quota>('/settings/email-quota')
+  } catch {
+    // Only settings managers see the quota; everyone else just misses the card.
+    quota.value = null
   }
 }
 onMounted(load)
@@ -219,6 +228,32 @@ const lbl = 'block text-[10px] font-bold uppercase tracking-wider text-navy'
               Add semester
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card v-if="quota">
+        <CardContent>
+          <div class="text-sm font-semibold text-navy">
+            Email quota (today, UTC)
+          </div>
+          <p class="mt-1 text-xs text-slate">
+            Transactional mail only — verification links, password resets. The free Resend plan allows
+            {{ quota.limit }} sends a day; the guard stops sending before the plan does.
+          </p>
+          <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-line">
+            <div
+              class="h-full rounded-full"
+              :class="quota.remaining === 0 ? 'bg-danger' : quota.remaining <= 10 ? 'bg-gold' : 'bg-success'"
+              :style="{ width: `${Math.min(100, (quota.count / Math.max(1, quota.limit)) * 100)}%` }"
+            />
+          </div>
+          <div class="mt-2 text-xs text-slate">
+            <span class="font-mono">{{ quota.count }}</span> sent ·
+            <span class="font-mono">{{ quota.remaining }}</span> left today
+            <span v-if="quota.exceeded" class="ml-2 font-semibold text-danger">
+              Quota reached — mail is being skipped until UTC midnight.
+            </span>
+          </div>
         </CardContent>
       </Card>
     </template>

@@ -569,8 +569,11 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 
 ### P0/P1 free-tier hardening
 - [ ] Move signature images (and future uploads) from Postgres to R2
-- [ ] Uptime monitor on a DB-backed health endpoint (keeps Supabase awake, alerts on outage)
-- [ ] Daily email-quota guard for Resend
+- [x] DB-backed health endpoint (`/api/health`, 2026-10-18, `chore/p1-hardening`) — public, minimal, `SELECT 1` round-trip, 503 when the database is unreachable
+  - keeps the Supabase project awake and gives the uptime monitor something meaningful to watch; **the UptimeRobot monitor itself still needs to be created** (external account)
+- [x] Daily email-quota guard for Resend (2026-10-18, same PR)
+  - `email_sends` counts one row per transactional send (kind + UTC timestamp only, never the recipient); the sender refuses politely at `RESEND_DAILY_LIMIT` (default 90) so the day's budget is never spent silently
+  - `/api/settings/email-quota` (settings managers) + a card in `/manage/settings` showing sent / left today
 
 ### P3 Analytics & communications
 - [ ] Dashboards + Student 360
