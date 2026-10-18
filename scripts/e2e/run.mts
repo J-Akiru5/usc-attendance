@@ -17,8 +17,47 @@ import { randomBytes } from 'node:crypto'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import 'dotenv/config'
+import { PrismaClient } from '@prisma/client'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+/**
+ * Supabase has brief turns where the pooler accepts TCP but never answers; each
+ * suite then dies at its first user with a wall of Prisma traces. One clear
+ * check up front turns that into a single message (and waits out a slow start).
+ */
+async function waitForDatabase(timeoutMs: number): Promise<void> {
+  const prisma = new PrismaClient()
+  const startedAt = Date.now()
+  let lastMessage = ''
+  let lastNote = -30
+  try {
+    for (;;) {
+      try {
+        await Promise.race([
+          prisma.$queryRaw`SELECT 1`,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('the query timed out after 15s')), 15_000))
+        ])
+        console.log('[e2e] database reachable')
+        return
+      } catch (error) {
+        lastMessage = error instanceof Error ? error.message.split('\n').filter(Boolean).slice(-1)[0] ?? error.message : String(error)
+      }
+      const waited = Math.round((Date.now() - startedAt) / 1000)
+      if (waited >= timeoutMs / 1000) {
+        throw new Error(`Database unreachable after ${waited}s — ${lastMessage}`)
+      }
+      if (waited - lastNote >= 30) {
+        lastNote = waited
+        console.log(`[e2e] waiting for the database (${waited}s): ${lastMessage}`)
+      }
+      await new Promise(resolve => setTimeout(resolve, 3000))
+    }
+  } finally {
+    await prisma.$disconnect().catch(() => {})
+  }
+}
 
 /** `child.kill()` only kills the npx/cmd wrapper on Windows — take the whole tree down. */
 function killTree(child: ChildProcess): void {
@@ -222,10 +261,11 @@ async function main(): Promise<void> {
     // Cold `nuxt dev` boots on a busy machine have taken over four minutes here,
     // and the first API request may itself trigger a slow compile — the window
     // only ever passes once Nitro (not Nuxt's boot page) answers.
+    await waitForDatabase(180000)
     await waitForServer(baseUrl, 600000)
     console.log('[e2e] dev server ready')
 
-    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
+    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'scanner.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)

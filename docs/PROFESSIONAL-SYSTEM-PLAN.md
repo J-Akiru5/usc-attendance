@@ -576,7 +576,11 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `/api/events/:id/registration` (self: read your stand, join — a seat or the queue — or give it up), `/api/events/:id/registrations` (the roster: staff or a `view_roster` grant), `/api/registrations/mine`; every move audited
   - first-come-first-served queue: cancelling a seat promotes the longest waiter, leaving the queue promotes nobody, and rejoining always takes the back of the queue (the promotion rules live in `server/utils/registrations.ts`, unit-tested with an injected store)
   - student dashboard shows Register / Cancel and the waitlist position on events that require registration (the QR flow is untouched); the staff event page gained a registrations panel with seats, queue and promotion marks
-- [ ] Student-ID barcode scanning
+- [x] Student-ID barcode scanning (2026-10-18, `feat/p2d-id-scanner`)
+  - the scanner now reads 1D barcodes as well as QR (same `html5-qrcode` dependency, formats configured): a signed token still goes to `/api/attendance/qr`, while a student number off an ID goes through a scoped lookup and is recorded as `method: 'barcode'` — so reports can tell a scan from a hand-picked record
+  - `GET /api/events/:id/student-lookup?q=` (staff, or a `manual_checkin` delegate, up to 8 rows, name/number only — never the full student list) resolves a scanned number exactly and otherwise offers candidates to the officer
+  - the officer's scanner page gained the event picker (also settable with `?eventId=`), an ambiguous-match chooser and the **manual fallback** — type a student number or name (an exact number records straight away, since phone-less and unreadable IDs are the norm until ISUFST adds barcodes to IDs)
+  - `POST /api/attendance` accepts `method: 'barcode'` alongside `self`/`manual`, reusing the same geofence, check-in-window, delegation-scope and duplicate guards (staff keep the door-open override; delegates must be at the venue)
 - [ ] Offline scanner queue
 
 ### P0/P1 free-tier hardening

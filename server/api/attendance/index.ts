@@ -72,8 +72,8 @@ export default defineApiHandler(async (event) => {
       throw badRequest('dutyDate is required for duty check-ins')
     }
 
-    if (method !== 'self' && method !== 'manual') {
-      throw badRequest('method must be \'self\' or \'manual\'. QR check-ins go through /api/attendance/qr with a signed token.')
+    if (method !== 'self' && method !== 'manual' && method !== 'barcode') {
+      throw badRequest('method must be \'self\', \'manual\' or \'barcode\'. QR check-ins go through /api/attendance/qr with a signed token.')
     }
 
     // Resolve who may record whom, how, and where — all server-side.
@@ -99,6 +99,8 @@ export default defineApiHandler(async (event) => {
     } else {
       if (attendanceType === 'event') {
         // Staff, or an officer holding an active "manual_checkin" grant for this event.
+        // A barcode scan of a student ID rides this same path: the officer is the
+        // one identifying the student, only the identifier differs.
         const { viaDelegation } = await requireEventScope(prisma, user, eventId, 'manual_checkin')
         if (userId === user.id) {
           throw forbidden('You cannot manually record your own attendance.')
