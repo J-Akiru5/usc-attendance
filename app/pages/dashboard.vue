@@ -19,6 +19,19 @@ const dutyStore = useDutyStore()
 const router = useRouter()
 const todayEvents = ref<USCEvent[]>([])
 
+// Pinned announcements (plan §8.4): the council's notices, seen by everyone.
+interface PinnedAnnouncement { id: string, title: string, preview: string, sentAt: string | null, creator: { id: string, name: string } | null }
+const pinnedAnnouncements = ref<PinnedAnnouncement[]>([])
+
+async function loadPinned() {
+  try {
+    const data = await api.get<{ items: PinnedAnnouncement[] }>('/announcements/pinned')
+    pinnedAnnouncements.value = data.items ?? []
+  } catch {
+    pinnedAnnouncements.value = []
+  }
+}
+
 // Registration state for the signed-in person (plan §8.2): event id → status.
 interface MyRegistration { status: 'registered' | 'waitlisted', position?: number | null, eventTitle?: string }
 const myRegistrations = ref<Record<string, MyRegistration>>({})
@@ -88,7 +101,8 @@ function registrationLabel(event: USCEvent): string {
 onMounted(async () => {
   await Promise.all([
     events.fetchEvents(),
-    dutyStore.fetchTodayDutyAttendance()
+    dutyStore.fetchTodayDutyAttendance(),
+    loadPinned()
   ])
   const today = new Date().toISOString().split('T')[0] ?? ''
   todayEvents.value = events.events.filter(e => e.date.startsWith(today))
@@ -130,6 +144,26 @@ function formatTime(dateStr: string) {
         {{ auth.user?.position }}
       </p>
     </div>
+
+    <!-- Pinned announcements (plan §8.4) -->
+    <Card v-if="pinnedAnnouncements.length > 0">
+      <CardContent class="p-4 space-y-3">
+        <div class="text-xs uppercase tracking-wide text-slate">
+          Pinned
+        </div>
+        <div v-for="item in pinnedAnnouncements" :key="item.id" class="space-y-1">
+          <div class="font-semibold text-navy font-serif">
+            {{ item.title }}
+          </div>
+          <!-- Rendered server-side with every character escaped. -->
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div class="text-sm text-slate space-y-1" v-html="item.preview" />
+          <div class="text-xs text-slate">
+            {{ item.creator ? `by ${item.creator.name} · ` : '' }}{{ item.sentAt ? new Date(item.sentAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }) : '' }}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Student view: show your QR at the venue; an officer scans it -->
     <div v-if="auth.isStudent" class="space-y-4">

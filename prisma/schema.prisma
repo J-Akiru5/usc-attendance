@@ -41,6 +41,7 @@ model User {
   notifications      Notification[]      @relation("NotificationUser")
   createdNotifications Notification[]    @relation("NotificationCreator")
   notificationPreference NotificationPreference? @relation("NotificationPreference")
+  announcements      Announcement[]      @relation("AnnouncementCreator")
 
   @@map("users")
 }
@@ -223,6 +224,35 @@ model NotificationPreference {
   @@map("notification_preferences")
 }
 
+/// An announcement (plan §8.4): written once, targeted with the same audience
+/// columns as events, then sent now or left for the cron. Its delivery log is
+/// the notifications it produces (kind 'announcement', dedupe key
+/// 'announcement:<id>'), which is what makes the cron safe to re-run.
+model Announcement {
+  id           String    @id @default(uuid())
+  title        String
+  body         String
+  pinned       Boolean   @default(false)
+  status       String    @default("draft") // draft | scheduled | sent | cancelled
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  audienceType      String  @default("all")
+  audienceCollegeId String?
+  audienceYearLevel Int?
+  audienceSectionId String?
+  createdBy    String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  creator         User      @relation("AnnouncementCreator", fields: [createdBy], references: [id])
+  audienceCollege College?  @relation("AnnouncementAudienceCollege", fields: [audienceCollegeId], references: [id])
+  audienceSection Section?  @relation("AnnouncementAudienceSection", fields: [audienceSectionId], references: [id])
+
+  @@index([status, scheduledFor])
+  @@index([pinned, status])
+  @@map("announcements")
+}
+
 /// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,
 /// Seminar, …. Editable by settings managers; archived rather than deleted
 /// while events still reference them.
@@ -311,6 +341,7 @@ model College {
   programs Program[]
   students StudentProfile[]
   eventsAsAudience Event[] @relation("EventAudienceCollege")
+  announcementsAsAudience Announcement[] @relation("AnnouncementAudienceCollege")
 
   @@map("colleges")
 }
@@ -347,6 +378,7 @@ model Section {
   program  Program          @relation(fields: [programId], references: [id], onDelete: Restrict)
   students StudentProfile[]
   eventsAsAudience Event[] @relation("EventAudienceSection")
+  announcementsAsAudience Announcement[] @relation("AnnouncementAudienceSection")
 
   @@unique([programId, yearLevel, name])
   @@map("sections")
