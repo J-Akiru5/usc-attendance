@@ -1,7 +1,12 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { HttpError } from './http'
 
-const TOKEN_TTL_SECONDS = 60
+/**
+ * 30 s, matching the benchmark the rebuild targets (CampusGroups-style
+ * refreshing QR): scan-to-confirmation stays well inside the token lifetime and
+ * the client refreshes before expiry (see app/pages/qr.vue).
+ */
+const TOKEN_TTL_SECONDS = 30
 
 export interface QrTokenPayload {
   /** userId the token was issued for */
