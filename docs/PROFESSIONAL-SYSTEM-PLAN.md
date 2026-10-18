@@ -561,7 +561,11 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] Cutover to Nuxt on `usc.syntaxure.dev` (tag `pre-nuxt` kept for rollback)
 
 ### P2 Events
-- [ ] Calendar (FullCalendar) + categories
+- [x] Calendar (FullCalendar) + categories (2026-10-18, `feat/p2a-events-calendar`)
+  - additive migration `20261019000000_add_event_categories`: `event_categories` (code, name, colour, order, archive) seeded with General Assembly · Flag Ceremony · Seminar · Sports · Community Service
+  - `/api/reference/categories` (officers read; settings managers write; archive instead of delete while events reference it, audited) and `/api/events` gained `categoryId` / `capacity` / `registrationRequired` plus category and date-range filters
+  - portal calendar at `/manage/calendar` (month / week / list, coloured by category, click-through to the event); category management card in Settings; the event form takes a category, capacity and the registration flag
+  - the frozen public `/events` page is untouched — the calendar lives in the portal
 - [ ] Recurring events
 - [ ] Registration, capacity, waitlist
 - [ ] Student-ID barcode scanning
