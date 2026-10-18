@@ -124,10 +124,12 @@ export function signatureRate(rows: AttendanceLike[]): number {
 }
 
 /**
- * The interim definition of "expected" (see the file header): registrants when
- * an event takes registrations, otherwise every active student.
+ * The definition of "expected": registrants when an event takes registrations
+ * (whoever was told to sign up defines the turnout), otherwise the event's
+ * **required audience** — the same resolver that drives the no-show lists and,
+ * in P4, absence fines. Audience targeting lives in `server/utils/audience.ts`.
  */
-export function expectedForEvent(input: { registrationRequired: boolean, registrants: number, activeStudents: number }): number {
+export function expectedForEvent(input: { registrationRequired: boolean, registrants: number, audienceSize: number }): number {
   if (input.registrationRequired) return input.registrants
-  return input.activeStudents
+  return input.audienceSize
 }

@@ -136,7 +136,11 @@ describe('methodMix / signatureRate', () => {
 
 describe('expectedForEvent', () => {
   it('uses registrants when an event takes registrations', () => {
-    expect(expectedForEvent({ registrationRequired: true, registrants: 40, activeStudents: 900 })).toBe(40)
-    expect(expectedForEvent({ registrationRequired: false, registrants: 12, activeStudents: 900 })).toBe(900)
+    expect(expectedForEvent({ registrationRequired: true, registrants: 40, audienceSize: 900 })).toBe(40)
+  })
+
+  it('uses the required audience otherwise', () => {
+    expect(expectedForEvent({ registrationRequired: false, registrants: 12, audienceSize: 120 })).toBe(120)
+    expect(expectedForEvent({ registrationRequired: false, registrants: 0, audienceSize: 900 })).toBe(900)
   })
 })

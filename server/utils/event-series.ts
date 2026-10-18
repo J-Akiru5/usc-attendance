@@ -18,6 +18,11 @@ export interface SeriesTemplate {
   capacity: number | null
   registrationRequired: boolean
   createdBy: string
+  /** Required audience (plan §8.2) follows the series like any shared detail. */
+  audienceType: string
+  audienceCollegeId: string | null
+  audienceYearLevel: number | null
+  audienceSectionId: string | null
 }
 
 /** Parses + expands a rule, refusing anything that would create an ocean of events. */
@@ -100,7 +105,8 @@ export async function syncOccurrences(
 
   if (plan.remove.length > 0) await db.event.deleteMany({ where: { id: { in: plan.remove } } })
 
-  // Instances share the master's details, so a rename or venue change follows.
+  // Instances share the master's details, so a rename, venue change or audience
+  // change follows the whole series.
   const shared = {
     title: template.title,
     lat: template.lat,
@@ -108,7 +114,11 @@ export async function syncOccurrences(
     radiusMeters: template.radiusMeters,
     categoryId: template.categoryId,
     capacity: template.capacity,
-    registrationRequired: template.registrationRequired
+    registrationRequired: template.registrationRequired,
+    audienceType: template.audienceType,
+    audienceCollegeId: template.audienceCollegeId,
+    audienceYearLevel: template.audienceYearLevel,
+    audienceSectionId: template.audienceSectionId
   }
 
   let created = 0

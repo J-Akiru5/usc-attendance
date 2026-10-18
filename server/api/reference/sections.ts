@@ -83,11 +83,11 @@ export default defineApiHandler(async (event) => {
 
     const existing = await prisma.section.findUnique({
       where: { id },
-      include: { _count: { select: { students: true } } }
+      include: { _count: { select: { students: true, eventsAsAudience: true } } }
     })
     if (!existing) throw notFound('Section not found')
-    if (existing._count.students > 0) {
-      throw new HttpError(409, 'Students are still in this section — archive it instead')
+    if (existing._count.students > 0 || existing._count.eventsAsAudience > 0) {
+      throw new HttpError(409, 'Students are still in this section, or an event expects it - archive it instead')
     }
 
     await prisma.section.delete({ where: { id } })

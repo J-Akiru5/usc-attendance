@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, noContent, notFound, readJsonBody, respond } from '../../utils/http'
 import { hasEventScope } from '../../utils/delegation'
 import { planOccurrences, syncOccurrences, type SeriesTemplate } from '../../utils/event-series'
+import { audienceColumns, parseAudience, specFromEvent } from '../../utils/audience'
 
 /** The calendar/registration fields (plan §8.2) an update may carry. */
 async function parseExtras(body: Record<string, unknown>) {
@@ -55,6 +56,9 @@ export default defineApiHandler(async (event) => {
         creator: { select: { id: true, name: true, position: true, role: true } },
         category: { select: { id: true, code: true, name: true, color: true } },
         _count: { select: { attendance: true, occurrences: true } },
+        // Required audience (plan §8.2) with the labels the page shows.
+        audienceCollege: { select: { id: true, code: true, name: true } },
+        audienceSection: { select: { id: true, name: true } },
         // Recurring series (plan §8.2): a master carries the rule, an instance
         // points back at the master.
         series: { select: { id: true, date: true, rrule: true, _count: { select: { occurrences: true } } } },
@@ -84,6 +88,12 @@ export default defineApiHandler(async (event) => {
     const { title, date, lat, lng, radiusMeters } = body
     const extras = await parseExtras(body)
 
+    const existing = await prisma.event.findUnique({
+      where: { id },
+      select: { audienceType: true, audienceCollegeId: true, audienceYearLevel: true, audienceSectionId: true }
+    })
+    const audience = await parseAudience(prisma, body, existing ? specFromEvent(existing) : undefined)
+
     const eventRow = await prisma.event.update({
       where: { id },
       data: {
@@ -92,7 +102,8 @@ export default defineApiHandler(async (event) => {
         ...(lat !== undefined && { lat: parseFloat(lat) }),
         ...(lng !== undefined && { lng: parseFloat(lng) }),
         ...(radiusMeters !== undefined && { radiusMeters: parseInt(radiusMeters) }),
-        ...extras
+        ...extras,
+        ...audienceColumns(audience)
       },
       include: {
         creator: { select: { id: true, name: true, position: true, role: true } },
@@ -114,7 +125,11 @@ export default defineApiHandler(async (event) => {
         categoryId: eventRow.categoryId,
         capacity: eventRow.capacity,
         registrationRequired: eventRow.registrationRequired,
-        createdBy: eventRow.createdBy
+        createdBy: eventRow.createdBy,
+        audienceType: audience.type,
+        audienceCollegeId: audience.collegeId,
+        audienceYearLevel: audience.yearLevel,
+        audienceSectionId: audience.sectionId
       }
 
       const rruleText = typeof body.rrule === 'string' ? body.rrule.trim() : ''

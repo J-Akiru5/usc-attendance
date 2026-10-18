@@ -35,6 +35,10 @@ export interface EventWindowRow {
   title: string
   date: Date
   registrationRequired: boolean
+  audienceType: string
+  audienceCollegeId: string | null
+  audienceYearLevel: number | null
+  audienceSectionId: string | null
   category: { id: string, name: string, color: string | null } | null
 }
 
@@ -47,6 +51,10 @@ export async function eventsInWindow(db: PrismaClient, window: SemesterWindow): 
       title: true,
       date: true,
       registrationRequired: true,
+      audienceType: true,
+      audienceCollegeId: true,
+      audienceYearLevel: true,
+      audienceSectionId: true,
       category: { select: { id: true, name: true, color: true } }
     }
   })
