@@ -5,6 +5,7 @@ import { defineApiHandler, respond } from '../../utils/http'
 import { requireEventScope } from '../../utils/delegation'
 import { attendedIds, expectedForEvent, methodMix, noShows, rate, signatureRate } from '../../utils/analytics'
 import { activeAudience, attendanceRows, eventsInWindow, registrationsByEvent, resolveSemester } from '../../utils/analytics-data'
+import { resolveAudiences, specFromEvent } from '../../utils/audience'
 
 /**
  * GET /api/analytics/overview?semesterId=&eventId= — the headline numbers
@@ -37,6 +38,8 @@ export default defineApiHandler(async (event) => {
   ])
 
   const attended = attendedIds(attendance)
+  const audiences = await resolveAudiences(prisma, events.map(row => ({ key: row.id, spec: specFromEvent(row) })))
+
   const byEvent = events.map((row) => {
     const rows = attendance.filter(a => a.eventId === row.id)
     const registrants = registrations.get(row.id) ?? []
@@ -45,7 +48,7 @@ export default defineApiHandler(async (event) => {
       expected: expectedForEvent({
         registrationRequired: row.registrationRequired,
         registrants: registrants.length,
-        activeStudents: audience.length
+        audienceSize: audiences.get(row.id)?.length ?? audience.length
       }),
       attended: attendedIds(rows).size,
       signatures: rows.filter(a => a.hasSignature).length

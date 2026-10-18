@@ -40,6 +40,20 @@ interface Registrations {
 const registrations = ref<Registrations | null>(null)
 const registrationsError = ref('')
 
+// Required audience (plan §8.2) with the labels the API already resolved.
+const audienceInfo = computed(() => {
+  const row = events.currentEvent as unknown as {
+    audienceType?: string | null
+    audienceYearLevel?: number | null
+    audienceCollege?: { code: string, name: string } | null
+    audienceSection?: { name: string } | null
+  } | null
+  if (!row || !row.audienceType || row.audienceType === 'all') return null
+  if (row.audienceType === 'college') return row.audienceCollege ? `For ${row.audienceCollege.code || row.audienceCollege.name}` : 'For one college'
+  if (row.audienceType === 'yearLevel') return `For year ${row.audienceYearLevel ?? '?'}`
+  return row.audienceSection ? `For ${row.audienceSection.name}` : 'For one section'
+})
+
 // Recurring series (plan §8.2): the master carries the rule, an instance links
 // back to it. The caption reads "Instance 3 of 12".
 const seriesInfo = computed(() => {
@@ -159,6 +173,11 @@ function methodBadgeVariant(method: string) {
             {{ seriesInfo.caption }}
           </span>
           <span class="font-mono text-white/40">{{ seriesInfo.rule }}</span>
+        </p>
+        <p v-if="audienceInfo" class="mt-2 text-xs">
+          <span class="rounded-full bg-white/10 px-2.5 py-1 font-semibold text-gold-soft">
+            {{ audienceInfo }}
+          </span>
         </p>
         <p class="text-white/40 text-xs mt-1">
           Radius: {{ events.currentEvent.radiusMeters }}m

@@ -36,8 +36,41 @@ const form = ref({
   repeatDays: [] as number[],
   repeatEnds: 'count' as 'count' | 'date',
   repeatCount: '10',
-  repeatUntil: ''
+  repeatUntil: '',
+  audienceType: 'all' as 'all' | 'college' | 'yearLevel' | 'section',
+  audienceCollegeId: '',
+  audienceYearLevel: '',
+  audienceSectionId: ''
 })
+
+/** Required audience (plan §8.2): who must attend — drives expected & fines. */
+interface CollegeOption { id: string, code: string, name: string }
+interface SectionOption { id: string, name: string, yearLevel: number, programId: string }
+const colleges = ref<CollegeOption[]>([])
+const sections = ref<SectionOption[]>([])
+const audienceLabel = computed(() => {
+  if (form.value.audienceType === 'all') return 'All students are expected at this event.'
+  if (form.value.audienceType === 'college') {
+    const college = colleges.value.find(c => c.id === form.value.audienceCollegeId)
+    return college ? `Everyone in ${college.code || college.name} is expected.` : 'Pick a college.'
+  }
+  if (form.value.audienceType === 'yearLevel') {
+    return form.value.audienceYearLevel ? `Everyone in year ${form.value.audienceYearLevel} is expected.` : 'Pick a year level.'
+  }
+  const section = sections.value.find(s => s.id === form.value.audienceSectionId)
+  return section ? `Everyone in ${section.name} is expected.` : 'Pick a section.'
+})
+
+function buildAudienceFields(): Record<string, unknown> {
+  if (form.value.audienceType === 'all') return { audienceType: 'all' }
+  if (form.value.audienceType === 'college') {
+    return { audienceType: 'college', audienceCollegeId: form.value.audienceCollegeId || null }
+  }
+  if (form.value.audienceType === 'yearLevel') {
+    return { audienceType: 'yearLevel', audienceYearLevel: form.value.audienceYearLevel ? Number(form.value.audienceYearLevel) : null }
+  }
+  return { audienceType: 'section', audienceSectionId: form.value.audienceSectionId || null }
+}
 
 /** Recurrence (plan §8.2) — a small RRULE builder the server then validates. */
 const DAY_TOKENS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']
@@ -98,6 +131,13 @@ onMounted(async () => {
   } catch {
     // Optional: without the list the form simply has no category choices.
   }
+  try {
+    const academic = await api.get<{ colleges: CollegeOption[], sections: SectionOption[] }>('/reference/academic')
+    colleges.value = academic.colleges ?? []
+    sections.value = academic.sections ?? []
+  } catch {
+    // Optional: the audience pickers stay empty without the reference data.
+  }
 })
 
 async function handleCreate() {
@@ -111,7 +151,8 @@ async function handleCreate() {
     categoryId: form.value.categoryId || null,
     capacity: form.value.capacity ? Number(form.value.capacity) : null,
     registrationRequired: form.value.registrationRequired,
-    rrule: buildRrule()
+    rrule: buildRrule(),
+    ...buildAudienceFields()
   }) as { occurrenceCount?: number }
   seriesNotice.value = (created?.occurrenceCount ?? 1) > 1
     ? `Series created — ${created.occurrenceCount} occurrences on the calendar.`
@@ -132,7 +173,11 @@ async function handleCreate() {
     repeatDays: [],
     repeatEnds: 'count',
     repeatCount: '10',
-    repeatUntil: ''
+    repeatUntil: '',
+    audienceType: 'all',
+    audienceCollegeId: '',
+    audienceYearLevel: '',
+    audienceSectionId: ''
   }
 }
 
@@ -303,6 +348,64 @@ function formatTime(dateStr: string) {
 
           <div v-if="seriesNotice" class="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-navy">
             {{ seriesNotice }}
+          </div>
+
+          <div class="rounded-lg border border-line bg-paper-panel/50 p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label>Who must attend</Label>
+                <select v-model="form.audienceType" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                  <option value="all">
+                    All students
+                  </option>
+                  <option value="college">
+                    One college
+                  </option>
+                  <option value="yearLevel">
+                    One year level
+                  </option>
+                  <option value="section">
+                    One section
+                  </option>
+                </select>
+              </div>
+              <div v-if="form.audienceType === 'college'" class="space-y-2">
+                <Label>College</Label>
+                <select v-model="form.audienceCollegeId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                  <option value="">
+                    Pick a college…
+                  </option>
+                  <option v-for="c in colleges" :key="c.id" :value="c.id">
+                    {{ c.code ? `${c.code} · ${c.name}` : c.name }}
+                  </option>
+                </select>
+              </div>
+              <div v-if="form.audienceType === 'yearLevel'" class="space-y-2">
+                <Label>Year level</Label>
+                <select v-model="form.audienceYearLevel" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                  <option value="">
+                    Pick a year…
+                  </option>
+                  <option v-for="year in [1, 2, 3, 4, 5, 6]" :key="year" :value="String(year)">
+                    Year {{ year }}
+                  </option>
+                </select>
+              </div>
+              <div v-if="form.audienceType === 'section'" class="space-y-2">
+                <Label>Section</Label>
+                <select v-model="form.audienceSectionId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                  <option value="">
+                    Pick a section…
+                  </option>
+                  <option v-for="s in sections" :key="s.id" :value="s.id">
+                    {{ s.name }} (Year {{ s.yearLevel }})
+                  </option>
+                </select>
+              </div>
+            </div>
+            <p class="text-xs text-slate">
+              {{ audienceLabel }} This decides the turnout denominator and, later, who absence fines apply to.
+            </p>
           </div>
 
           <div class="flex items-end">

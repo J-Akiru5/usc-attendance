@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, notFound, readJsonBody, respond } from '../../utils/http'
 import { createOccurrences, planOccurrences } from '../../utils/event-series'
+import { audienceColumns, parseAudience } from '../../utils/audience'
 
 /** Shared shape for the event form and the calendar (plan §8.2). */
 const eventInclude = {
@@ -75,6 +76,7 @@ export default defineApiHandler(async (event) => {
     }
 
     const extras = await parseEventExtras(body)
+    const audience = await parseAudience(prisma, body)
 
     const start = new Date(String(date))
     const rruleText = typeof body.rrule === 'string' ? body.rrule.trim() : ''
@@ -93,6 +95,7 @@ export default defineApiHandler(async (event) => {
         radiusMeters: radiusValue,
         createdBy: user.id,
         ...extras,
+        ...audienceColumns(audience),
         ...(series && { rrule: series.rrule, recurrenceIndex: 0 })
       },
       include: eventInclude
@@ -110,7 +113,8 @@ export default defineApiHandler(async (event) => {
         categoryId: extras.categoryId,
         capacity: extras.capacity,
         registrationRequired: extras.registrationRequired,
-        createdBy: user.id
+        createdBy: user.id,
+        ...audienceColumns(audience)
       })
       occurrenceCount = created + 1
       await prisma.auditLog.create({

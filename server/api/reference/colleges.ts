@@ -75,11 +75,11 @@ export default defineApiHandler(async (event) => {
 
     const existing = await prisma.college.findUnique({
       where: { id },
-      include: { _count: { select: { programs: true, students: true } } }
+      include: { _count: { select: { programs: true, students: true, eventsAsAudience: true } } }
     })
     if (!existing) throw notFound('College not found')
-    if (existing._count.programs > 0 || existing._count.students > 0) {
-      throw new HttpError(409, 'This college is still referenced by programs or students — archive it instead')
+    if (existing._count.programs > 0 || existing._count.students > 0 || existing._count.eventsAsAudience > 0) {
+      throw new HttpError(409, 'This college is still referenced by programs, students or events - archive it instead')
     }
 
     await prisma.college.delete({ where: { id } })

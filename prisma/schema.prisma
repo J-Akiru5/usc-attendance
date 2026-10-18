@@ -135,6 +135,17 @@ model Event {
   registrations EventRegistration[]
   createdAt    DateTime @default(now())
 
+  /// Required audience (plan §8.2): who must attend — the "expected" side of
+  /// analytics and, in P4, who gets absence fines. "all" = every active
+  /// student. The references are Restrict on purpose: widening an audience by
+  /// accident (a deleted college) would be worse than refusing the delete.
+  audienceType      String  @default("all")
+  audienceCollegeId String?
+  audienceYearLevel Int?
+  audienceSectionId String?
+  audienceCollege   College? @relation("EventAudienceCollege", fields: [audienceCollegeId], references: [id])
+  audienceSection   Section? @relation("EventAudienceSection", fields: [audienceSectionId], references: [id])
+
   /// Recurring series (plan §8.2): the master carries the rule, the later
   /// instances point back at it. Instances are real events so attendance and
   /// registration stay per occurrence.
@@ -257,6 +268,7 @@ model College {
 
   programs Program[]
   students StudentProfile[]
+  eventsAsAudience Event[] @relation("EventAudienceCollege")
 
   @@map("colleges")
 }
@@ -292,6 +304,7 @@ model Section {
 
   program  Program          @relation(fields: [programId], references: [id], onDelete: Restrict)
   students StudentProfile[]
+  eventsAsAudience Event[] @relation("EventAudienceSection")
 
   @@unique([programId, yearLevel, name])
   @@map("sections")

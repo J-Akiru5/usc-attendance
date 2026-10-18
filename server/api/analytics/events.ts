@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../utils/auth'
 import { defineApiHandler, respond } from '../../utils/http'
 import { attendedIds, expectedForEvent, rate, signatureRate } from '../../utils/analytics'
 import { activeAudience, attendanceRows, eventsInWindow, registrationsByEvent, resolveSemester } from '../../utils/analytics-data'
+import { resolveAudiences, specFromEvent } from '../../utils/audience'
 
 /**
  * GET /api/analytics/events?semesterId= — one row per event: attended, expected,
@@ -26,6 +27,7 @@ export default defineApiHandler(async (event) => {
     registrationsByEvent(prisma, eventIds),
     activeAudience(prisma)
   ])
+  const audiences = await resolveAudiences(prisma, events.map(row => ({ key: row.id, spec: specFromEvent(row) })))
 
   return {
     semester: window.id ? { id: window.id, name: window.name } : null,
@@ -35,7 +37,7 @@ export default defineApiHandler(async (event) => {
       const expected = expectedForEvent({
         registrationRequired: row.registrationRequired,
         registrants: (registrations.get(row.id) ?? []).length,
-        activeStudents: audience.length
+        audienceSize: audiences.get(row.id)?.length ?? audience.length
       })
       return {
         id: row.id,
