@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { authenticate } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, isUniqueViolation, notFound, readJsonBody, respond } from '../../utils/http'
 import { SIGN_WINDOW_MS, signatureRef, validateSignature } from '../../utils/signature'
+import { signatureStore, storeSignature } from '../../utils/signature-storage'
 
 // ---------------------------------------------------------------------------
 // POST /api/attendance/sign   { attendanceId, signature: "data:image/png;base64,..." }
@@ -30,9 +31,18 @@ export default defineApiHandler(async (event) => {
 
   const { png, sha256 } = await validateSignature(signature)
 
+  // Postgres by default; object storage when SIGNATURE_STORAGE=r2 (plan §11.1).
+  const stored = await storeSignature(signatureStore(), attendanceId, png)
+
   try {
     const saved = await prisma.attendanceSignature.create({
-      data: { attendanceId, png: new Uint8Array(png), sha256 },
+      data: {
+        attendanceId,
+        png: stored.png ? new Uint8Array(stored.png) : null,
+        sha256,
+        storageKey: stored.storageKey,
+        storageBackend: stored.storageBackend
+      },
       select: { signedAt: true }
     })
     await prisma.auditLog.create({
