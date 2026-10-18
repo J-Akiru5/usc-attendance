@@ -611,6 +611,13 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - UI: `/manage/analytics` (headline cards, a 24-bar timing histogram, group bars by college/year/section, the per-event table, most-present and never-present lists — hand-rolled bars, no new dependency), `/manage/students/:id` for Student 360, and the student's own attendance summary on their dashboard
   - **acceptance (§8.3)**: the live suite reconciles the dashboard's numbers with the raw CSV export row for row (attended, expected, rate, and exactly which students the export names)
   - "Expected" is defined once, in `expectedForEvent`: registrants for events that take registrations, otherwise every active student — the single place to change when §8.2's audience targeting lands
+- [x] Notifications core: inbox, email, preferences and the automatic kinds (2026-10-19, `feat/p3c-notifications`)
+  - additive `notifications` + `notification_preferences`: every row records the **channels it actually went out on** (`inApp` / `email` / `push`), so an email-only send leaves a record without pretending to be an inbox item
+  - `unique (userId, dedupeKey)` is what makes the reminder cron safe to re-run — the live suite runs it twice and proves the second pass sends nothing (0 sent, 2 duplicates)
+  - `server/utils/notify.ts` holds the decision (`planDelivery`: the person's own channel choices, 11 unit tests) with the email going through the existing Resend quota guard, so a busy day degrades to in-app rather than failing
+  - automatic kinds: registration confirmed, waitlist joined (with the position), **waitlist promoted** (rides the existing promotion hook), and event reminders **24 h / 1 h** before via `GET /api/cron/event-reminders` (CRON_SECRET, same pattern as the retention purge)
+  - endpoints: own inbox with an unread count, self-scoped mark-read (the suite proves another person's notification cannot be touched), preferences; UI: a header bell with the badge and `/notifications` with the inbox and the channel switches
+  - reminders and preferences are done; **announcements** (compose / schedule / pin / delivery log) remain in §8.4, and push waits for the PWA service worker + VAPID keys
 - [ ] Official report templates
 - [ ] Announcements (in-app, email, push) + reminders + preferences
 

@@ -3,6 +3,7 @@ import { prisma } from '../../../utils/prisma'
 import { authenticate } from '../../../utils/auth'
 import { badRequest, defineApiHandler, notFound, respond } from '../../../utils/http'
 import { cancelRegistration, registerForEvent, seatsLeft } from '../../../utils/registrations'
+import { notifyUser, dedupeKeyFor, notifier } from '../../../utils/notify'
 
 /**
  * /api/events/:id/registration — the caller's own place at an event (plan §8.2).
@@ -46,6 +47,21 @@ export default defineApiHandler(async (event) => {
         performedBy: user.id
       }
     })
+
+    // Tell them where they stand (plan §8.4). Best effort: a mail problem must
+    // never fail the registration itself.
+    const eventRowFull = await prisma.event.findUnique({ where: { id: eventId }, select: { title: true, date: true } })
+    await notifyUser(notifier(prisma), {
+      userId: user.id,
+      kind: result.status === 'registered' ? 'registration_confirmed' : 'waitlist_joined',
+      title: result.status === 'registered'
+        ? `You're registered for ${eventRowFull?.title ?? 'the event'}`
+        : `You're on the waitlist for ${eventRowFull?.title ?? 'the event'}`,
+      body: result.status === 'registered'
+        ? `You hold a seat for ${eventRowFull?.title ?? 'the event'}. Show your QR code at the venue.`
+        : `All seats are taken, so you are number ${result.position ?? '?'} in line. You will get a seat automatically if one frees up.`,
+      link: '/dashboard'
+    }).catch(() => {})
     return respond(event, 201, { ...result, capacity: eventRow.capacity, seatsLeft: await seats() })
   }
 
@@ -61,6 +77,18 @@ export default defineApiHandler(async (event) => {
         performedBy: user.id
       }
     })
+
+    // Somebody just moved up (plan §8.4). Best effort, like the confirmation.
+    if (result.promotedUserId) {
+      await notifyUser(notifier(prisma), {
+        userId: result.promotedUserId,
+        kind: 'waitlist_promoted',
+        title: 'A seat opened up',
+        body: 'You moved up from the waitlist and now hold a seat. Show your QR code at the venue.',
+        link: '/dashboard',
+        dedupeKey: dedupeKeyFor('waitlist_promoted', eventId)
+      }).catch(() => {})
+    }
     return { cancelled: true, promoted: !!result.promotedUserId, capacity: eventRow.capacity, seatsLeft: await seats() }
   }
 
