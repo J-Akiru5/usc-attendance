@@ -135,7 +135,17 @@ model Event {
   registrations EventRegistration[]
   createdAt    DateTime @default(now())
 
+  /// Recurring series (plan §8.2): the master carries the rule, the later
+  /// instances point back at it. Instances are real events so attendance and
+  /// registration stay per occurrence.
+  seriesId        String?
+  rrule           String?
+  recurrenceIndex Int?
+  series      Event?  @relation("EventSeries", fields: [seriesId], references: [id], onDelete: Cascade)
+  occurrences Event[] @relation("EventSeries")
+
   @@index([categoryId])
+  @@index([seriesId])
   @@map("events")
 }
 

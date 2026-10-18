@@ -40,6 +40,29 @@ interface Registrations {
 const registrations = ref<Registrations | null>(null)
 const registrationsError = ref('')
 
+// Recurring series (plan §8.2): the master carries the rule, an instance links
+// back to it. The caption reads "Instance 3 of 12".
+const seriesInfo = computed(() => {
+  const row = events.currentEvent as unknown as {
+    id?: string
+    seriesId?: string | null
+    rrule?: string | null
+    recurrenceIndex?: number | null
+    series?: { id: string, date: string, rrule: string | null, _count: { occurrences: number } } | null
+    _count?: { occurrences?: number }
+  } | null
+  if (!row) return null
+  const total = row.series ? row.series._count.occurrences + 1 : (row._count?.occurrences ?? 0) + 1
+  const rule = row.rrule ?? row.series?.rrule ?? null
+  if (row.seriesId) {
+    return { isSeries: true, caption: `Instance ${(row.recurrenceIndex ?? 0) + 1} of ${total}`, rule, masterId: row.seriesId }
+  }
+  if (row.rrule) {
+    return { isSeries: true, caption: `Repeats — ${total} occurrences`, rule: row.rrule, masterId: row.id }
+  }
+  return null
+})
+
 async function loadRegistrations() {
   try {
     registrations.value = await api.get<Registrations>(`/events/${eventId.value}/registrations`)
@@ -130,6 +153,12 @@ function methodBadgeVariant(method: string) {
         </h1>
         <p class="text-white/60 text-sm mt-2">
           {{ formatDate(events.currentEvent.date) }} · {{ formatTime(events.currentEvent.date) }}
+        </p>
+        <p v-if="seriesInfo" class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+          <span class="rounded-full bg-white/10 px-2.5 py-1 font-semibold text-gold-soft">
+            {{ seriesInfo.caption }}
+          </span>
+          <span class="font-mono text-white/40">{{ seriesInfo.rule }}</span>
         </p>
         <p class="text-white/40 text-xs mt-1">
           Radius: {{ events.currentEvent.radiusMeters }}m

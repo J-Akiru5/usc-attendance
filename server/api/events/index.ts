@@ -2,6 +2,7 @@ import { getMethod, getQuery } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, notFound, readJsonBody, respond } from '../../utils/http'
+import { createOccurrences, planOccurrences } from '../../utils/event-series'
 
 /** Shared shape for the event form and the calendar (plan §8.2). */
 const eventInclude = {
@@ -75,20 +76,54 @@ export default defineApiHandler(async (event) => {
 
     const extras = await parseEventExtras(body)
 
+    const start = new Date(String(date))
+    const rruleText = typeof body.rrule === 'string' ? body.rrule.trim() : ''
+    const series = rruleText ? planOccurrences(rruleText, start) : null
+
+    const latValue = parseFloat(String(lat))
+    const lngValue = parseFloat(String(lng))
+    const radiusValue = radiusMeters ? parseInt(String(radiusMeters)) : 50
+
     const eventRow = await prisma.event.create({
       data: {
         title: String(title),
-        date: new Date(String(date)),
-        lat: parseFloat(String(lat)),
-        lng: parseFloat(String(lng)),
-        radiusMeters: radiusMeters ? parseInt(String(radiusMeters)) : 50,
+        date: start,
+        lat: latValue,
+        lng: lngValue,
+        radiusMeters: radiusValue,
         createdBy: user.id,
-        ...extras
+        ...extras,
+        ...(series && { rrule: series.rrule, recurrenceIndex: 0 })
       },
       include: eventInclude
     })
 
-    return respond(event, 201, eventRow)
+    // A recurring series is materialised: one real event per later occurrence
+    // (plan §8.2's acceptance — the calendar simply lists them).
+    let occurrenceCount = 1
+    if (series) {
+      const created = await createOccurrences(prisma, eventRow.id, series.dates, {
+        title: eventRow.title,
+        lat: latValue,
+        lng: lngValue,
+        radiusMeters: radiusValue,
+        categoryId: extras.categoryId,
+        capacity: extras.capacity,
+        registrationRequired: extras.registrationRequired,
+        createdBy: user.id
+      })
+      occurrenceCount = created + 1
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'event_series_created',
+          details: JSON.stringify({ eventId: eventRow.id, rrule: series.rrule, occurrences: occurrenceCount }),
+          performedBy: user.id
+        }
+      })
+    }
+
+    return respond(event, 201, { ...eventRow, occurrenceCount })
   }
 
   return respond(event, 405, { error: 'Method not allowed' })
