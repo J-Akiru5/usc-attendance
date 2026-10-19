@@ -123,8 +123,10 @@ export interface StudentPlacement {
  * definition of "the student body".
  */
 export async function activeStudentPlacements(db: PrismaClient): Promise<StudentPlacement[]> {
+  // Follow the profile, not the role: an officer who is also a student belongs
+  // to their own cohort (D-01), and a profile is the statement of membership.
   const students = await db.user.findMany({
-    where: { active: true, role: 'student' },
+    where: { active: true, studentProfile: { isNot: null } },
     select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
   })
 

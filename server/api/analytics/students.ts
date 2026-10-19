@@ -29,7 +29,7 @@ export default defineApiHandler(async (event) => {
   // Every active student starts at zero, so `order=bottom` is the no-show list
   // rather than just the least frequent attenders (plan §8.3).
   const audience = await prisma.user.findMany({
-    where: { active: true, role: 'student' },
+    where: { active: true, studentProfile: { isNot: null } },
     select: { id: true }
   })
   const counts = new Map<string, number>(audience.map(row => [row.id, 0]))
