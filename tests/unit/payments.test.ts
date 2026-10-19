@@ -87,26 +87,30 @@ describe('clearanceState', () => {
 describe('publicVerification', () => {
   const now = new Date('2026-12-01T10:00:00Z')
   const clearance = { code: 'ABCD2345XY', issuedAt: new Date('2026-11-20T02:00:00Z'), coveredCentavos: 7500, revokedAt: null }
-  const student = { name: 'Juan Dela Cruz', studentNo: '2024-00123' }
+  const issuer = { name: 'E2E treasurer' }
 
-  it('confirms a live certificate with the minimum of detail', () => {
-    const result = publicVerification({ clearance, student, currentlyCleared: true, now })
-    expect(result).toMatchObject({
+  it('confirms a live certificate without revealing who it belongs to', () => {
+    const result = publicVerification({ clearance, issuer, currentlyCleared: true, now })
+    expect(result).toEqual({
       status: 'valid',
-      name: 'Juan Dela Cruz',
-      studentNo: '2024-00123',
-      coveredPesos: '₱75.00',
+      issuedAt: '2026-11-20T02:00:00.000Z',
+      issuer: 'E2E treasurer',
       checkedAt: now.toISOString()
     })
+    // D-07: nothing personal and nothing financial in the public payload.
+    expect(JSON.stringify(result)).not.toMatch(/name|studentNo|pesos|amount/i)
   })
 
   it('says so when the student owes money again', () => {
-    expect(publicVerification({ clearance, student, currentlyCleared: false, now }).status).toBe('no-longer-cleared')
+    expect(publicVerification({ clearance, issuer, currentlyCleared: false, now }).status).toBe('no-longer-cleared')
   })
 
   it('honours a revocation, and knows nothing about a code it never issued', () => {
-    expect(publicVerification({ clearance: { ...clearance, revokedAt: now }, student, currentlyCleared: true, now }).status).toBe('revoked')
-    expect(publicVerification({ clearance: null, student: null, currentlyCleared: true, now })).toEqual({ status: 'unknown', checkedAt: now.toISOString() })
-    expect(publicVerification({ clearance, student: null, currentlyCleared: true, now }).status).toBe('unknown')
+    expect(publicVerification({ clearance: { ...clearance, revokedAt: now }, issuer, currentlyCleared: true, now }).status).toBe('revoked')
+    expect(publicVerification({ clearance: null, currentlyCleared: true, now })).toEqual({ status: 'unknown', checkedAt: now.toISOString() })
+  })
+
+  it('works without an issuer recorded', () => {
+    expect(publicVerification({ clearance, issuer: null, currentlyCleared: true, now }).issuer).toBeUndefined()
   })
 })

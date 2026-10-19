@@ -14,10 +14,8 @@ definePageMeta({ layout: 'public' })
 
 interface Verification {
   status: 'valid' | 'no-longer-cleared' | 'revoked' | 'unknown'
-  name?: string
-  studentNo?: string
   issuedAt?: string
-  coveredPesos?: string
+  issuer?: string
   checkedAt: string
 }
 
@@ -98,21 +96,13 @@ onMounted(async () => {
 
       <Card v-if="result.status === 'valid' || result.status === 'no-longer-cleared'">
         <CardContent class="p-4 space-y-2 text-sm">
-          <div class="flex items-center justify-between gap-3">
-            <span class="text-slate">Name</span>
-            <span class="font-semibold text-navy">{{ result.name }}</span>
-          </div>
-          <div v-if="result.studentNo" class="flex items-center justify-between gap-3">
-            <span class="text-slate">Student number</span>
-            <span class="font-mono text-navy">{{ result.studentNo }}</span>
-          </div>
           <div v-if="result.issuedAt" class="flex items-center justify-between gap-3">
             <span class="text-slate">Issued</span>
             <span class="text-navy">{{ formatWhen(result.issuedAt) }}</span>
           </div>
-          <div v-if="result.coveredPesos" class="flex items-center justify-between gap-3">
-            <span class="text-slate">Settled at issue</span>
-            <span class="font-mono text-navy">{{ result.coveredPesos }}</span>
+          <div v-if="result.issuer" class="flex items-center justify-between gap-3">
+            <span class="text-slate">Issued by</span>
+            <span class="text-navy">{{ result.issuer }}</span>
           </div>
           <div class="flex items-center justify-between gap-3 pt-1 border-t border-line">
             <span class="text-slate">Checked</span>
@@ -122,7 +112,8 @@ onMounted(async () => {
       </Card>
 
       <p class="text-center text-xs text-slate">
-        This page shows only what a clearance is for. Questions go to the council's Treasurer.
+        This page confirms a certificate's standing only — not whose it is, and not what it covered. If you need to know
+        the holder, ask them and match the code printed on their certificate.
       </p>
     </template>
   </div>
