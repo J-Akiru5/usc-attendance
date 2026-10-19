@@ -40,7 +40,7 @@ async function applyCorrection(tx: Prisma.TransactionClient, request: PendingReq
 
   const profile = await tx.studentProfile.findUnique({
     where: { userId: request.userId },
-    select: { programId: true, sectionId: true }
+    select: { programId: true, sectionId: true, programRef: { select: { yearLevels: true } } }
   })
   if (!profile) throw new HttpError(409, 'This student has no profile row to correct.')
 
@@ -54,8 +54,9 @@ async function applyCorrection(tx: Prisma.TransactionClient, request: PendingReq
 
   if (request.field === 'yearLevel') {
     const yearLevel = Number(request.proposedValue)
-    if (!Number.isInteger(yearLevel) || yearLevel < 1 || yearLevel > 6) {
-      throw new HttpError(400, 'That year level is no longer valid.')
+    const maxYear = profile.programRef?.yearLevels ?? 6
+    if (!Number.isInteger(yearLevel) || yearLevel < 1 || yearLevel > maxYear) {
+      throw new HttpError(400, `That year level is no longer valid for this program (1 to ${maxYear}).`)
     }
     // A section belongs to a year level. If the current one is from the old
     // year, clear it rather than leave an impossible placement behind; the
