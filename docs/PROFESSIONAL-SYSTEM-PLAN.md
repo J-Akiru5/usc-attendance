@@ -768,7 +768,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `GET /api/settings/audit-health` (settings managers): counts by action for 24 h and 7 d, plus silent gaps (zero today after three non-zero days)
   - migrated to the helper (target populated): fines, clearance, announcements, registrations, events, documents, finance, students, delegation, attendance signing, fines generated
   - still on the legacy shape, deliberately: reference-data CRUD, semesters, auth/register, settings retention/transparency, document types/attachments, budget lines, purge - see the BC-10 row below
-- [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
+- [x] Record both scan moments and a per-scan idempotency key (2026-10-20, `feat/bc5-scan-integrity`, #77) - benchmark BC-5
 - [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7 and §12.2's Q-New rows
 - [x] Apply the **D-01…D-08 code deltas** from §12.3 (2026-10-20) — all six merged: the sanction map (#64), platform-aware scanner, late threshold 15, the payment capability, the trimmed `/verify` response (#63), and the announcement email default (#62). D-02 and D-04 needed no code. One design gap the batch exposed while verifying them: the audience resolver only included `role: 'student'`, so an officer who is also a student never reached the monetary path D-01 created — it now follows the `studentProfile`, in all three resolvers. — and hand `docs/COUNCIL-DECISIONS.md` to the council for C-1…C-6
 
@@ -780,14 +780,14 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-2 | Data inventory + retention matrix, DPO named, breach runbook | **table landed** in §8.9; the retention jobs and the DPO depend on Q-New-2/Q-New-5 |
 | BC-3 | Fix the cron story (Hobby cannot take sub-daily schedules) | ✅ GitHub Actions + Hobby-safe `vercel.json`; needs the two repository settings (see §12.2 Q-New-6) |
 | BC-4 | Freeze the expected roster at window close so reports and fines reproduce | **merged** (#67) - `event_expected`, snapshot-aware dashboard and fines, manual freeze route; the live roster-freeze suite passes |
-| BC-5 | Both scan timestamps, per-scan idempotency key, manual entries need a reason | pending — next integrity slice |
+| BC-5 | Both scan timestamps, per-scan idempotency key, manual entries need a reason | **merged** (#77): device moment stored but server time authoritative, unique per-scan key survives offline retries with a foreign-key conflict rather than a read-back, manual entries require a reason audited in the same transaction; the batch found an authorization-ordering regression, fixed in #78 |
 | BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | **merged** (#68); the golden path is enforced in CI by `.github/workflows/scanner-durability.yml` (#69) |
 | BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
-| BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
+| BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | **satisfied** - `/api/verify/:code` answers standing, issued date and issuer only, recomputed live, and no clearance anywhere gates enrolment or credentials |
 | BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | **merged** (#70): `public`/`officers`/`restricted`, redacted copies served instead of originals, public search rebuilt from the redacted text, publish audited; the aggregate transparency document remains a publishing task |
 | BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **merged** (#73): target, actor role, salted address hash and request id; three sensitive reads audited; append-only guard; audit-health endpoint. Deferred: full mutating-route coverage, hash chaining (BL-1) |
-| BC-11 | Self-service privacy export + rectification queue | pending |
-| BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
+| BC-11 | Self-service privacy export + rectification queue | **merged** (#76): owner-only JSON export with a field whitelist and per-row ownership check, audited read, and a rectification queue that refuses to rewrite event records; CSV and a manage-area link are follow-ups |
+| BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | **default done** (D-08, inbox-first); the eligible-recipient count against the daily budget is still a small pending display |
 | BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | **merged** (#71) - axe at desktop and mobile over 13 routes with serious/critical as failure; its first run caught `/register` with no `main` landmark (#72) |
 
 Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review itself until their phase starts — P6 is already being built with NP-2/NP-3 in mind by its own agent.
