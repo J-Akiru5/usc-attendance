@@ -19,9 +19,17 @@ interface FineRow {
   event: { id: string, title: string, date: string } | null
 }
 interface Summary { count: number, unpaid: number, unpaidCentavos: number, unpaidPesos: string, cleared: boolean }
+interface ClearanceInfo {
+  code: string
+  issuedAt: string
+  coveredCentavos: number
+  revokedAt: string | null
+  issuer: { id: string, name: string } | null
+}
 
 const fines = ref<FineRow[]>([])
 const summary = ref<Summary | null>(null)
+const clearance = ref<ClearanceInfo | null>(null)
 const loading = ref(true)
 const error = ref('')
 const notice = ref('')
@@ -47,9 +55,13 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const data = await api.get<{ fines: FineRow[], summary: Summary }>('/fines/mine')
+    const [data, standing] = await Promise.all([
+      api.get<{ fines: FineRow[], summary: Summary }>('/fines/mine'),
+      api.get<{ clearance: ClearanceInfo | null }>('/clearance/mine')
+    ])
     fines.value = data.fines ?? []
     summary.value = data.summary ?? null
+    clearance.value = standing.clearance ?? null
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : 'Could not load your fines'
   } finally {
@@ -135,6 +147,34 @@ onMounted(load)
             {{ summary.cleared ? 'Cleared' : `${summary.unpaid} unpaid` }}
           </Badge>
         </div>
+      </CardContent>
+    </Card>
+
+    <!-- Clearance certificate (plan §8.5) -->
+    <Card v-if="clearance">
+      <CardContent class="p-4 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-xs uppercase tracking-wide text-slate">
+            Clearance certificate
+          </div>
+          <Badge :variant="clearance.revokedAt ? 'default' : 'success'">
+            {{ clearance.revokedAt ? 'Revoked' : 'Issued' }}
+          </Badge>
+        </div>
+        <div class="font-mono text-lg font-bold tracking-widest text-navy">
+          {{ clearance.code }}
+        </div>
+        <p class="text-xs text-slate">
+          Issued {{ new Date(clearance.issuedAt).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium' }) }}
+          <span v-if="clearance.issuer"> by {{ clearance.issuer.name }}</span>.
+          Show this code, or the link below, to anyone who needs to check it.
+        </p>
+        <NuxtLink :to="`/verify/${clearance.code}`" class="text-xs font-semibold text-navy hover:underline">
+          Open the public verification page
+        </NuxtLink>
+        <p v-if="summary && !summary.cleared" class="text-xs text-danger">
+          You have new unpaid fines since it was issued, so it will read as “no longer cleared” until you settle them.
+        </p>
       </CardContent>
     </Card>
 
