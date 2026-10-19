@@ -126,6 +126,10 @@ export async function activeStudentPlacements(db: PrismaClient): Promise<Student
   // Follow the profile, not the role: an officer who is also a student belongs
   // to their own cohort (D-01), and a profile is the statement of membership.
   const students = await db.user.findMany({
+    // A studentProfile *is* the statement "this person is a student of this
+    // college / year / section", so the audience follows the profile rather than
+    // the role: an officer who is also a student belongs to their own cohort
+    // (and is the only way D-01's officer-sanction path is reachable).
     where: { active: true, studentProfile: { isNot: null } },
     select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
   })

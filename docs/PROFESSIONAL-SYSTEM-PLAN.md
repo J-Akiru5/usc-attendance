@@ -759,7 +759,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - **acceptance** lives in `scripts/e2e/roster-freeze.e2e.mts`: the freeze at window close, fine/analytics reuse after a transfer, the "frozen at" response, and an idempotent second freeze
 - [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
 - [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7 and §12.2's Q-New rows
-- [ ] Apply the **D-01…D-08 code deltas** from §12.3 (sanction map, platform-aware scanner, late threshold 15, payment capability, trimmed `/verify` response, announcement email default) — and hand `docs/COUNCIL-DECISIONS.md` to the council for C-1…C-6
+- [x] Apply the **D-01…D-08 code deltas** from §12.3 (2026-10-20) — all six merged: the sanction map (#64), platform-aware scanner, late threshold 15, the payment capability, the trimmed `/verify` response (#63), and the announcement email default (#62). D-02 and D-04 needed no code. One design gap the batch exposed while verifying them: the audience resolver only included `role: 'student'`, so an officer who is also a student never reached the monetary path D-01 created — it now follows the `studentProfile`, in all three resolvers. — and hand `docs/COUNCIL-DECISIONS.md` to the council for C-1…C-6
 
 #### Benchmark amendment queue (from `docs/BENCHMARK-REVIEW.md` §4)
 
@@ -774,10 +774,10 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
 | BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
 | BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | partially by construction (P7's `public`/`officers` + audited writes); redaction + the aggregate rule pending |
-| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | pending |
+| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **in flight** (`bc10-audit-integrity`, agent) |
 | BC-11 | Self-service privacy export + rectification queue | pending |
 | BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
-| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | pending (the P8 hardening slice) |
+| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | **in flight** (`bc13-a11y`, agent) |
 
 Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review itself until their phase starts — P6 is already being built with NP-2/NP-3 in mind by its own agent.
 

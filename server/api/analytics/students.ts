@@ -29,6 +29,7 @@ export default defineApiHandler(async (event) => {
   // Every active student starts at zero, so `order=bottom` is the no-show list
   // rather than just the least frequent attenders (plan §8.3).
   const audience = await prisma.user.findMany({
+    // Same rule as the audience resolver: the profile defines a student.
     where: { active: true, studentProfile: { isNot: null } },
     select: { id: true }
   })
