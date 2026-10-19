@@ -412,7 +412,7 @@ A phase/feature is done only when:
 - [ ] Unit tests for pure logic + live e2e checks for each endpoint's allow/deny paths (pattern: `scripts/e2e/*.e2e.mts`, throwaway data, full cleanup).
 - [ ] Playwright test for the main UI flow on mobile (375 px) and desktop.
 - [ ] `nuxi typecheck` and production build pass; Vercel preview Ready.
-- [ ] Accessible (keyboard, labels, contrast WCAG AA), works on low-end Android Chrome.
+- [ ] **WCAG 2.2 AA** — keyboard, labels, contrast, the five 2.2 additions (2.4.11 Focus Not Obscured, 2.5.7 Dragging, 2.5.8 Target Size 24×24, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication) — enforced by `tools/a11y` in CI; the manual scripts in its README are run before a release. The frozen public site stays out of scope (see BC-13). Works on low-end Android Chrome.
 - [ ] Times shown in Asia/Manila; all lists filterable + exportable.
 - [ ] Docs updated (this plan's tracker + module notes).
 
@@ -780,7 +780,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **in flight** (`bc10-audit-integrity`, agent) |
 | BC-11 | Self-service privacy export + rectification queue | pending |
 | BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
-| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | **in flight** (`bc13-a11y`, agent) |
+| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | ✅ **done** (2026-10-20, `feat/bc13-a11y`) — `tools/a11y` runs axe at desktop + mobile, fails serious/critical, asserts one `main`, the skip link and 24×24 targets; portal shell, event form, scanner, fines and queue labels/live regions fixed; `html5-qrcode` proven lazy by a build audit. Manual scripts for 2.4.11 / 2.5.7 / 3.3.7 / 3.3.8 documented. Authenticated CI needs `A11Y_EMAIL`/`A11Y_PASSWORD` |
 
 Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review itself until their phase starts — P6 is already being built with NP-2/NP-3 in mind by its own agent.
 
@@ -795,6 +795,8 @@ Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review its
 
 ### P8 Launch
 - [ ] WCAG AA pass, performance targets, DPA documentation, pilot event, training
+  - [x] **WCAG 2.2 AA** (BC-13, 2026-10-20, `feat/bc13-a11y`): axe gate in CI, skip link + one `main`, labels on the portal's own forms, 24×24 targets, live regions for the scanner/queue, scanner library kept out of the shared chunk, manual scripts for 2.4.11 / 2.5.7 / 3.3.7 / 3.3.8
+  - [ ] Performance budgets, DPA documentation, pilot event, training
 
 ---
 

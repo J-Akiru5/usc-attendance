@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-dvh flex flex-col items-center justify-center bg-default px-4 py-10">
+  <div id="auth-shell" class="min-h-dvh flex flex-col items-center justify-center bg-default px-4 py-10">
     <NuxtLink to="/" class="mb-8 flex items-center gap-3">
       <img
         src="/logo/USC_logo.webp"
@@ -12,10 +12,22 @@
       </span>
     </NuxtLink>
 
-    <slot />
+    <main class="w-full flex flex-col items-center">
+      <slot />
+    </main>
 
-    <p class="mt-8 text-center text-xs text-dimmed">
+    <p class="mt-8 text-center text-xs text-muted">
       Having trouble? Contact a USC officer for assistance.
     </p>
   </div>
 </template>
+
+<style>
+/* Same visible focus indicator as the portal shell (WCAG 2.4.7). Auth layout
+   only; the public site's stylesheet stays untouched. */
+#auth-shell :focus-visible {
+  outline: 3px solid #142850;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #c9a24b;
+}
+</style>

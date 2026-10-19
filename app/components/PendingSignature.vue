@@ -83,7 +83,7 @@ async function submit() {
 
       <SignaturePad ref="pad" @change="dataUrl = $event" />
 
-      <div v-if="error" class="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+      <div v-if="error" role="alert" class="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
         {{ error }}
       </div>
 

@@ -50,27 +50,31 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <NuxtLink
-    v-if="banner.visible"
-    to="/scan#queue"
-    data-testid="scan-unsynced-banner"
-    class="flex items-start gap-3 rounded-xl border-l-4 px-4 py-3 text-sm transition-colors"
-    :class="banner.tone === 'danger'
-      ? 'border-danger bg-danger/10 text-danger hover:bg-danger/15'
-      : 'border-gold bg-gold/10 text-navy hover:bg-gold/20'"
-  >
-    <span class="mt-0.5 shrink-0 text-base leading-none" aria-hidden="true">!</span>
-    <span class="min-w-0 flex-1">
-      <span class="font-semibold">{{ banner.label }}</span>
-      <span class="mt-0.5 block text-xs font-normal opacity-80">
-        Tap to open the scanner queue.
+  <!-- BC-13: the queue count is a status change, so it is announced. The live
+       region wraps the link rather than replacing it - role=status on the <a>
+       would strip the link semantics from the thing officers tap. -->
+  <div v-if="banner.visible" role="status" aria-live="polite">
+    <NuxtLink
+      to="/scan#queue"
+      data-testid="scan-unsynced-banner"
+      class="flex items-start gap-3 rounded-xl border-l-4 px-4 py-3 text-sm transition-colors"
+      :class="banner.tone === 'danger'
+        ? 'border-danger bg-danger/10 text-danger hover:bg-danger/15'
+        : 'border-gold bg-gold/10 text-navy hover:bg-gold/20'"
+    >
+      <span class="mt-0.5 shrink-0 text-base leading-none" aria-hidden="true">!</span>
+      <span class="min-w-0 flex-1">
+        <span class="font-semibold">{{ banner.label }}</span>
+        <span class="mt-0.5 block text-xs font-normal opacity-80">
+          Tap to open the scanner queue.
+        </span>
+        <span v-if="banner.atCap" class="mt-1 block text-xs font-bold">
+          Queue full - sync now before scanning anyone else.
+        </span>
+        <span v-if="banner.storageWarning" class="mt-1 block text-xs font-semibold">
+          {{ banner.storageWarning }}
+        </span>
       </span>
-      <span v-if="banner.atCap" class="mt-1 block text-xs font-bold">
-        Queue full — sync now before scanning anyone else.
-      </span>
-      <span v-if="banner.storageWarning" class="mt-1 block text-xs font-semibold">
-        {{ banner.storageWarning }}
-      </span>
-    </span>
-  </NuxtLink>
+    </NuxtLink>
+  </div>
 </template>

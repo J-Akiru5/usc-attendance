@@ -96,6 +96,8 @@ async function saveSettings() {
           stroke="currentColor"
           stroke-width="1.8"
           class="w-5 h-5"
+          aria-hidden="true"
+          focusable="false"
         >
           <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 5 1.5 5H4.5S6 12 6 8Z" stroke-linecap="round" stroke-linejoin="round" />
           <path d="M10 19a2 2 0 0 0 4 0" stroke-linecap="round" stroke-linejoin="round" />
@@ -103,6 +105,7 @@ async function saveSettings() {
         <span
           v-if="unread > 0"
           class="absolute -top-0.5 -right-0.5 min-w-[1.1rem] rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white"
+          aria-hidden="true"
         >
           {{ unread > 9 ? '9+' : unread }}
         </span>
@@ -110,7 +113,10 @@ async function saveSettings() {
 
       <!-- Clickable Profile Trigger -->
       <button
-        class="flex items-center gap-3 text-left hover:opacity-80 transition-all p-1.5 rounded-lg hover:bg-paper focus:outline-none"
+        type="button"
+        class="flex items-center gap-3 text-left hover:opacity-80 transition-all p-1.5 rounded-lg hover:bg-paper"
+        aria-label="Account menu"
+        :aria-expanded="dropdownOpen"
         @click="dropdownOpen = !dropdownOpen"
       >
         <div class="text-right hidden sm:block">
@@ -123,13 +129,18 @@ async function saveSettings() {
         </div>
 
         <!-- Avatar Circle with Initial -->
-        <div class="w-9 h-9 rounded-full bg-navy text-gold-soft border border-gold flex items-center justify-center font-bold text-sm shadow-sm">
+        <div class="w-9 h-9 rounded-full bg-navy text-gold-soft border border-gold flex items-center justify-center font-bold text-sm shadow-sm" aria-hidden="true">
           {{ auth.user?.name ? auth.user.name.charAt(0).toUpperCase() : 'U' }}
         </div>
       </button>
 
       <!-- Dropdown Backdrop -->
-      <div v-if="dropdownOpen" class="fixed inset-0 z-40" @click="dropdownOpen = false" />
+      <div
+        v-if="dropdownOpen"
+        class="fixed inset-0 z-40"
+        aria-hidden="true"
+        @click="dropdownOpen = false"
+      />
 
       <!-- Dropdown Menu Card -->
       <transition
@@ -165,19 +176,21 @@ async function saveSettings() {
           <!-- Menu Links -->
           <div class="py-1">
             <button
+              type="button"
               class="w-full text-left px-4 py-2.5 text-sm text-navy hover:bg-paper flex items-center gap-2.5 transition-colors"
               @click="openSettings"
             >
-              <span class="text-base">⚙️</span> Settings & Profile
+              <span class="text-base" aria-hidden="true">⚙️</span> Settings & Profile
             </button>
           </div>
 
           <div class="border-t border-line py-1">
             <button
+              type="button"
               class="w-full text-left px-4 py-2.5 text-sm text-danger hover:bg-danger/5 flex items-center gap-2.5 transition-colors font-medium"
               @click="handleLogout"
             >
-              <span class="text-base">🚪</span> Logout
+              <span class="text-base" aria-hidden="true">🚪</span> Logout
             </button>
           </div>
         </div>
@@ -196,38 +209,50 @@ async function saveSettings() {
       <div
         v-if="settingsOpen"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-deep/40 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-settings-title"
+        @keydown.esc="settingsOpen = false"
       >
         <div class="bg-white rounded-2xl border border-line shadow-2xl max-w-md w-full overflow-hidden">
           <!-- Modal Header -->
           <div class="p-6 border-b border-line flex items-center justify-between">
-            <h3 class="font-serif text-lg font-bold text-navy">
+            <h3 id="account-settings-title" class="font-serif text-lg font-bold text-navy">
               Account Settings
             </h3>
-            <button class="text-slate hover:text-navy text-xl font-medium focus:outline-none" @click="settingsOpen = false">
-              ✕
+            <button
+              type="button"
+              class="text-slate hover:text-navy text-xl font-medium"
+              aria-label="Close settings"
+              @click="settingsOpen = false"
+            >
+              <span aria-hidden="true">✕</span>
             </button>
           </div>
 
           <!-- Modal Body -->
           <div class="p-6 space-y-4">
             <!-- Error Banner -->
-            <div v-if="errorMsg" class="rounded-lg border border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+            <div v-if="errorMsg" role="alert" class="rounded-lg border border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
               {{ errorMsg }}
             </div>
 
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-navy uppercase tracking-wider block">Full Name</label>
+              <label for="profile-name" class="text-[10px] font-bold text-navy uppercase tracking-wider block">Full Name</label>
               <input
+                id="profile-name"
                 v-model="profileForm.name"
                 type="text"
+                autocomplete="name"
                 placeholder="Enter full name"
                 class="w-full px-3.5 py-2 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold"
               >
             </div>
 
             <div class="space-y-2">
-              <label class="text-[10px] font-bold text-navy uppercase tracking-wider block">Council Position</label>
+              <label for="profile-position" class="text-[10px] font-bold text-navy uppercase tracking-wider block">Council Position</label>
               <input
+                id="profile-position"
                 v-model="profileForm.position"
                 type="text"
                 placeholder="Enter council position"

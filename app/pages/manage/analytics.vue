@@ -132,7 +132,7 @@ onMounted(async () => {
           <h1 class="text-2xl md:text-3xl font-bold font-serif">
             Analytics
           </h1>
-          <p class="text-white/50 text-sm mt-1">
+          <p class="text-white/75 text-sm mt-1">
             Rates, trends and who never shows up — the same numbers the exports carry.
           </p>
         </div>
@@ -304,7 +304,13 @@ onMounted(async () => {
           <div v-if="events.length === 0" class="text-sm text-slate">
             No events in this window.
           </div>
-          <div v-else class="overflow-x-auto">
+          <div
+            v-else
+            class="overflow-x-auto"
+            tabindex="0"
+            role="region"
+            aria-label="Group breakdown table"
+          >
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-xs uppercase tracking-wide text-slate border-b border-line">
@@ -331,7 +337,7 @@ onMounted(async () => {
               <tbody class="divide-y divide-line">
                 <tr v-for="row in events" :key="row.id" class="hover:bg-paper">
                   <td class="py-2 pr-3">
-                    <NuxtLink :to="`/manage/events/${row.id}`" class="font-medium text-navy hover:underline">
+                    <NuxtLink :to="`/manage/events/${row.id}`" class="font-medium text-navy underline hover:underline">
                       {{ row.title }}
                     </NuxtLink>
                     <Badge v-if="row.category" variant="default" class="ml-2">
@@ -375,7 +381,7 @@ onMounted(async () => {
             </div>
             <ul v-else class="divide-y divide-line text-sm">
               <li v-for="student in top" :key="student.id" class="flex items-center justify-between gap-2 py-2">
-                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy hover:underline">
+                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy underline hover:underline">
                   {{ student.name }}
                 </NuxtLink>
                 <span class="shrink-0 font-mono text-xs text-slate">{{ student.attended }}</span>
@@ -393,7 +399,7 @@ onMounted(async () => {
             </div>
             <ul v-else class="divide-y divide-line text-sm">
               <li v-for="student in bottom" :key="student.id" class="flex items-center justify-between gap-2 py-2">
-                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy hover:underline">
+                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy underline hover:underline">
                   {{ student.name }}
                 </NuxtLink>
                 <span class="shrink-0 font-mono text-xs text-slate">{{ student.attended }}</span>

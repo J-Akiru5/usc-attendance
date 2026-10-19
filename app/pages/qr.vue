@@ -89,7 +89,7 @@ function copyToken() {
       <h1 class="text-2xl font-bold">
         Show your QR code
       </h1>
-      <p class="text-white/50 text-sm mt-1">
+      <p class="text-white/75 text-sm mt-1">
         Staff will scan this to record your attendance
       </p>
     </div>
@@ -103,10 +103,11 @@ function copyToken() {
         No events available
       </div>
       <div v-else class="space-y-2">
-        <div
+        <button
           v-for="event in events.events"
           :key="event.id"
-          class="bg-paper-panel rounded-xl border border-line p-4 cursor-pointer hover:shadow-md transition-shadow"
+          type="button"
+          class="min-h-11 w-full rounded-xl border border-line bg-paper-panel p-4 text-left hover:shadow-md transition-shadow"
           @click="selectEvent(event.id)"
         >
           <div class="font-bold text-navy">
@@ -115,7 +116,7 @@ function copyToken() {
           <div class="text-xs text-slate">
             {{ formatTime(event.date) }}
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -123,8 +124,12 @@ function copyToken() {
     <template v-else>
       <div class="bg-paper-panel rounded-xl border border-line p-6 text-center">
         <!-- QR placeholder using token data as visual -->
-        <div class="w-48 h-48 mx-auto bg-white border-2 border-navy-deep rounded-xl flex items-center justify-center mb-4 relative overflow-hidden">
-          <div v-if="token" class="flex flex-col items-center gap-1 p-2">
+        <div
+          class="w-48 h-48 mx-auto bg-white border-2 border-navy-deep rounded-xl flex items-center justify-center mb-4 relative overflow-hidden"
+          role="img"
+          :aria-label="token ? `Attendance QR code. It refreshes in ${timeLeft} seconds.` : error ? 'QR code could not be generated.' : 'Generating the attendance QR code.'"
+        >
+          <div v-if="token" class="flex flex-col items-center gap-1 p-2" aria-hidden="true">
             <div class="text-[8px] font-mono text-navy-deep break-all leading-tight text-center">
               {{ token.slice(0, 60) }}...
             </div>
@@ -156,7 +161,8 @@ function copyToken() {
         </div>
 
         <button
-          class="w-full bg-gradient-to-br from-gold to-yellow-700 rounded-xl py-3 text-sm font-bold text-ink shadow-lg shadow-gold/30"
+          type="button"
+          class="min-h-10 w-full bg-gradient-to-br from-gold to-yellow-700 rounded-xl py-3 text-sm font-bold text-ink shadow-lg shadow-gold/30"
           @click="copyToken"
         >
           Copy Token (for testing)
@@ -164,7 +170,11 @@ function copyToken() {
       </div>
 
       <div class="text-center">
-        <button class="text-xs text-slate hover:text-navy" @click="eventId = ''">
+        <button
+          type="button"
+          class="inline-flex min-h-6 items-center text-xs text-slate hover:text-navy"
+          @click="eventId = ''"
+        >
           &larr; Choose a different event
         </button>
       </div>
@@ -173,7 +183,7 @@ function copyToken() {
     <!-- Bottom stamp -->
     <div class="bg-gold rounded-lg px-5 py-3 flex items-center justify-between text-xs font-bold">
       <span class="text-navy-deep">ISUFST · Dingle Campus</span>
-      <span class="text-yellow-900">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
+      <span class="text-navy-deep">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
     </div>
   </div>
 </template>

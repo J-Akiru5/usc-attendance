@@ -486,7 +486,12 @@ onMounted(async () => {
               </Badge>
             </div>
 
-            <div class="overflow-x-auto">
+            <div
+              class="overflow-x-auto"
+              tabindex="0"
+              role="region"
+              aria-label="Budget entries table"
+            >
               <table class="w-full text-sm">
                 <thead>
                   <tr class="text-left text-xs uppercase tracking-wide text-slate">
@@ -725,7 +730,7 @@ onMounted(async () => {
                       :href="`/api/finance/steps/${step.id}/attachment`"
                       target="_blank"
                       rel="noopener"
-                      class="font-semibold text-navy hover:underline"
+                      class="font-semibold text-navy underline hover:underline"
                     >signed copy</a>
                   </li>
                 </ol>
@@ -750,13 +755,13 @@ onMounted(async () => {
                   </button>
                   <span class="ml-auto flex items-center gap-2 text-xs">
                     <span class="text-slate">Liquidation:</span>
-                    <button class="font-semibold text-navy hover:underline" :disabled="busy" @click="exportLiquidation(proposal, 'csv')">
+                    <button class="font-semibold text-navy underline hover:underline" :disabled="busy" @click="exportLiquidation(proposal, 'csv')">
                       CSV
                     </button>
-                    <button class="font-semibold text-navy hover:underline" :disabled="busy" @click="exportLiquidation(proposal, 'xlsx')">
+                    <button class="font-semibold text-navy underline hover:underline" :disabled="busy" @click="exportLiquidation(proposal, 'xlsx')">
                       Excel
                     </button>
-                    <button class="font-semibold text-navy hover:underline" :disabled="busy" @click="exportLiquidation(proposal, 'pdf')">
+                    <button class="font-semibold text-navy underline hover:underline" :disabled="busy" @click="exportLiquidation(proposal, 'pdf')">
                       PDF
                     </button>
                   </span>
@@ -884,7 +889,7 @@ onMounted(async () => {
                     :href="`/api/finance/entries/${entry.id}/receipt`"
                     target="_blank"
                     rel="noopener"
-                    class="text-xs font-semibold text-navy hover:underline"
+                    class="text-xs font-semibold text-navy underline hover:underline"
                   >Receipt</a>
                   <span class="text-xs font-semibold" :class="entry.kind === 'income' ? 'text-success' : 'text-navy'">
                     {{ entry.kind === 'income' ? '+' : '−' }}{{ peso(entry.amountCentavos) }}
@@ -903,7 +908,7 @@ onMounted(async () => {
             Public transparency board
           </div>
           <p class="text-sm text-slate">
-            When this is on, <NuxtLink to="/transparency" class="font-semibold text-navy hover:underline">
+            When this is on, <NuxtLink to="/transparency" class="font-semibold text-navy underline hover:underline">
               /transparency
             </NuxtLink> shows a summary of this semester's lines to anyone — totals only, no names.
           </p>
