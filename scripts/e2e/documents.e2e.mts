@@ -303,7 +303,7 @@ async function main() {
   check('and its file answers 404 to a visitor too', denied.status === 404, `${denied.status}`)
 
   r = await api(`/api/documents/public/${publicId}`)
-  check('a published document answers in full (200, current text)', r._s === 200 && r._b?.document?.body?.includes('river easement') && r._b?.document?.currentVersion === 2, `${r._s}`)
+  check('a published document answers in full (200, current text)', r._s === 200 && r._b?.document?.body?.includes('river easement') && r._b?.document?.version === 2 && r._b?.document?.versions?.current === 2, `${r._s} ${JSON.stringify({ version: r._b?.document?.version, current: r._b?.document?.versions?.current })}`)
   check('its attachment is listed for download', (r._b?.document?.attachments ?? []).some((a: { fileName: string }) => a.fileName === 'coastal-cleanup.pdf'), JSON.stringify(r._b?.document?.attachments))
 
   r = await api('/api/documents', {})

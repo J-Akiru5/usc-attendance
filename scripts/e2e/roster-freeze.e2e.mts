@@ -157,15 +157,15 @@ async function main() {
   check('the freeze time did not move', new Date(r._b?.frozenAt).getTime() === firstFrozenAt?.getTime(), `${r._b?.frozenAt}`)
 
   r = await api(`/api/events/${eventId}/snapshot`, { method: 'POST', token: staff.token, body: { refresh: true } })
-  check('even a deliberate re-freeze writes nothing when nothing changed', r._s === 200 && r._b?.written === false && r._b?.unchanged === true, `${r._s} ${JSON.stringify(r._b)}`)
-  check('and a no-op is not audited', await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } }) === auditsBefore, `${await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } })} vs ${auditsBefore}`)
+  check('a deliberate re-freeze adopts the transfer that already happened', r._s === 200 && r._b?.written === true && r._b?.removed === 1 && r._b?.created === 0, `${r._s} ${JSON.stringify(r._b)}`)
+  check('and the adoption is audited once', await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } }) === auditsBefore + 1, `${await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } })} vs ${auditsBefore + 1}`)
 
-  console.log('\n--- a deliberate re-freeze adopts the current audience ---')
+  console.log('\n--- a deliberate re-freeze adopts a joiner ---')
   await prisma.studentProfile.update({ where: { userId: joiner.id }, data: { collegeId: collegeA.id } })
   r = await api(`/api/events/${eventId}/snapshot`, { method: 'POST', token: staff.token, body: { refresh: true } })
-  check('the re-freeze writes the new population', r._s === 200 && r._b?.written === true && r._b?.created === 1 && r._b?.removed === 1, `${r._s} ${JSON.stringify(r._b)}`)
+  check('the re-freeze writes the new population', r._s === 200 && r._b?.written === true && r._b?.created === 1 && r._b?.removed === 0, `${r._s} ${JSON.stringify(r._b)}`)
   check('the joiner is in and the transfer is out', r._b?.count === 2, `${r._b?.count}`)
-  check('the re-freeze is audited', await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } }) === auditsBefore + 1, `${await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } })}`)
+  check('the re-freeze is audited', await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } }) === auditsBefore + 2, `${await prisma.auditLog.count({ where: { action: 'event_expected_frozen', details: { contains: eventId } } })} vs ${auditsBefore + 2}`)
   check('the new rows carry the joiner and not the transfer', await prisma.eventExpected.count({ where: { eventId, userId: joiner.id } }) === 1 && await prisma.eventExpected.count({ where: { eventId, userId: a.id } }) === 0, 're-freeze rows')
 
   console.log('\n--- freezing early, and what cannot be frozen ---')
