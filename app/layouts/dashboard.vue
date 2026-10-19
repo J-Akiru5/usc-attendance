@@ -8,6 +8,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import PendingSignature from '@/components/PendingSignature.vue'
+import ScanUnsyncedBanner from '@/components/ScanUnsyncedBanner.vue'
 
 const auth = useAuthStore()
 const { queueLength } = useOfflineQueue()
@@ -21,6 +22,8 @@ const { queueLength } = useOfflineQueue()
       <AppHeader v-if="auth.isAuthenticated" />
 
       <main class="flex-1 p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
+        <!-- BC-6: the scanner queue is the durable one; its banner is on every officer page. -->
+        <ScanUnsyncedBanner v-if="auth.isAuthenticated" class="mb-4" />
         <div v-if="queueLength > 0" class="mb-4 rounded-lg border border-warning bg-gold/10 px-4 py-3 text-sm text-gold-dark flex items-center gap-2">
           <span class="font-mono text-xs bg-gold/20 rounded-full px-2 py-0.5">{{ queueLength }}</span>
           <span>check-in{{ queueLength > 1 ? 's' : '' }} pending sync — will upload when online</span>
