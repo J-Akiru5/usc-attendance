@@ -4,10 +4,12 @@ import { defineApiHandler, respond } from '../../utils/http'
 import { clearanceState, normaliseCode, publicVerification } from '../../utils/payments'
 
 /**
- * GET /api/verify/:code — the PUBLIC check behind /verify/<code> (plan §8.5).
- * No session required: a certificate is meant to be checkable by anyone the
- * student shows it to. It returns the minimum that makes it useful — the name,
- * the student number, when it was issued and what it covered — and it recomputes
+ * GET /api/verify/:code — the PUBLIC check behind /verify/<code> (plan §8.5,
+ * D-07). No session required: a certificate is meant to be checkable by anyone
+ * the student shows it to.
+ *
+ * It answers three things — does it stand, when was it issued, and who issued it
+ * — and deliberately **not** who it belongs to or what it covered. It recomputes
  * the live standing, so an old certificate for someone who now owes money reads
  * "no longer cleared" instead of lying.
  */
@@ -18,24 +20,22 @@ export default defineApiHandler(async (event) => {
   const code = normaliseCode(raw)
 
   if (code.length < 6 || code.length > 24) {
-    return publicVerification({ clearance: null, student: null, currentlyCleared: false })
+    return publicVerification({ clearance: null, currentlyCleared: false })
   }
 
   const clearance = await prisma.clearance.findUnique({
     where: { code },
-    include: {
-      student: {
-        select: {
-          id: true,
-          name: true,
-          studentProfile: { select: { studentNo: true } }
-        }
-      }
+    select: {
+      userId: true,
+      issuedAt: true,
+      coveredCentavos: true,
+      revokedAt: true,
+      issuer: { select: { name: true } }
     }
   })
 
   if (!clearance) {
-    return publicVerification({ clearance: null, student: null, currentlyCleared: false })
+    return publicVerification({ clearance: null, currentlyCleared: false })
   }
 
   const fines = await prisma.fine.findMany({
@@ -45,15 +45,12 @@ export default defineApiHandler(async (event) => {
 
   return publicVerification({
     clearance: {
-      code: clearance.code,
+      code,
       issuedAt: clearance.issuedAt,
       coveredCentavos: clearance.coveredCentavos,
       revokedAt: clearance.revokedAt
     },
-    student: {
-      name: clearance.student.name,
-      studentNo: clearance.student.studentProfile?.studentNo ?? null
-    },
+    issuer: clearance.issuer,
     currentlyCleared: clearanceState(fines).cleared
   })
 })

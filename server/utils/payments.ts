@@ -87,11 +87,13 @@ export type VerificationStatus = 'valid' | 'no-longer-cleared' | 'revoked' | 'un
 
 export interface PublicVerification {
   status: VerificationStatus
-  /** Deliberately minimal: this is the point of a clearance, and nothing else. */
-  name?: string
-  studentNo?: string
+  /**
+   * D-07: a public page confirms *standing*, never *who*. Name, student number
+   * and amount are deliberately absent — anyone with a code learns whether a
+   * certificate stands, when it was issued and who issued it, and nothing else.
+   */
   issuedAt?: string
-  coveredPesos?: string
+  issuer?: string
   checkedAt: string
 }
 
@@ -99,24 +101,26 @@ export interface PublicVerification {
  * What the PUBLIC /verify page may say. `currentlyCleared` is recomputed from
  * the live fines at verification time — an old certificate for someone who now
  * owes money reads "no longer cleared" rather than lying.
+ *
+ * A last-4-digits challenge was considered and dropped: with no personal data in
+ * the response there is nothing for it to protect, and asking for it would imply
+ * the page is more dangerous than it is.
  */
 export function publicVerification(input: {
   clearance: { code: string, issuedAt: Date, coveredCentavos: number, revokedAt: Date | null } | null
-  student: { name: string, studentNo: string | null } | null
+  issuer?: { name: string } | null
   currentlyCleared: boolean
   now?: Date
 }): PublicVerification {
   const checkedAt = (input.now ?? new Date()).toISOString()
 
-  if (!input.clearance || !input.student) return { status: 'unknown', checkedAt }
+  if (!input.clearance) return { status: 'unknown', checkedAt }
   if (input.clearance.revokedAt) return { status: 'revoked', checkedAt }
 
   return {
     status: input.currentlyCleared ? 'valid' : 'no-longer-cleared',
-    name: input.student.name,
-    ...(input.student.studentNo ? { studentNo: input.student.studentNo } : {}),
     issuedAt: input.clearance.issuedAt.toISOString(),
-    coveredPesos: formatPeso(input.clearance.coveredCentavos),
+    ...(input.issuer ? { issuer: input.issuer.name } : {}),
     checkedAt
   }
 }

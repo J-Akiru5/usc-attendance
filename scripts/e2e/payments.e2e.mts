@@ -117,8 +117,9 @@ async function main() {
   // The PUBLIC check: no token at all.
   r = await api(`/api/verify/${clearance?.code}`)
   check('anyone can verify the code, no session needed (200)', r._s === 200 && r._b?.status === 'valid', `${r._s} ${JSON.stringify(r._b?.status)}`)
-  check('it names the student and the amount settled', r._b?.name === 'E2E student' && r._b?.coveredPesos === '₱75.00', `${r._b?.name} ${r._b?.coveredPesos}`)
-  check('and shows the student number', !!r._b?.studentNo, `${r._b?.studentNo}`)
+  check('it says when it was issued and by whom', !!r._b?.issuedAt && !!r._b?.issuer, `${r._b?.issuedAt} ${r._b?.issuer}`)
+  // D-07: standing only — no name, no student number, no amount.
+  check('and reveals nothing about the student', !('name' in (r._b ?? {})) && !('studentNo' in (r._b ?? {})) && !('coveredPesos' in (r._b ?? {})), JSON.stringify(Object.keys(r._b ?? {})))
 
   r = await api('/api/verify/ZZZZZZZZZZ')
   check('a code nobody issued is unknown', r._s === 200 && r._b?.status === 'unknown', `${r._s} ${JSON.stringify(r._b?.status)}`)
@@ -137,7 +138,7 @@ async function main() {
   made.fineIds.push(later.id)
   r = await api(`/api/verify/${clearance?.code}`)
   check('the certificate now reads as no longer cleared', r._s === 200 && r._b?.status === 'no-longer-cleared', `${r._s} ${JSON.stringify(r._b?.status)}`)
-  check('but it still reports what it covered', r._b?.coveredPesos === '₱75.00', `${r._b?.coveredPesos}`)
+  check('but it still says when it was issued', !!r._b?.issuedAt, `${r._b?.issuedAt}`)
 
   await prisma.fine.update({ where: { id: later.id }, data: { status: 'waived', waivedAt: new Date(), waivedBy: staff.id, waiveReason: 'Excused' } })
   r = await api(`/api/verify/${clearance?.code}`)
