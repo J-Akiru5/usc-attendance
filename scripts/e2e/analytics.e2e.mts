@@ -80,7 +80,7 @@ async function main() {
     await api('/api/attendance', {
       method: 'POST',
       token: staff.token,
-      body: { type: 'event', eventId, userId: student.id, method: 'manual', lat: 10.72, lng: 122.56 }
+      body: { type: 'event', eventId, userId: student.id, method: 'manual', manualReason: 'phone dead', lat: 10.72, lng: 122.56 }
     })
   }
 
