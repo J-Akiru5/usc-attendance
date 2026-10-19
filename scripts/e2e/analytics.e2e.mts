@@ -134,7 +134,9 @@ async function main() {
   const firstWithAttendance = bottom.findIndex(s => s.attended > 0)
   const noShow = bottom.find(s => s.id === s3.id)
   const attendee = bottom.find(s => s.id === s1.id)
-  check('the no-show student leads an attender', !noShow || !attendee || bottom.indexOf(noShow) < bottom.indexOf(attendee), `s3 at ${bottom.indexOf(noShow)}, s1 at ${bottom.indexOf(attendee)}, first attender at ${firstWithAttendance}`)
+  const noShowIndex = noShow ? bottom.indexOf(noShow) : -1
+  const attendeeIndex = attendee ? bottom.indexOf(attendee) : -1
+  check('the no-show student leads an attender', noShowIndex === -1 || attendeeIndex === -1 || noShowIndex < attendeeIndex, `s3 at ${noShowIndex}, s1 at ${attendeeIndex}, first attender at ${firstWithAttendance}`)
 
   console.log('\n--- Student 360 ---')
   r = await api(`/api/analytics/students/${s1.id}`, { token: staff.token })
