@@ -138,7 +138,20 @@ async function main() {
   if (r._s === 201) made.announcementIds.push(everyoneId)
   check('sending now reports who it reached (201)', r._s === 201 && (r._b?.dispatch?.sent ?? 0) >= 4, `${r._s} ${JSON.stringify(r._b?.dispatch)}`)
   const mails = await capturedEmails()
-  check('and the mail went out', mails.filter(m => m.to === insideA.email).length === 1, `${mails.filter(m => m.to === insideA.email).length}`)
+  // D-08: an announcement is an inbox event by default. Email is opted into per
+  // send, so this one must not have mailed anybody.
+  check('and by default it did not email anyone', mails.filter(m => m.to === insideA.email).length === 0, `${mails.filter(m => m.to === insideA.email).length} mails`)
+
+  // The explicit opt-in does email, subject to the quota and to preferences.
+  const emailOpt = await api('/api/announcements', {
+    method: 'POST',
+    token: staff.token,
+    body: { title: `${tag} by mail`, body: 'This one goes to email too.', sendNow: true, sendEmail: true }
+  })
+  if (emailOpt._s === 201) made.announcementIds.push(emailOpt._b?.announcement?.id)
+  check('an explicit email opt-in mails the audience (201)', emailOpt._s === 201 && (emailOpt._b?.dispatch?.emails ?? 0) >= 4, `${emailOpt._s} ${JSON.stringify(emailOpt._b?.dispatch)}`)
+  const optedMails = await capturedEmails()
+  check('and the mail went out', optedMails.filter(m => m.to === insideA.email).length === 1, `${optedMails.filter(m => m.to === insideA.email).length}`)
 
   // Unsubscribing from email is honoured (the other half of the acceptance).
   await api('/api/notifications/preferences', { method: 'PUT', token: outside.token, body: { email: false } })
@@ -146,7 +159,7 @@ async function main() {
   r = await api('/api/announcements', {
     method: 'POST',
     token: staff.token,
-    body: { title: `${tag} quiet please`, body: 'Another notice.', sendNow: true }
+    body: { title: `${tag} quiet please`, body: 'Another notice.', sendNow: true, sendEmail: true }
   })
   if (r._s === 201) made.announcementIds.push(r._b?.announcement?.id)
   const afterOptOut = await capturedEmails()

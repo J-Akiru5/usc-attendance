@@ -107,7 +107,7 @@ describe('formatPeso', () => {
 
 describe('validateRule', () => {
   it('accepts a sensible rule and keeps what was not sent', () => {
-    expect(validateRule({ absentCentavos: 6000 })).toMatchObject({ absentCentavos: 6000, lateCentavos: 2500, lateAfterMinutes: 30 })
+    expect(validateRule({ absentCentavos: 6000 })).toMatchObject({ absentCentavos: 6000, lateCentavos: 2500, lateAfterMinutes: 15 })
   })
 
   it('refuses nonsense', () => {

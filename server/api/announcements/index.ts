@@ -1,9 +1,11 @@
 import { getMethod, getQuery } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
-import { badRequest, defineApiHandler, readJsonBody, respond } from '../../utils/http'
-import { deriveStatus, dispatchAnnouncement, renderAnnouncementBody } from '../../utils/announce'
-import { audienceColumns, parseAudience, specFromEvent } from '../../utils/audience'
+import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
+import { deriveStatus, dispatchAnnouncement, emailBudgetError, renderAnnouncementBody } from '../../utils/announce'
+import { resolveAudience, specFromEvent, audienceColumns, parseAudience } from '../../utils/audience'
+import { emailQuota } from '../../utils/email-quota'
+
 import { dedupeKeyFor } from '../../utils/notify'
 
 /**
@@ -84,7 +86,18 @@ export default defineApiHandler(async (event) => {
     })
 
     if (status === 'sent') {
-      const outcome = await dispatchAnnouncement(prisma, created)
+      // D-08: email is opt-in, and a send that exceeds today's remaining budget
+      // is refused with the options spelled out rather than quietly downgraded.
+      const wantsEmail = body.sendEmail === true
+      if (wantsEmail) {
+        const [audience, quota] = await Promise.all([
+          resolveAudience(prisma, specFromEvent(created)),
+          emailQuota(prisma)
+        ])
+        const refusal = emailBudgetError(audience.length, quota.remaining)
+        if (refusal) throw new HttpError(409, refusal)
+      }
+      const outcome = await dispatchAnnouncement(prisma, created, { email: wantsEmail })
       return respond(event, 201, { announcement: { ...created, status: 'sent' }, dispatch: outcome })
     }
 
