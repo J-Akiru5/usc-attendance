@@ -1,0 +1,32 @@
+name: Cron — announcements
+
+# Every 15 minutes, so a scheduled announcement goes out close to its time.
+# GitHub's scheduler is best-effort (it can run late under load), which is fine
+# for announcements and unacceptable for nothing — the endpoint is idempotent,
+# so a late or repeated run sends exactly what is due, once.
+#
+# Needs: repository secret CRON_SECRET, and optionally a repository variable
+# SITE_URL (defaults to the production domain).
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  announcements:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the announcement dispatcher
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://usc.syntaxure.dev' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured for this repository yet — skipping"
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/announcements")
+          echo "HTTP $code"
+          cat /tmp/out.json || true
+          test "$code" = "200"
