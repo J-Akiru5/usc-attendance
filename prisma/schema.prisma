@@ -42,6 +42,9 @@ model User {
   createdNotifications Notification[]    @relation("NotificationCreator")
   notificationPreference NotificationPreference? @relation("NotificationPreference")
   announcements      Announcement[]      @relation("AnnouncementCreator")
+  fines              Fine[]              @relation("FineOwner")
+  finesPaid          Fine[]              @relation("FinePaidBy")
+  fineWaivers        Fine[]              @relation("FineWaivedBy")
 
   @@map("users")
 }
@@ -150,6 +153,12 @@ model Event {
   audienceCollege   College? @relation("EventAudienceCollege", fields: [audienceCollegeId], references: [id])
   audienceSection   Section? @relation("EventAudienceSection", fields: [audienceSectionId], references: [id])
 
+  /// Fines (plan §8.5): when the nightly generation ran for this event, which is
+  /// what makes it idempotent, and its optional rule override.
+  finesIssuedAt DateTime?
+  fineRule      FineRule? @relation("EventFineRule")
+  fines         Fine[]
+
   /// Recurring series (plan §8.2): the master carries the rule, the later
   /// instances point back at it. Instances are real events so attendance and
   /// registration stay per occurrence.
@@ -253,6 +262,56 @@ model Announcement {
   @@map("announcements")
 }
 
+/// Fine rules (plan §8.5): one row per scope — global, one event, one category —
+/// with event > category > global precedence resolved in `server/utils/fines.ts`.
+/// Money is in centavos so nothing rounds twice.
+model FineRule {
+  id               String   @id @default(uuid())
+  scope            String   @default("global") // global | event | category
+  eventId          String?  @unique
+  categoryId       String?  @unique
+  absentCentavos   Int      @default(5000)
+  lateCentavos     Int      @default(2500)
+  lateAfterMinutes Int      @default(30)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  event    Event?          @relation("EventFineRule", fields: [eventId], references: [id], onDelete: Cascade)
+  category EventCategory?  @relation("CategoryFineRule", fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("fine_rules")
+}
+
+/// One fine per student per event. Generated after the check-in window closes;
+/// an approved excuse waives it (P4c) and a Treasurer payment settles it (P4d).
+model Fine {
+  id             String    @id @default(uuid())
+  userId         String
+  eventId        String
+  kind           String // absent | late
+  amountCentavos Int
+  status         String    @default("unpaid") // unpaid | paid | waived
+  ruleSnapshot   Json?
+  issuedAt       DateTime  @default(now())
+  paidAt         DateTime?
+  paidBy         String?
+  paymentRef     String?
+  waivedAt       DateTime?
+  waivedBy       String?
+  waiveReason    String?
+
+  user   User  @relation("FineOwner", fields: [userId], references: [id], onDelete: Cascade)
+  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  payer  User? @relation("FinePaidBy", fields: [paidBy], references: [id], onDelete: SetNull)
+  waiver User? @relation("FineWaivedBy", fields: [waivedBy], references: [id], onDelete: SetNull)
+
+  @@unique([userId, eventId])
+  @@index([userId, status])
+  @@index([eventId])
+  @@index([status])
+  @@map("fines")
+}
+
 /// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,
 /// Seminar, …. Editable by settings managers; archived rather than deleted
 /// while events still reference them.
@@ -266,6 +325,7 @@ model EventCategory {
   createdAt DateTime @default(now())
 
   events Event[]
+  fineRule FineRule? @relation("CategoryFineRule")
 
   @@map("event_categories")
 }

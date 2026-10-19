@@ -629,7 +629,13 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - **web push remains deferred** — it needs the PWA service worker and VAPID keys (a console decision); the `push` preference is stored so the choice is not lost
 
 ### P4 Fines & clearance
-- [ ] Fine rules (defaults ₱50 absent / ₱25 late, editable) + auto-generation + excuses
+- [x] Fine rules + auto-generation (defaults ₱50 absent / ₱25 late, editable) (2026-10-19, `feat/p4a-fines`)
+  - additive `fine_rules` (one row per scope: **global, per category, per event**, resolved event > category > global in `server/utils/fines.ts`) and `fines` (one per student per event; the unique index is the last line of defence against double-charging); `events.finesIssuedAt` makes the nightly generation idempotent
+  - **money is integer centavos everywhere** — ₱50 is 5000, so nothing rounds twice; `formatPeso` is the only place that turns it into text, and each fine snapshots the rule that produced it so a later rate change never rewrites history
+  - `GET /api/cron/event-fines` (CRON_SECRET): for every past event whose window has closed, resolve the **required audience** (the same resolver as the dashboard), take each person's first check-in and plan fines — nobody outside the audience is ever charged, and anyone on time owes nothing; the fined students are notified (`fine_issued`)
+  - `GET/PUT /api/settings/fines` (settings managers: global rates, late threshold, per-category overrides), `GET/PUT/DELETE /api/events/:id/fine-rule` (per-event override), `GET /api/fines` (staff, or a `view_roster` delegate for one event) and `GET /api/fines/mine` (self); Student 360 carries `finances` (fines, unpaid total, cleared)
+  - UI: `/manage/fines` (unpaid/settled/waived summary, the list, the rates editor for managers) and a fines/clearance card on the student dashboard
+- [ ] Excuse requests (approve, then waive)
 - [ ] Payments + clearance + public verification
 
 ### Elections (deferred)

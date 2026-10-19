@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../../utils/auth'
 import { defineApiHandler, notFound, respond } from '../../../utils/http'
 import { attendedIds, methodMix, rate, signatureRate } from '../../../utils/analytics'
 import { attendanceRows, eventsInWindow, resolveSemester } from '../../../utils/analytics-data'
+import { formatPeso, totalCentavos } from '../../../utils/fines'
 
 /**
  * GET /api/analytics/students/:id?semesterId= — **Student 360** (plan §8.3):
@@ -59,6 +60,14 @@ export default defineApiHandler(async (event) => {
     }))
     .sort((a, b) => b.at.getTime() - a.at.getTime())
 
+  // Fines and clearance (plan §8.5): part of Student 360 by design.
+  const fines = await prisma.fine.findMany({
+    where: { userId: studentId },
+    orderBy: { issuedAt: 'desc' },
+    include: { event: { select: { id: true, title: true, date: true } } }
+  })
+  const unpaid = totalCentavos(fines)
+
   return {
     student: {
       id: student.id,
@@ -85,6 +94,12 @@ export default defineApiHandler(async (event) => {
       methods: methodMix(rows),
       firstAt: history.length > 0 ? history[history.length - 1]!.at : null,
       lastAt: history.length > 0 ? history[0]!.at : null
+    },
+    finances: {
+      fines,
+      unpaidCentavos: unpaid,
+      unpaidPesos: formatPeso(unpaid),
+      cleared: unpaid === 0
     },
     history
   }

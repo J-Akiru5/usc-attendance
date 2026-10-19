@@ -42,6 +42,21 @@ const registrationError = ref('')
 interface MyAttendance { events: number, attended: number, rate: number, signatures: { signed: number, rate: number } }
 const myAttendance = ref<MyAttendance | null>(null)
 
+// A student's own fines and clearance (plan §8.5).
+interface MyFines {
+  summary: { count: number, unpaid: number, unpaidCentavos: number, unpaidPesos: string, cleared: boolean }
+  fines: Array<{ id: string, kind: string, status: string, event: { id: string, title: string } | null }>
+}
+const myFines = ref<MyFines | null>(null)
+
+async function loadMyFines() {
+  try {
+    myFines.value = await api.get<MyFines>('/fines/mine')
+  } catch {
+    myFines.value = null
+  }
+}
+
 async function loadMyAttendance() {
   if (!auth.user?.id) return
   try {
@@ -107,7 +122,7 @@ onMounted(async () => {
   const today = new Date().toISOString().split('T')[0] ?? ''
   todayEvents.value = events.events.filter(e => e.date.startsWith(today))
   if (auth.isStudent) {
-    await Promise.all([loadRegistrations(), loadMyAttendance()])
+    await Promise.all([loadRegistrations(), loadMyAttendance(), loadMyFines()])
   }
 })
 
@@ -167,6 +182,32 @@ function formatTime(dateStr: string) {
 
     <!-- Student view: show your QR at the venue; an officer scans it -->
     <div v-if="auth.isStudent" class="space-y-4">
+      <Card v-if="myFines">
+        <CardContent class="p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs uppercase tracking-wide text-slate">
+              My fines
+            </div>
+            <div class="flex items-center gap-3">
+              <span v-if="myFines.summary.cleared" class="text-sm font-semibold text-success">Cleared — nothing owed</span>
+              <span v-else class="text-sm text-navy">
+                <span class="font-mono font-semibold">{{ myFines.summary.unpaidPesos }}</span> unpaid
+              </span>
+              <Badge :variant="myFines.summary.cleared ? 'success' : 'warning'">
+                {{ myFines.summary.unpaid }} unpaid
+              </Badge>
+            </div>
+          </div>
+          <ul v-if="myFines.fines.length > 0" class="mt-2 divide-y divide-line text-sm">
+            <li v-for="fine in myFines.fines.slice(0, 3)" :key="fine.id" class="flex items-center justify-between gap-2 py-1.5">
+              <span class="min-w-0 truncate text-navy">{{ fine.event?.title ?? 'Event' }}</span>
+              <span class="shrink-0 text-xs text-slate">
+                {{ fine.kind === 'absent' ? 'Absence' : 'Late' }} · {{ fine.status }}
+              </span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
       <div class="rounded-xl border border-gold/30 bg-paper-panel p-4 text-sm text-navy">
         An officer records your attendance by scanning your QR code at the venue. Pick the event below to show it,
         then sign on your phone when asked.
