@@ -35,6 +35,7 @@ model User {
   consentSource  String?
 
   createdEvents Event[]       @relation("EventCreator")
+  cancelledEvents Event[]     @relation("EventCanceller")
   attendance    Attendance[]
   recorded      Attendance[]  @relation("RecordedBy")
   officeDuties  OfficeDuty[]
@@ -172,6 +173,16 @@ model Event {
   finesIssuedAt DateTime?
   fineRule      FineRule? @relation("EventFineRule")
   fines         Fine[]
+
+  /// Cancellation (benchmark BC-7). One-way on purpose: a cancelled event is a
+  /// record of something called off, and re-instating it would quietly re-arm the
+  /// fines and reminders. Cancelled events are inert — no reminders, no fines,
+  /// no registration, no check-in.
+  status       String    @default("scheduled") // scheduled | cancelled
+  cancelledAt  DateTime?
+  cancelledBy  String?
+  cancelReason String?
+  canceller    User?     @relation("EventCanceller", fields: [cancelledBy], references: [id], onDelete: SetNull)
 
   /// Recurring series (plan §8.2): the master carries the rule, the later
   /// instances point back at it. Instances are real events so attendance and

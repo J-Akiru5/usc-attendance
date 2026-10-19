@@ -641,7 +641,18 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - evidence attachments go to **object storage, never the database** (the same bucket as signatures under `excuses/`, filesystem in development) — PNG/JPEG/PDF up to 5 MB, and the attachment is readable only by its owner or by roster staff
   - endpoints: `POST/GET /api/fines/:id/excuse` (self; the GET also serves staff), `GET /api/excuses?status=pending` (the review queue: staff, or a `view_roster` delegate scoped to one event), `POST /api/excuses/:id/review` (approve/deny with a note), `GET /api/excuses/:id/attachment`
   - both outcomes notify the student (`excuse_approved` / `excuse_denied`) through the notification core; UI: `/fines` for the student (their fines, standing, and the filing form with evidence) and a review queue on `/manage/fines`
-- [ ] Payments + clearance + public verification
+- [x] Payments + clearance + public verification (2026-10-19, `feat/p4c-payments`)
+  - additive `payments` (one per fine, settled in full with an OR number or a GCash reference; partial payments stay out of scope for v1) and `clearances` (a certificate with a random code, its covered amount and a snapshot of what it covered)
+  - the public `GET /api/verify/:code` needs no session, returns only what a clearance is *for* (name, student number, issued date, amount), and **recomputes the live standing**, so an old certificate for someone who now owes money reads "no longer cleared" rather than lying — that recomputation is the tamper check the plan asks for; revocation is reported as such, and codes avoid I/O/0/1 so they can be read aloud
+  - `POST /api/fines/:id/payment` (staff: records, marks paid, audits, notifies the student with the remaining balance), `GET /api/clearance/mine`, `POST /api/clearance/issue` (409 while money is owed), `POST /api/clearance/revoke`; Student 360 carries `payments` and the certificate
+  - UI: the public `/verify/[code]` page, a clearance card on the student's `/fines`, and payment + issue/revoke actions on `/manage/students/[id]`
+- [x] Event cancellation (2026-10-19, `feat/p4e-event-cancellation`) — benchmark BC-7
+  - additive `status` (`scheduled` | `cancelled`) + `cancelledAt`/`cancelledBy`/`cancelReason`; cancellation is **one-way on purpose** (re-instating an event would quietly re-arm the fines and reminders)
+  - a cancelled event is inert everywhere: `assertEventActive` is called from `assertCheckInOpen` (so every check-in path refuses), the registration route refuses (409), and both the reminder and the fine crons filter cancelled events out entirely — without this a rained-out assembly would have billed everyone who stayed home
+  - `POST /api/events/:id/cancel` (staff, audited) tells the registrants (or the required audience) exactly once, through the notification core with a per-event dedupe key; the event page shows a Cancelled badge with the reason and who called it off, and carries the cancel action
+- [ ] Freeze the expected roster at window close (benchmark BC-4)
+- [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
+- [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7
 
 ### Elections (deferred)
 - [ ] Revisit with the COMELEC before election season
