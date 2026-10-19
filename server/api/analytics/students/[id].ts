@@ -68,6 +68,20 @@ export default defineApiHandler(async (event) => {
   })
   const unpaid = totalCentavos(fines)
 
+  const [payments, clearance] = await Promise.all([
+    prisma.payment.findMany({
+      where: { userId: studentId },
+      orderBy: { receivedAt: 'desc' },
+      take: 20,
+      select: { id: true, amountCentavos: true, method: true, reference: true, receivedAt: true, fine: { select: { id: true, kind: true, event: { select: { title: true } } } } }
+    }),
+    prisma.clearance.findFirst({
+      where: { userId: studentId },
+      orderBy: { issuedAt: 'desc' },
+      select: { id: true, code: true, issuedAt: true, coveredCentavos: true, revokedAt: true }
+    })
+  ])
+
   return {
     student: {
       id: student.id,
@@ -99,7 +113,9 @@ export default defineApiHandler(async (event) => {
       fines,
       unpaidCentavos: unpaid,
       unpaidPesos: formatPeso(unpaid),
-      cleared: unpaid === 0
+      cleared: unpaid === 0,
+      payments,
+      clearance
     },
     history
   }
