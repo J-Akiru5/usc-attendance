@@ -55,6 +55,9 @@ model User {
   fineWaivers        Fine[]              @relation("FineWaivedBy")
   excuses            Excuse[]            @relation("ExcuseOwner")
   excusesReviewed    Excuse[]            @relation("ExcuseReviewer")
+  documents          Document[]          @relation("DocumentCreator")
+  documentVersions   DocumentVersion[]   @relation("DocumentVersionCreator")
+  documentAttachments DocumentAttachment[] @relation("DocumentAttachmentCreator")
   payments           Payment[]           @relation("PaymentStudent")
   paymentsReceived   Payment[]           @relation("PaymentReceiver")
   clearances         Clearance[]         @relation("ClearanceStudent")
@@ -192,6 +195,9 @@ model Event {
   recurrenceIndex Int?
   series      Event?  @relation("EventSeries", fields: [seriesId], references: [id], onDelete: Cascade)
   occurrences Event[] @relation("EventSeries")
+
+  /// Documents filed against this event (plan §8.8): minutes, resolutions, reports.
+  documents   Document[] @relation("DocumentEvent")
 
   @@index([categoryId])
   @@index([seriesId])
@@ -709,4 +715,134 @@ model Settings {
   updatedAt           DateTime @updatedAt
 
   @@map("settings")
+}
+
+// ---------------------------------------------------------------------------
+// Documents & resolutions archive (plan §8.8)
+// ---------------------------------------------------------------------------
+
+/// A filing type — minutes, resolutions, memos, constitution/by-laws, reports —
+/// with the prefix its numbers carry and the zero-padding of the sequence
+/// ("Resolution No. 2026-014" = prefix "Resolution No.", pad 3). Editable; the
+/// seeded five are a starting point, never a closed list.
+model DocumentType {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  prefix    String
+  pad       Int      @default(3)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  documents Document[]
+  sequences DocumentSequence[]
+
+  @@map("document_types")
+}
+
+/// The per-type, per-year counter. One row per type+year, bumped by a single
+/// atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`, so two officers filing
+/// at the same instant can never draw the same number. Numbers are never reset,
+/// never reused and never handed back (a failed create burns its number on
+/// purpose — see server/utils/documents.ts).
+model DocumentSequence {
+  typeId    String
+  year      Int
+  last      Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  type DocumentType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  @@id([typeId, year])
+  @@map("document_sequences")
+}
+
+/// One archived document. The row carries the *current* version's content so
+/// lists and search stay a single-table read; every version is kept forever in
+/// `document_versions`. `searchText` is the search corpus (title + body + tags +
+/// the text extracted from every attachment) and the GIN-indexed `searchVector`
+/// tsvector column is generated from it by the migration, not by the app.
+///
+/// `financeRef` is a free-text reference (budget line / liquidation code) until
+/// the P6 finance tables land and a real foreign key can replace it.
+model Document {
+  id             String   @id @default(uuid())
+  typeId         String
+  year           Int
+  sequence       Int
+  number         String   @unique
+  title          String
+  body           String   @db.Text
+  tags           String[]
+  visibility     String   @default("officers") // public | officers
+  currentVersion Int      @default(1)
+  archived       Boolean  @default(false)
+  searchText     String   @default("") @db.Text
+  /// tsvector generated from `searchText` by the migration (see the add_documents
+  /// migration); queried with $queryRaw, never written through Prisma.
+  searchVector   Unsupported("tsvector")?
+  eventId        String?
+  financeRef     String?
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  type        DocumentType         @relation(fields: [typeId], references: [id])
+  event       Event?               @relation("DocumentEvent", fields: [eventId], references: [id], onDelete: SetNull)
+  creator     User                 @relation("DocumentCreator", fields: [createdBy], references: [id])
+  versions    DocumentVersion[]
+  attachments DocumentAttachment[]
+
+  @@index([typeId, year])
+  @@index([visibility, archived, createdAt])
+  @@map("documents")
+}
+
+/// One immutable version of a document: the content as it stood, who wrote it
+/// and when. Editing a document appends a version; nothing here is ever
+/// updated, so the older wording stays readable exactly as it was filed.
+model DocumentVersion {
+  id         String   @id @default(uuid())
+  documentId String
+  version    Int
+  title      String
+  body       String   @db.Text
+  tags       String[]
+  visibility String
+  changeNote String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  document    Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  creator     User                 @relation("DocumentVersionCreator", fields: [createdBy], references: [id])
+  attachments DocumentAttachment[]
+
+  @@unique([documentId, version])
+  @@index([documentId, version])
+  @@map("document_versions")
+}
+
+/// A file that came with a document. Bytes live in object storage (never the
+/// database — plan §11.1) and the row keeps the key, the metadata and the text
+/// extracted at upload time, which is what makes a phrase inside the file
+/// searchable.
+model DocumentAttachment {
+  id              String    @id @default(uuid())
+  documentId      String
+  versionId       String?
+  fileName        String
+  mime            String
+  size            Int
+  storageKey      String
+  textContent     String?   @db.Text
+  textExtractedAt DateTime?
+  createdBy       String
+  createdAt       DateTime  @default(now())
+
+  document Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version  DocumentVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  creator  User             @relation("DocumentAttachmentCreator", fields: [createdBy], references: [id])
+
+  @@index([documentId])
+  @@map("document_attachments")
 }
