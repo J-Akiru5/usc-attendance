@@ -1,6 +1,7 @@
 import { getMethod, getRouterParam } from 'h3'
 import { prisma } from '../../../utils/prisma'
-import { authenticate, requireStaff } from '../../../utils/auth'
+import { authenticate } from '../../../utils/auth'
+import { requireCapability } from '../../../utils/rbac'
 import { defineApiHandler, HttpError, readJsonBody, respond } from '../../../utils/http'
 import { formatPeso } from '../../../utils/fines'
 import { paymentBlockedReason, validatePayment } from '../../../utils/payments'
@@ -15,7 +16,9 @@ export default defineApiHandler(async (event) => {
   if (getMethod(event) !== 'POST') return respond(event, 405, { error: 'Method not allowed' })
 
   const user = await authenticate(event)
-  requireStaff(user)
+  // D-06: recording money needs the finance capability (in practice the
+  // Treasurer, or the President when they are away) — not merely "staff".
+  requireCapability(user, 'finance.manage')
 
   const fineId = getRouterParam(event, 'id') ?? ''
   const fine = await prisma.fine.findUnique({

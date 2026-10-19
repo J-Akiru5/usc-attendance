@@ -33,7 +33,9 @@ export default defineApiHandler(async (event) => {
   const results: Array<{ id: string, title: string, recipients: number, sent: number, duplicates: number, emails: number }> = []
 
   for (const row of due) {
-    const outcome = await dispatchAnnouncement(prisma, row, now)
+    // Scheduled announcements are inbox-first (D-08): nobody is at the keyboard
+    // to weigh the quota, so email is not attempted from the scheduler.
+    const outcome = await dispatchAnnouncement(prisma, row, { now, email: false })
     results.push({ id: row.id, title: row.title, ...outcome })
     await prisma.auditLog.create({
       data: {

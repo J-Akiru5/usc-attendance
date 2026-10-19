@@ -266,22 +266,32 @@ onMounted(async () => {
   try {
     const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
 
+    // D-03: iOS officers do QR-only duty. Reading 1D barcodes on iOS Safari leans
+    // on a polyfill we cannot verify from here, so the supported split is QR
+    // everywhere and ID barcodes on Chromium — with the number search below as
+    // the fallback on any phone.
+    const isAppleMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    const formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      ...(isAppleMobile
+        ? []
+        : [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E
+          ])
+    ]
+
     if (scannerRef.value) {
       html5QrScanner = new Html5Qrcode('qr-scanner', {
         verbose: false,
-        // A student's phone shows a QR; an ISUFST ID carries a 1D barcode.
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.CODE_93,
-          Html5QrcodeSupportedFormats.CODABAR,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E
-        ]
+        formatsToSupport: formats
       })
       await html5QrScanner.start(
         { facingMode: 'environment' },
@@ -322,6 +332,7 @@ onUnmounted(() => {
       </h1>
       <p class="text-white/50 text-sm mt-1">
         A student's QR code, or the barcode / number on their ID. Location must be on — you have to be at the venue.
+        On iPhone, scan QR codes and use the number search below for the rest.
       </p>
     </div>
 

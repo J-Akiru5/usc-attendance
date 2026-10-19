@@ -90,6 +90,16 @@ export interface DispatchResult {
   emails: number
 }
 
+export interface DispatchOptions {
+  /**
+   * D-08: announcements are an *inbox* event by default; email is opted into per
+   * send. Transactional kinds (verification, reset, fine, clearance) are
+   * unaffected — they email as before.
+   */
+  email?: boolean
+  now?: Date
+}
+
 /**
  * Delivers one announcement through the notification core and stamps it sent.
  * Idempotent: every recipient's notification carries `announcement:<id>`, so a
@@ -106,8 +116,9 @@ export async function dispatchAnnouncement(
     audienceYearLevel: number | null
     audienceSectionId: string | null
   },
-  now: Date = new Date()
+  options: DispatchOptions = {}
 ): Promise<DispatchResult> {
+  const now = options.now ?? new Date()
   const recipients = await resolveAudience(db, specFromEvent(row))
   const text = plainAnnouncementBody(row.body)
 
@@ -120,10 +131,20 @@ export async function dispatchAnnouncement(
         body: text,
         link: '/notifications',
         dedupeKey: dedupeKeyFor('announcement', row.id),
-        emailAllowed: true
+        emailAllowed: options.email === true
       })))
 
   await db.announcement.update({ where: { id: row.id }, data: { status: 'sent', sentAt: now } })
 
   return { recipients: recipients.length, ...result }
+}
+
+/**
+ * D-08: email is opt-in per send, and a send that would exceed the day's
+ * remaining budget is refused with the options spelled out — never quietly
+ * downgraded, which is how an announcement reaches nobody and nobody notices.
+ */
+export function emailBudgetError(recipients: number, remaining: number): string | null {
+  if (recipients <= remaining) return null
+  return `That would email ${recipients} people, but only ${remaining} emails are left today. Send it in-app only, or email it tomorrow.`
 }

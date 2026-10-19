@@ -41,6 +41,9 @@ async function mkUser(key: string, extra: Record<string, unknown> = {}) {
 
 async function main() {
   const staff = await mkUser('staff', { role: 'staff' })
+  // D-06: money is recorded by someone holding the finance capability — the
+  // Treasurer in practice, here a super admin — and not by staff at large.
+  const manager = await mkUser('manager', { role: 'super_admin', canConfigure: true })
   const student = await mkUser('student', { role: 'student' })
   const other = await mkUser('other', { role: 'student' })
   await prisma.studentProfile.create({ data: { userId: student.id, studentNo: `${tag.slice(-7)}1`, yearLevel: 2 } })
@@ -62,26 +65,30 @@ async function main() {
   made.fineIds.push(fineA.id, fineB.id)
 
   console.log('\n--- recording a payment ---')
-  let r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: student.token, body: { method: 'cash', reference: 'OR-1' } })
+  // D-06: recording money needs the finance capability, not merely being staff.
+  let r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'cash', reference: 'OR-BEFORE-TREASURER' } })
+  check('a plain staff member cannot record a payment (403)', r._s === 403, `${r._s}`)
+
+  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: student.token, body: { method: 'cash', reference: 'OR-1' } })
   check('a student cannot record their own payment (403)', r._s === 403, `${r._s}`)
 
-  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'cheque', reference: 'X-1' } })
+  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: manager.token, body: { method: 'cheque', reference: 'X-1' } })
   check('an invented method is refused (400)', r._s === 400, `${r._s}`)
 
-  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'cash', reference: '' } })
+  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: manager.token, body: { method: 'cash', reference: '' } })
   check('a missing OR number is refused (400)', r._s === 400, `${r._s}`)
 
-  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'cash', reference: 'OR-2026-001', amountCentavos: 2500 } })
+  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: manager.token, body: { method: 'cash', reference: 'OR-2026-001', amountCentavos: 2500 } })
   check('a partial amount is refused (400)', r._s === 400, `${r._s}`)
 
-  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'cash', reference: 'OR-2026-001' } })
+  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: manager.token, body: { method: 'cash', reference: 'OR-2026-001' } })
   check('the Treasurer records the payment (201)', r._s === 201 && r._b?.fine?.status === 'paid', `${r._s} ${JSON.stringify(r._b?.fine)}`)
   check('and the account still shows what is owed', r._b?.account?.unpaidPesos === '₱25.00' && r._b?.account?.cleared === false, JSON.stringify(r._b?.account))
 
   const paidFine = await prisma.fine.findUnique({ where: { id: fineA.id } })
   check('the fine carries the receipt reference', paidFine?.status === 'paid' && paidFine.paymentRef === 'OR-2026-001', `${paidFine?.status} ${paidFine?.paymentRef}`)
 
-  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'cash', reference: 'OR-2026-002' } })
+  r = await api(`/api/fines/${fineA.id}/payment`, { method: 'POST', token: manager.token, body: { method: 'cash', reference: 'OR-2026-002' } })
   check('paying twice is refused (409)', r._s === 409, `${r._s}`)
 
   const notified = await prisma.notification.findMany({ where: { userId: student.id, kind: 'payment_recorded' } })
@@ -91,14 +98,14 @@ async function main() {
   r = await api('/api/clearance/mine', { token: student.token })
   check('not cleared while money is owed (200)', r._s === 200 && r._b?.state?.cleared === false && r._b?.state?.unpaidPesos === '₱25.00', `${r._s} ${JSON.stringify(r._b?.state)}`)
 
-  r = await api('/api/clearance/issue', { method: 'POST', token: staff.token, body: { userId: student.id } })
+  r = await api('/api/clearance/issue', { method: 'POST', token: manager.token, body: { userId: student.id } })
   check('a certificate cannot be issued while money is owed (409)', r._s === 409, `${r._s} ${JSON.stringify(r._b)}`)
 
-  r = await api(`/api/fines/${fineB.id}/payment`, { method: 'POST', token: staff.token, body: { method: 'gcash', reference: 'GC-8891234', note: 'Paid at the office' } })
+  r = await api(`/api/fines/${fineB.id}/payment`, { method: 'POST', token: manager.token, body: { method: 'gcash', reference: 'GC-8891234', note: 'Paid at the office' } })
   check('the last fine is settled (201)', r._s === 201 && r._b?.account?.cleared === true, `${r._s} ${JSON.stringify(r._b?.account)}`)
 
   console.log('\n--- issuing and verifying a clearance ---')
-  r = await api('/api/clearance/issue', { method: 'POST', token: staff.token, body: { userId: student.id } })
+  r = await api('/api/clearance/issue', { method: 'POST', token: manager.token, body: { userId: student.id } })
   const clearance = r._b?.clearance
   if (r._s === 201) made.clearanceIds.push(clearance?.id)
   check('staff issue a certificate (201)', r._s === 201 && typeof clearance?.code === 'string' && clearance.code.length === 10, `${r._s} ${JSON.stringify(clearance?.code)}`)
@@ -136,7 +143,7 @@ async function main() {
   r = await api(`/api/verify/${clearance?.code}`)
   check('waiving it makes the certificate valid again', r._b?.status === 'valid', `${JSON.stringify(r._b?.status)}`)
 
-  r = await api('/api/clearance/revoke', { method: 'POST', token: staff.token, body: { clearanceId: clearance?.id, note: 'Issued in error' } })
+  r = await api('/api/clearance/revoke', { method: 'POST', token: manager.token, body: { clearanceId: clearance?.id, note: 'Issued in error' } })
   check('staff can revoke a certificate (200)', r._s === 200 && !!r._b?.clearance?.revokedAt, `${r._s}`)
   r = await api(`/api/verify/${clearance?.code}`)
   check('and verification reports the revocation', r._b?.status === 'revoked', `${JSON.stringify(r._b?.status)}`)
@@ -145,7 +152,7 @@ async function main() {
   check('a student cannot revoke one (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- Student 360 carries the money trail ---')
-  r = await api(`/api/analytics/students/${student.id}`, { token: staff.token })
+  r = await api(`/api/analytics/students/${student.id}`, { token: manager.token })
   check('the payments are listed (200)', r._s === 200 && (r._b?.finances?.payments ?? []).length === 2, `${r._s} ${(r._b?.finances?.payments ?? []).length}`)
   check('and the certificate is shown', r._b?.finances?.clearance?.code === clearance?.code, `${r._b?.finances?.clearance?.code}`)
   check('while the clearing standing is recomputed', r._b?.finances?.cleared === true, `${r._b?.finances?.cleared}`)

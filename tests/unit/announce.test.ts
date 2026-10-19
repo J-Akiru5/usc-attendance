@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveStatus,
   dueAnnouncements,
+  emailBudgetError,
   escapeHtml,
   plainAnnouncementBody,
   renderAnnouncementBody,
@@ -67,6 +68,21 @@ describe('plainAnnouncementBody', () => {
   it('strips the markers for the inbox and the email', () => {
     expect(plainAnnouncementBody('**Assembly** tomorrow, see [the memo](https://usc.edu.ph)'))
       .toBe('Assembly tomorrow, see the memo (https://usc.edu.ph)')
+  })
+})
+
+describe('emailBudgetError', () => {
+  it('allows a send that fits the day', () => {
+    expect(emailBudgetError(10, 40)).toBeNull()
+    expect(emailBudgetError(40, 40)).toBeNull()
+  })
+
+  it('refuses one that would blow the budget, with the options named', () => {
+    const refusal = emailBudgetError(900, 12)
+    expect(refusal).toMatch(/900 people/)
+    expect(refusal).toMatch(/12 emails are left/)
+    expect(refusal).toMatch(/in-app only/i)
+    expect(refusal).toMatch(/tomorrow/i)
   })
 })
 

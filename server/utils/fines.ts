@@ -18,7 +18,9 @@ export interface FineRule {
 export const DEFAULT_FINE_RULE: FineRule = {
   absentCentavos: 5000, // ₱50.00
   lateCentavos: 2500, // ₱25.00
-  lateAfterMinutes: 30
+  // D-05: fifteen minutes, matching the council-facing proposal; every event can
+  // still override it, and the settings screen edits it.
+  lateAfterMinutes: 15
 }
 
 export function resolveRule(global: FineRule | null, category: FineRule | null, event: FineRule | null): FineRule {
