@@ -1,6 +1,6 @@
 import { getMethod, getQuery } from 'h3'
 import { prisma } from '../../utils/prisma'
-import { authenticate } from '../../utils/auth'
+import { authenticate, requireStaff } from '../../utils/auth'
 import { defineApiHandler, respond } from '../../utils/http'
 import { requireEventScope } from '../../utils/delegation'
 import { totalCentavos, formatPeso } from '../../utils/fines'
@@ -21,7 +21,6 @@ export default defineApiHandler(async (event) => {
   if (eventId) {
     await requireEventScope(prisma, user, eventId, 'view_roster')
   } else {
-    const { requireStaff } = await import('../../utils/auth')
     requireStaff(user)
   }
 
