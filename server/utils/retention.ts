@@ -1,5 +1,6 @@
 import { HttpError, badRequest } from './http'
 import { requireCapability } from './rbac'
+import { assertEventActive } from './cancellation'
 
 export interface SemesterLike {
   id?: string
@@ -99,6 +100,9 @@ const fmt = (d: Date) =>
 
 /** Throws 403 if `now` is outside the event's check-in window. No window = always open. */
 export function assertCheckInOpen(event: WindowLike, now: Date = new Date()): void {
+  // A cancelled event is inert before anything else is even considered
+  // (benchmark BC-7): no reminders, no check-ins, no fines.
+  assertEventActive(event as WindowLike & { status?: string | null })
   if (event.checkInOpensAt && now.getTime() < event.checkInOpensAt.getTime()) {
     throw new HttpError(403, `Check-in has not opened yet. It opens ${fmt(event.checkInOpensAt)}.`)
   }

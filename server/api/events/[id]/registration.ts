@@ -4,6 +4,7 @@ import { authenticate } from '../../../utils/auth'
 import { badRequest, defineApiHandler, notFound, respond } from '../../../utils/http'
 import { cancelRegistration, registerForEvent, seatsLeft } from '../../../utils/registrations'
 import { notifyUser, dedupeKeyFor, notifier } from '../../../utils/notify'
+import { assertEventActive } from '../../../utils/cancellation'
 
 /**
  * /api/events/:id/registration — the caller's own place at an event (plan §8.2).
@@ -18,9 +19,12 @@ export default defineApiHandler(async (event) => {
 
   const eventRow = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, capacity: true, registrationRequired: true }
+    select: { id: true, capacity: true, registrationRequired: true, status: true, title: true }
   })
   if (!eventRow) throw notFound('Event not found')
+
+  // A cancelled event takes no registrations either (benchmark BC-7).
+  assertEventActive(eventRow)
 
   const seats = async () => {
     const registered = await prisma.eventRegistration.count({ where: { eventId, status: 'registered' } })
