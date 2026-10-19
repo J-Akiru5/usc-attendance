@@ -6,6 +6,7 @@ import { defineApiHandler, HttpError, readJsonBody, respond } from '../../../uti
 import { formatPeso } from '../../../utils/fines'
 import { paymentBlockedReason, validatePayment } from '../../../utils/payments'
 import { notifier, notifyUser } from '../../../utils/notify'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * POST /api/fines/:id/payment — the Treasurer records a settlement (plan §8.5):
@@ -58,13 +59,15 @@ export default defineApiHandler(async (event) => {
     data: { status: 'paid', paidAt: payment.receivedAt, paidBy: user.id, paymentRef: input.reference }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'payment_recorded',
-      details: JSON.stringify({ fineId, paymentId: payment.id, amountCentavos: input.amountCentavos, method: input.method, reference: input.reference }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'payment_recorded',
+    targetType: 'fine',
+    targetId: fineId,
+    // The money concerns the student, not the Treasurer who recorded it.
+    userId: fine.userId,
+    details: { paymentId: payment.id, amountCentavos: input.amountCentavos, method: input.method, reference: input.reference },
+    ...auditContext(event)
   })
 
   const remaining = await prisma.fine.findMany({ where: { userId: fine.userId }, select: { amountCentavos: true, status: true } })

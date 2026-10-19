@@ -4,6 +4,7 @@ import { authenticate } from '../../utils/auth'
 import { defineApiHandler, readJsonBody, respond } from '../../utils/http'
 import { requireSettingsManager } from '../../utils/retention'
 import { DEFAULT_FINE_RULE, formatPeso, resolveRule, validateRule, type FineRule } from '../../utils/fines'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * GET/PUT /api/settings/fines — the fine rates (plan §8.5). The global rule is
@@ -66,8 +67,13 @@ export default defineApiHandler(async (event) => {
       update: rule
     })
 
-    await prisma.auditLog.create({
-      data: { userId: actor.id, action: 'fine_rule_updated', details: JSON.stringify({ scope: 'category', categoryId, ...rule }), performedBy: actor.id }
+    await auditWrite(prisma, {
+      actor: actor,
+      action: 'fine_rule_updated',
+      targetType: 'fine_rule',
+      targetId: saved.id,
+      details: { scope: 'category', categoryId, ...rule },
+      ...auditContext(event)
     })
     return { rule: asRule(saved), pesos: { absent: formatPeso(saved.absentCentavos), late: formatPeso(saved.lateCentavos) } }
   }
@@ -79,8 +85,13 @@ export default defineApiHandler(async (event) => {
     ? await prisma.fineRule.update({ where: { id: existing.id }, data: rule })
     : await prisma.fineRule.create({ data: { scope: 'global', ...rule } })
 
-  await prisma.auditLog.create({
-    data: { userId: actor.id, action: 'fine_rule_updated', details: JSON.stringify({ scope: 'global', ...rule }), performedBy: actor.id }
+  await auditWrite(prisma, {
+    actor: actor,
+    action: 'fine_rule_updated',
+    targetType: 'fine_rule',
+    targetId: saved.id,
+    details: { scope: 'global', ...rule },
+    ...auditContext(event)
   })
 
   // What an event with no overrides would actually use, for the caller's sanity.

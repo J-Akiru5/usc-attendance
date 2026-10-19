@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../../utils/auth'
 import { defineApiHandler, notFound, respond } from '../../../utils/http'
 import { attendedIds, methodMix, rate, signatureRate } from '../../../utils/analytics'
 import { attendanceRows, eventsInWindow, resolveSemester } from '../../../utils/analytics-data'
+import { auditContext, auditRead } from '../../../utils/audit'
 import { clearanceState, formatPeso, totalCentavos } from '../../../utils/fines'
 
 /**
@@ -83,6 +84,17 @@ export default defineApiHandler(async (event) => {
       select: { id: true, code: true, issuedAt: true, coveredCentavos: true, revokedAt: true }
     })
   ])
+
+  // BC-10: who read this student's full record, and when. Metadata only — the
+  // row names the surface and the semester, never the profile it returned.
+  await auditRead(prisma, {
+    actor: user,
+    action: 'student_record_viewed',
+    targetType: 'student',
+    targetId: studentId,
+    details: { surface: 'student360', semesterId: window.id ?? null },
+    ...auditContext(event)
+  })
 
   return {
     student: {

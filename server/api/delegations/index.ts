@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { authenticate } from '../../utils/auth'
 import { badRequest, defineApiHandler, forbidden, notFound, readJsonBody, respond } from '../../utils/http'
 import { computeExpiry, parseScopes, requireCanDelegate } from '../../utils/delegation'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 const PERSON = { id: true, name: true, position: true } as const
 
@@ -66,19 +67,19 @@ export default defineApiHandler(async (event) => {
         data: { eventId, userId, scopes, grantedBy: actor.id, expiresAt },
         include: { user: { select: PERSON }, granter: { select: PERSON } }
       })
-      await tx.auditLog.create({
-        data: {
-          userId,
-          action: 'delegation_granted',
-          details: JSON.stringify({
-            eventId,
-            scopes,
-            expiresAt: expiresAt.toISOString(),
-            grantId: created.id,
-            replacedGrants: replaced.count
-          }),
-          performedBy: actor.id
-        }
+      await auditWrite(tx, {
+        actor,
+        action: 'delegation_granted',
+        targetType: 'delegation_grant',
+        targetId: created.id,
+        userId,
+        details: {
+          eventId,
+          scopes,
+          expiresAt: expiresAt.toISOString(),
+          replacedGrants: replaced.count
+        },
+        ...auditContext(event)
       })
       return created
     })

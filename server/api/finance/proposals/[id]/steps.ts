@@ -16,6 +16,7 @@ import {
 } from '../../../../utils/finance'
 import { hasCapability } from '../../../../utils/rbac'
 import { financeObjectKey, financeStorage, readUploadedFile } from '../../../../utils/finance-storage'
+import { auditContext, auditWrite } from '../../../../utils/audit'
 
 /**
  * POST /api/finance/proposals/:id/steps — record one step of the proposal
@@ -141,21 +142,21 @@ export default defineApiHandler(async (event) => {
     return { row, updated }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'finance_proposal_step',
-      details: JSON.stringify({
-        proposalId: id,
-        step,
-        signatoryName,
-        actedAt: actedAt.toISOString(),
-        hasAttachment: !!attachment,
-        status: proposalStatus(stepNames),
-        note
-      }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'finance_proposal_step',
+    targetType: 'budget_proposal',
+    targetId: id,
+    details: {
+      proposalId: id,
+      step,
+      signatoryName,
+      actedAt: actedAt.toISOString(),
+      hasAttachment: !!attachment,
+      status: proposalStatus(stepNames),
+      note
+    },
+    ...auditContext(event)
   })
 
   return respond(event, 201, {

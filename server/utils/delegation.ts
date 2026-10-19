@@ -2,6 +2,7 @@ import { HttpError, badRequest } from './http'
 import { requireCapability } from './rbac'
 import { isStaff, type Actor } from './attendance-rules'
 import { manilaDayRange } from './time'
+import { auditWrite, type AuditDb } from './audit'
 
 export const DELEGATION_SCOPES = ['scan', 'manual_checkin', 'view_roster', 'export'] as const
 export type DelegationScope = (typeof DELEGATION_SCOPES)[number]
@@ -30,11 +31,7 @@ export interface DelegationDb {
       select: { id: true }
     }): Promise<{ id: string } | null>
   }
-  auditLog: {
-    create(args: {
-      data: { userId: string, action: string, details: string, performedBy: string }
-    }): Promise<unknown>
-  }
+  auditLog: AuditDb['auditLog']
 }
 
 /** Validate a requested scope list: non-empty, known values only, de-duplicated. */
@@ -148,12 +145,11 @@ export async function auditDelegationUse(
   scope: DelegationScope,
   extra: Record<string, unknown> = {}
 ): Promise<void> {
-  await db.auditLog.create({
-    data: {
-      userId: actor.id,
-      action: 'delegation_used',
-      details: JSON.stringify({ eventId, scope, ...extra }),
-      performedBy: actor.id
-    }
+  await auditWrite(db, {
+    actor,
+    action: 'delegation_used',
+    targetType: 'event',
+    targetId: eventId,
+    details: { scope, ...extra }
   })
 }

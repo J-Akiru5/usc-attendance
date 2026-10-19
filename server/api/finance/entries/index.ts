@@ -15,6 +15,7 @@ import {
   requireText
 } from '../../../utils/finance'
 import { financeObjectKey, financeStorage, readUploadedFile } from '../../../utils/finance-storage'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * /api/finance/entries — money actually moved (plan §8.7).
@@ -146,38 +147,38 @@ export default defineApiHandler(async (event) => {
     }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'finance_entry_recorded',
-      details: JSON.stringify({
-        entryId: entry.id,
-        lineId,
-        kind,
-        amountCentavos,
-        proposalId: proposal?.id ?? null,
-        hasReceipt: !!receipt
-      }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'finance_entry_recorded',
+    targetType: 'budget_entry',
+    targetId: entry.id,
+    details: {
+      entryId: entry.id,
+      lineId,
+      kind,
+      amountCentavos,
+      proposalId: proposal?.id ?? null,
+      hasReceipt: !!receipt
+    },
+    ...auditContext(event)
   })
 
   if (appliedOverride) {
     // An override is never silent: the numbers that made it necessary are kept.
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'finance_budget_override',
-        details: JSON.stringify({
-          entryId: entry.id,
-          lineId,
-          lineName: line.name,
-          amountCentavos,
-          allocatedCentavos: line.allocatedCentavos,
-          reason: appliedOverride
-        }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'finance_budget_override',
+      targetType: 'budget_entry',
+      targetId: entry.id,
+      details: {
+        entryId: entry.id,
+        lineId,
+        lineName: line.name,
+        amountCentavos,
+        allocatedCentavos: line.allocatedCentavos,
+        reason: appliedOverride
+      },
+      ...auditContext(event)
     })
   }
 

@@ -21,6 +21,7 @@
       (and the site URL is `https://usc.syntaxure.dev`), so password resets and verification links come back to production.
 - [ ] **Vercel → Environment Variables (Production):** `DATABASE_URL` = the Supabase **pooler** string, `DIRECT_URL`,
       `SUPABASE_URL` / `SUPABASE_ANON_KEY` (or `NUXT_PUBLIC_*`), `SUPABASE_SERVICE_ROLE_KEY`, `QR_SECRET`, `CRON_SECRET`,
+      `AUDIT_IP_SALT` (a long random string — audit rows keep only a salted hash of the client address),
       `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SITE_URL` = `NUXT_PUBLIC_SITE_URL` = `https://usc.syntaxure.dev`.
 - [ ] Optional, same screen: `SIGNATURE_STORAGE=r2` (the `R2_*` values are already there for photo uploads) and
       `RESEND_DAILY_LIMIT` if the free-plan ceiling moves.

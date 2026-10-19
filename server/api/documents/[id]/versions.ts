@@ -12,6 +12,7 @@ import {
   visibilityForClassification
 } from '../../../utils/documents'
 import { rebuildPublicSearchText, rebuildSearchText } from '../../../utils/document-archive'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * /api/documents/:id/versions — the immutable history (plan §8.8).
@@ -134,21 +135,20 @@ export default defineApiHandler(async (event) => {
     throw err
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'document_version_filed',
-      details: JSON.stringify({
-        documentId: id,
-        number: document.number,
-        version,
-        visibility: content.visibility,
-        classification,
-        redactedCopyInForce: !!document.redactedVersionId,
-        changeNote
-      }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'document_version_filed',
+    targetType: 'document',
+    targetId: id,
+    details: {
+      number: document.number,
+      version,
+      visibility: content.visibility,
+      classification,
+      redactedCopyInForce: !!document.redactedVersionId,
+      changeNote
+    },
+    ...auditContext(event)
   })
 
   return respond(event, 201, {

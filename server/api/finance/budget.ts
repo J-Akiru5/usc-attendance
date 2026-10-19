@@ -5,6 +5,7 @@ import { defineApiHandler, HttpError, isUniqueViolation, readJsonBody, respond }
 import { formatPeso } from '../../utils/fines'
 import { optionalText, requireFinanceManager, requireFinanceReader, requireText } from '../../utils/finance'
 import { lineViews, resolveBudget, totalsFor, type BudgetWithLines } from '../../utils/finance-data'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * /api/finance/budget — the semester budget (plan §8.7).
@@ -79,13 +80,13 @@ export default defineApiHandler(async (event) => {
         data: { semesterId, notes, createdBy: user.id },
         include: { semester: { select: { id: true, name: true, startsOn: true, endsOn: true } } }
       })
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'finance_budget_opened',
-          details: JSON.stringify({ budgetId: budget.id, semesterId, semester: semester.name }),
-          performedBy: user.id
-        }
+      await auditWrite(prisma, {
+        actor: user,
+        action: 'finance_budget_opened',
+        targetType: 'budget',
+        targetId: budget.id,
+        details: { semesterId, semester: semester.name },
+        ...auditContext(event)
       })
       return respond(event, 201, { budget })
     } catch (error) {

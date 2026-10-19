@@ -4,6 +4,7 @@ import { authenticate } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, isUniqueViolation, notFound, readJsonBody, respond } from '../../utils/http'
 import { SIGN_WINDOW_MS, signatureRef, validateSignature } from '../../utils/signature'
 import { signatureStore, storeSignature } from '../../utils/signature-storage'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 // ---------------------------------------------------------------------------
 // POST /api/attendance/sign   { attendanceId, signature: "data:image/png;base64,..." }
@@ -45,13 +46,15 @@ export default defineApiHandler(async (event) => {
       },
       select: { signedAt: true }
     })
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'attendance_signed',
-        details: JSON.stringify({ attendanceId, sha256 }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'attendance_signed',
+      targetType: 'attendance',
+      targetId: attendanceId,
+      userId: user.id,
+      // The digest proves which image was signed without storing the image in the log.
+      details: { sha256 },
+      ...auditContext(event)
     })
     return respond(event, 201, { signedAt: saved.signedAt, ref: signatureRef(sha256) })
   } catch (err) {

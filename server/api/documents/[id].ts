@@ -10,6 +10,7 @@ import {
   validateFinanceRef,
   visibilityForClassification
 } from '../../utils/documents'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * /api/documents/:id — one filing, in full (plan §8.8).
@@ -148,34 +149,27 @@ export default defineApiHandler(async (event) => {
       })
     : null
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: auditAction(data, classificationChange, publication),
-      details: JSON.stringify(
-        publication
-          ? {
-              documentId: id,
-              number: document.number,
-              actor: user.id,
-              actorName: user.name,
-              from: classificationChange?.from,
-              to: classificationChange?.to,
-              redactedCopyInForce: publication.redactedCopyInForce,
-              redactedVersionId: document.redactedVersionId,
-              confirmedUnredacted: body.confirmUnredactedPublish === true,
-              warning: publication.warning,
-              changes: Object.keys(data)
-            }
-          : {
-              documentId: id,
-              number: document.number,
-              actorName: user.name,
-              changes: Object.keys(data)
-            }
-      ),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: auditAction(data, classificationChange, publication),
+    targetType: 'document',
+    targetId: id,
+    details: publication
+      ? {
+          number: document.number,
+          from: classificationChange?.from,
+          to: classificationChange?.to,
+          redactedCopyInForce: publication.redactedCopyInForce,
+          redactedVersionId: document.redactedVersionId,
+          confirmedUnredacted: body.confirmUnredactedPublish === true,
+          warning: publication.warning,
+          changes: Object.keys(data)
+        }
+      : {
+          number: document.number,
+          changes: Object.keys(data)
+        },
+    ...auditContext(event)
   })
 
   return { document: updated }

@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
 import { clearanceCode, clearanceState } from '../../utils/payments'
 import { notifier, notifyUser } from '../../utils/notify'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * POST /api/clearance/issue — staff issue a clearance certificate (plan §8.5)
@@ -53,13 +54,14 @@ export default defineApiHandler(async (event) => {
     }
   }
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'clearance_issued',
-      details: JSON.stringify({ clearanceId: created?.id, studentId: userId, coveredCentavos: created?.coveredCentavos }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'clearance_issued',
+    targetType: 'clearance',
+    targetId: created?.id ?? null,
+    userId,
+    details: { coveredCentavos: created?.coveredCentavos ?? 0 },
+    ...auditContext(event)
   })
 
   await notifyUser(notifier(prisma), {

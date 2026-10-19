@@ -4,6 +4,7 @@ import { authenticate, requireSuperAdmin } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, isUniqueViolation, notFound, readJsonBody, respond } from '../../utils/http'
 import { normalizeName, normalizeStudentNo, STUDENT_ROLE } from '../../utils/students'
 import { normalizeContactNumber, resolvePlacement } from '../../utils/academic'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 const select = {
   id: true,
@@ -107,13 +108,13 @@ export default defineApiHandler(async (event) => {
         },
         select
       })
-      await tx.auditLog.create({
-        data: {
-          userId: id,
-          action: 'student_updated',
-          details: JSON.stringify({ changed: Object.keys({ ...userData, ...profileData }), active: userData.active }),
-          performedBy: actor.id
-        }
+      await auditWrite(tx, {
+        actor: actor,
+        action: 'student_updated',
+        targetType: 'student',
+        targetId: id,
+        details: { changed: Object.keys({ ...userData, ...profileData }), active: userData.active },
+        ...auditContext(event)
       })
       return u
     })

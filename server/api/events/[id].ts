@@ -5,6 +5,7 @@ import { badRequest, defineApiHandler, HttpError, noContent, notFound, readJsonB
 import { hasEventScope } from '../../utils/delegation'
 import { planOccurrences, syncOccurrences, type SeriesTemplate } from '../../utils/event-series'
 import { audienceColumns, parseAudience, specFromEvent } from '../../utils/audience'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /** The calendar/registration fields (plan §8.2) an update may carry. */
 async function parseExtras(body: Record<string, unknown>) {
@@ -142,13 +143,13 @@ export default defineApiHandler(async (event) => {
           data: { rrule: null, recurrenceIndex: 0 },
           include: { category: { select: { id: true, code: true, name: true, color: true } } }
         })
-        await prisma.auditLog.create({
-          data: {
-            userId: user.id,
-            action: 'event_series_updated',
-            details: JSON.stringify({ eventId: id, cleared: true, ...sync }),
-            performedBy: user.id
-          }
+        await auditWrite(prisma, {
+          actor: user,
+          action: 'event_series_updated',
+          targetType: 'event',
+          targetId: id,
+          details: { cleared: true, ...sync },
+          ...auditContext(event)
         })
         return { ...cleared, occurrenceCount: 1, seriesChange: sync }
       }
@@ -160,13 +161,13 @@ export default defineApiHandler(async (event) => {
         data: { rrule, recurrenceIndex: 0 },
         include: { category: { select: { id: true, code: true, name: true, color: true } } }
       })
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'event_series_updated',
-          details: JSON.stringify({ eventId: id, rrule, occurrences: dates.length, ...sync }),
-          performedBy: user.id
-        }
+      await auditWrite(prisma, {
+        actor: user,
+        action: 'event_series_updated',
+        targetType: 'event',
+        targetId: id,
+        details: { rrule, occurrences: dates.length, ...sync },
+        ...auditContext(event)
       })
       return { ...master, occurrenceCount: dates.length, seriesChange: sync }
     }
@@ -187,13 +188,13 @@ export default defineApiHandler(async (event) => {
 
     const occurrences = await prisma.event.count({ where: { seriesId: id } })
     await prisma.event.delete({ where: { id } })
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'event_deleted',
-        details: JSON.stringify({ eventId: id, occurrences }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'event_deleted',
+      targetType: 'event',
+      targetId: id,
+      details: { occurrences },
+      ...auditContext(event)
     })
     return noContent(event, 204)
   }

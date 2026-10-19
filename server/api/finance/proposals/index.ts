@@ -13,6 +13,7 @@ import {
   requireText
 } from '../../../utils/finance'
 import { financeObjectKey, financeStorage, readUploadedFile } from '../../../utils/finance-storage'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * /api/finance/proposals — budget proposals (plan §8.7).
@@ -130,21 +131,21 @@ export default defineApiHandler(async (event) => {
     include: { steps: { include: { actor: { select: { id: true, name: true } } } } }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'finance_proposal_created',
-      details: JSON.stringify({
-        proposalId: proposal.id,
-        budgetId,
-        lineId,
-        eventId,
-        title,
-        amountCentavos,
-        minutesReference
-      }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'finance_proposal_created',
+    targetType: 'budget_proposal',
+    targetId: proposal.id,
+    details: {
+      proposalId: proposal.id,
+      budgetId,
+      lineId,
+      eventId,
+      title,
+      amountCentavos,
+      minutesReference
+    },
+    ...auditContext(event)
   })
 
   return respond(event, 201, {

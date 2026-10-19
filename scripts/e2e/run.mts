@@ -310,6 +310,8 @@ async function main(): Promise<void> {
     SITE_URL: baseUrl,
     QR_SECRET: process.env.QR_SECRET ?? randomBytes(32).toString('hex'),
     CRON_SECRET: process.env.CRON_SECRET ?? randomBytes(32).toString('hex'),
+    // The audit suite proves an IP is recorded as a salted hash, never raw.
+    AUDIT_IP_SALT: process.env.AUDIT_IP_SALT ?? randomBytes(32).toString('hex'),
     EMAIL_CAPTURE_URL: captureUrl,
     RESEND_BASE_URL: captureUrl,
     // Many fresh Node clients share one pooler; keep each pool small.
@@ -342,7 +344,7 @@ async function main(): Promise<void> {
     await waitForServer(baseUrl, 600000)
     console.log('[e2e] dev server ready')
 
-    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'scanner.e2e.mts', 'offline.e2e.mts', 'audience.e2e.mts', 'notifications.e2e.mts', 'announcements.e2e.mts', 'fines.e2e.mts', 'excuses.e2e.mts', 'documents.e2e.mts', 'document-redaction.e2e.mts', 'payments.e2e.mts', 'cancellation.e2e.mts', 'analytics.e2e.mts', 'roster-freeze.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
+    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'scanner.e2e.mts', 'offline.e2e.mts', 'audience.e2e.mts', 'notifications.e2e.mts', 'announcements.e2e.mts', 'fines.e2e.mts', 'excuses.e2e.mts', 'documents.e2e.mts', 'document-redaction.e2e.mts', 'payments.e2e.mts', 'cancellation.e2e.mts', 'analytics.e2e.mts', 'roster-freeze.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts', 'audit.e2e.mts']
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)

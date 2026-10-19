@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../../utils/auth'
 import { defineApiHandler, HttpError, readJsonBody, respond } from '../../../utils/http'
 import { clearanceState } from '../../../utils/fines'
 import { notifier, notifyUser } from '../../../utils/notify'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * POST /api/fines/:id/served — record that a **service** sanction was carried
@@ -39,13 +40,14 @@ export default defineApiHandler(async (event) => {
     data: { servedAt: new Date(), servedBy: user.id, servedNote: note }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'fine_served',
-      details: JSON.stringify({ fineId, eventId: fine.eventId, note }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'fine_served',
+    targetType: 'fine',
+    targetId: fineId,
+    userId: fine.userId,
+    details: { eventId: fine.eventId, note },
+    ...auditContext(event)
   })
 
   await notifyUser(notifier(prisma), {

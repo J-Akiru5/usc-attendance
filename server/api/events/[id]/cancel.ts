@@ -5,6 +5,7 @@ import { defineApiHandler, HttpError, readJsonBody, respond } from '../../../uti
 import { cancellationBlockedReason, cancellationNotice } from '../../../utils/cancellation'
 import { resolveAudience, specFromEvent } from '../../../utils/audience'
 import { notifier, notifyMany, dedupeKeyFor } from '../../../utils/notify'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * POST /api/events/:id/cancel — call an event off (plan §8.5 / benchmark BC-7).
@@ -47,13 +48,13 @@ export default defineApiHandler(async (event) => {
     data: { status: 'cancelled', cancelledAt: new Date(), cancelledBy: user.id, cancelReason: reason }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'event_cancelled',
-      details: JSON.stringify({ eventId, reason }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'event_cancelled',
+    targetType: 'event',
+    targetId: eventId,
+    details: { reason },
+    ...auditContext(event)
   })
 
   // Tell the people who were expected — registrants when the event took
