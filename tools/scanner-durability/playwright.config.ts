@@ -8,7 +8,7 @@ import { defineConfig, devices } from '@playwright/test'
  * `/api/**` routes), so the run needs no database, no officer account and no
  * camera. Set `APP_URL` to point at an already-running app instead.
  */
-const APP_URL = (process.env.APP_URL ?? 'http://localhost:3100').replace(/\/+$/, '')
+const APP_URL = (process.env.APP_URL ?? 'http://127.0.0.1:3100').replace(/\/+$/, '')
 /**
  * Deliberately not the app's real Supabase project: the spec injects a fake
  * session and mocks every API call, so the server must never be able to reach
@@ -37,12 +37,19 @@ export default defineConfig({
   webServer: process.env.APP_URL
     ? undefined
     : {
-        command: 'npm run dev -- --port 3100',
+        // Locally the dev server is convenient; in CI it is not. A cold Nuxt
+        // dev start never became reachable inside the readiness budget on a
+        // two-core runner (three attempts, 120 s then 300 s), so CI builds
+        // first (.github/workflows/scanner-durability.yml) and this serves the
+        // built output, which answers in seconds.
+        command: process.env.CI ? 'node .output/server/index.mjs' : 'npm run dev -- --port 3100',
         cwd: '../..',
         url: `${APP_URL}/login`,
         reuseExistingServer: !process.env.CI,
-        timeout: 300_000,
+        timeout: 180_000,
         env: {
+          NITRO_PORT: '3100',
+          NITRO_HOST: '127.0.0.1',
           NUXT_PUBLIC_SUPABASE_URL: SUPABASE_URL,
           NUXT_PUBLIC_SUPABASE_KEY: SUPABASE_KEY
         }

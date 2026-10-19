@@ -65,6 +65,12 @@ jobs:
       - name: Install the app
         run: npm ci
 
+      - name: Build the app
+        # The config serves .output in CI instead of starting a dev server: a
+        # cold dev start never became reachable inside the readiness budget on a
+        # two-core runner, and a build is what the other gates use anyway.
+        run: npm run build
+
       - name: Install the durability runner
         working-directory: tools/scanner-durability
         run: npm ci

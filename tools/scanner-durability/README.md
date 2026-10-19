@@ -47,15 +47,18 @@ If that app's Supabase project is not the dummy localhost one, pass `TEST_SUPABA
 
 ## CI
 
-The job needs the repository's normal dependencies plus this folder's Playwright dependency:
+The job needs the repository's normal dependencies plus this folder's Playwright dependency, and it builds the app rather than starting a dev server:
 
 ```bash
 npm ci
+npm run build
 cd tools/scanner-durability && npm ci && npx playwright install --with-deps chromium
 npm test
 ```
 
-No secrets or database URL are required: the spec mocks both auth and the API. Keep it at one worker so the IndexedDB assertions are deterministic. The test timeout is 90 s and the single test normally finishes in well under a minute once the dev server is warm.
+When `CI` is set, the config serves `.output/server/index.mjs` (the build above) instead of `npm run dev`: a cold dev start never became reachable inside the readiness budget on a two-core runner. Locally, without `CI`, it still starts the dev server for you.
+
+No secrets or database URL are required: the spec mocks both auth and the API. Keep it at one worker so the IndexedDB assertions are deterministic. The test timeout is 90 s and the single test normally finishes in well under a minute once the server is up.
 
 ## Limits
 
