@@ -315,6 +315,9 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 ### 8.5 Absence fines & clearance (Phase 4)
 
 - **Fine rules**: global defaults **₱50 per absence** and **₱25 per late** (admin-editable), with optional per-event or per-category overrides; applies to the event's required audience; a configurable late threshold (minutes after the window opens).
+- **Authority and sanction type** *(benchmark BC-7 — before cutover)*: a **monetary** fine is only offered when the rule carries an `authorityRef` (the council resolution, and who approved it) and an `effectiveFrom` date; otherwise `sanctionType` is `warning` or `service`. The platform does not decide whether the council may charge money — Q-New-1 does — it records which decision was taken, by whom, so the policy can change without a code change. *(Schema addition pending; see the §14 amendment queue.)*
+- **Dispute before collection** *(BC-7)*: a generated fine is `disputable` for *n* days (default 7). A dispute states a *fact* ("I was present", "the event was cancelled", "I was on official duty") and is decided like an excuse — but is not evidence of absence, which is why it is a separate flow from an excuse. Only when the window closes does the fine become `payable`.
+- **Nothing is charged for an event that did not happen** *(BC-7; **built** in `feat/p4e-event-cancellation`)*: `Event` carries `status` (`scheduled` · `cancelled`) with a reason, who and when; the fine job skips anything not scheduled, the reminder job skips it, check-ins and registrations are refused, and cancelling notifies the expected audience once. *Still to add from BC-7: voiding fines that were already generated when an event is cancelled after the fact, and the per-semester cap.*
 - After an event's window closes (cron), **no-shows** among the required audience get a fine; late arrivals get the late rate.
 - **Excuse requests** with attachment (medical, academic conflict) → approve/deny → fine waived.
 - **Payments** recorded by the Treasurer (cash; OR number; optional GCash reference) — *no online payment collection in v1*.
@@ -424,7 +427,7 @@ A phase/feature is done only when:
 | Service | Free-tier limit that matters | Design response |
 |---|---|---|
 | **Supabase** (DB + Auth) | ~500 MB database; projects **pause after ~7 days of inactivity** (this already caused an outage) | Keep images **out of Postgres** (move signatures/receipts/documents to R2); the nightly cron hits the DB daily, which should keep the project active — verify, and add a free uptime monitor (e.g., UptimeRobot) pinging a lightweight DB-backed endpoint. |
-| **Vercel Hobby** | Intended for personal/non-commercial use; cron jobs limited (daily); function duration limits | Single Nitro server function; daily crons only; heavy exports streamed/paginated. Confirm with the USC that a student-council non-profit use is acceptable, or seek a budget for Pro later. |
+| **Vercel Hobby** | Intended for personal/non-commercial use; **cron jobs: two, daily only — and a sub-daily schedule fails the deployment outright** (learned the hard way: PR #50's deploy died on it); function duration limits | One Nitro server function; heavy exports streamed/paginated. **Crons are split**: the daily signature purge stays in `vercel.json`, and the hourly reminders, quarter-hourly announcements and nightly fines run from **GitHub Actions** (`.github/workflows/cron-*.yml`, documented in `docs/CUTOVER.md`) — they call the same idempotent endpoints with the same `CRON_SECRET`, so when the project moves to Pro they can move back with no code change. Confirm with the USC that a student-council non-profit use is acceptable, or seek a budget for Pro later. |
 | **Resend** (email) | ~100 emails/day, ~3,000/month on the free plan | **Email only for transactional mail** (verification, password reset, fine/clearance notices). Mass announcements go **in-app + web push** (free). Batch and throttle; show a daily-quota guard in the admin UI. |
 | **Cloudflare R2** | ~10 GB storage free, no egress fees | Store signature PNGs, receipts, documents, photos here. |
 | **Sentry** | Free developer tier | Error tracking with sampling. |
@@ -433,12 +436,65 @@ A phase/feature is done only when:
 
 ### 11.2 Security and privacy
 
-- **Data Privacy Act of 2012 (RA 10173):** consent at registration (done), privacy notice (updated), retention schedule per data type (signatures done; extend to location, ballots, receipts), data-subject requests (export/delete own data), breach procedure, designate a Data Protection Officer contact.
+> **Amended 2026-10-19 after the industry/DPA benchmark review** (`docs/BENCHMARK-REVIEW.md`, findings BC-1, BC-2, W1, W2).
+> The old line here claimed "consent at registration (done)". It was not: the register route *required* consent from the
+> day it was written but stored nothing, so the council could not demonstrate who agreed, to what, or when. That is now
+> recorded (`consentAt`/`consentVersion`/`consentSource`, nullable for accounts that predate it) — and the fuller design
+> below is the plan of record, to be completed with the university DPO.
+
+- **Data Privacy Act of 2012 (RA 10173)** — the parts we owe, in order: **demonstrable, granular consent** (§8.9), a
+  **data inventory with retention per type** (§8.9's table), **data-subject rights** (access, rectification, portability —
+  BC-11's self-service export), a **breach runbook** (NPC 16-03: 72 hours to the Commission and to affected subjects), and a
+  **named DPO contact** — which depends on Q-New-2 (who the controller is) and is therefore an owner decision, not a build task.
+- **Timing correction (W2):** the DPA artefacts used to be scheduled at P8, *after* the pilot would have created real data.
+  Consent and the retention matrix are now before-cutover items; retrofitting consent is impossible.
 - **Least privilege:** capability-based RBAC (§7); service-role key only on the server.
 - **Elections (when un-deferred):** secret ballot separation, concurrency-safe one-vote rule, results lock, configuration audit; reviewed by the adviser/COMELEC before first use.
-- **Abuse controls:** rate limits on public endpoints (registration, verification, clearance lookup); signed short-lived QR; geofence; optional device binding for scanners.
+- **Abuse controls:** rate limits on public endpoints (registration, `/api/verify/:code`, clearance lookup); signed short-lived QR; geofence; optional device binding for scanners. **`/api/verify/:code` has no limiter yet** — it returns name, student number and dates by design, which makes it the most important public endpoint to throttle (tracked as a before-launch item).
+- **Public-facing rule of thumb (BC-8, BC-9):** *nothing is public unless explicitly published, and no published artefact
+  carries an unauthorised student name.* A verification page shows standing, issue date and issuer — **not** an amount owed,
+  and never a reason. Documents name students: minutes and resolutions are `officers` by default, with an explicit publish
+  action that is audited, and a redacted copy where the public record needs one.
+- **The platform must never be the mechanism that blocks enrolment, examinations or credentials** (RA 11984's direction;
+  BC-8). Clearance shows standing; it is not a gate, and nothing in the UI or the PDF may imply otherwise.
+- **Audit integrity (BC-10):** `audit_logs` gains `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId`, becomes
+  append-only in code (asserted by a test), and records **reads** of sensitive records (Student 360, excuse attachments,
+  student lookup) as well as writes.
 - **Secrets:** never in code or logs; Vercel env vars; rotate `QR_SECRET`, `CRON_SECRET` if leaked.
 - **Weak passwords:** the `admin@usc.edu.ph` account currently uses a development password — **must** be changed before students are invited (tracked in §14).
+
+### 8.9 Privacy & consent (before cutover — findings BC-1, BC-2, BC-11)
+
+**Consent, by purpose, not in bulk.** A blanket "I agree" is not valid consent. Three purposes, captured separately at
+registration (and changeable later): **`core_attendance`** (required — without it there is no account: roster, attendance,
+signatures, fines, clearance), **`publication`** (optional — a student's name appearing in a published document or on the
+transparency board), and **`messaging`** (optional — email/push beyond the transactional kinds). A `consents` table keeps
+`userId · purpose · noticeVersion · grantedAt · method · evidenceRef · withdrawnAt`; withdrawing `publication` or
+`messaging` is a setting the student can change, while withdrawing `core_attendance` closes the account.
+
+**Minors.** Some students may be under 18 at registration: registration asks for an "18 or over" declaration and provides a
+**guardian-consent path** for those who aren't (the council collects the paper and records it as the consent's `method` and
+`evidenceRef`).
+
+**The data inventory (the DPA artefact the NPC filing and the retention jobs both need).** Starter table — to be completed
+with the university DPO (Q-New-2, Q-New-5):
+
+| Data | Purpose | Basis | Retention | Who sees it | Purge |
+|---|---|---|---|---|---|
+| Profile (name, student no., college/year/section, contact) | roster, attendance, clearance | consent (core) | active + N years, then anonymise | self, officers, university (on request) | graduate workflow |
+| Attendance record | attendance, fines, reports | consent (core) | per records schedule | self, roster staff | archive |
+| Attendance geolocation (lat/lng, accuracy) | door validation | legitimate interest, minimised | **raw coordinates dropped after the dispute window; the `inGeofence` flag and accuracy kept** | officers only | nightly job |
+| Signature | proof of presence | consent (core) | N semesters (existing control) | self, roster staff, export signatories | existing purge |
+| Fine + dispute + payment | finance, clearance | consent (core) / contractual | per records schedule (money) | self, Treasurer, Auditor, President, Adviser | archive |
+| Excuse attachment | evidence review | consent (core) | until the fine is settled + N months | filer, reviewers | manual + job |
+| Notification/delivery rows | delivery + audit | legitimate interest | short (≈1 year) | self, system | job |
+| Audit log | accountability | legal obligation / legitimate interest | longest applicable (money records) | Auditor, Adviser, super admin | none |
+| Documents (minutes, resolutions) | institutional record | legitimate interest / public record | per the records schedule (Q-New-5) | per classification | archive |
+| Photos | council publications | consent (publication) | while published | public once published | with the post |
+
+**Rights, self-served (BC-11).** `GET /api/privacy/me` returns the student's own bundle (profile, attendance, fines,
+signature list, notifications, consents) as JSON and CSV, and a **rectification request** lands in a staff queue for fields
+the student may not edit directly. That doubles as the best support tool the officers will ever get.
 
 ---
 
@@ -469,6 +525,19 @@ A phase/feature is done only when:
 | Q14 | Can fines be paid partially, and who issues the official receipt (OR) — the Treasurer only? | P4 |
 | Q15 | Finance: confirm the approval chain with the school, and whether the University Accountant / Campus Administrator should ever sign in, or stay external signatories. | P6 |
 | Q16 | Is a student-council non-profit deployment acceptable on Vercel Hobby, or should the proposal request hosting funds? | P0 |
+
+**Added 2026-10-19 from the benchmark review** (`docs/BENCHMARK-REVIEW.md` §7) — the first four are the ones a lawyer and
+the university answer, not we:
+
+| # | Question | Why it blocks | Needed by |
+|---|---|---|---|
+| Q-New-1 | **Fines: is the monetary sanction authorised?** What in the council's constitution/by-laws, and which approval (adviser? university?), permits collecting money from students for absence or lateness — given RA 4206 as amended by RA 5546 (collection of contributions from students prohibited, narrow exceptions)? If thin, do we default `sanctionType` to `service`/`warning` and keep money opt-in? | Changes the fine schema (authority fields), the student experience and the payments scope; the difference between a policy dispute and a legal one | before payments are switched on |
+| Q-New-2 | **Who is the Personal Information Controller** — ISUFST or the USC? Has the university DPO (a) already registered the campus's data-processing system, (b) will they add this platform, or (c) does the council file the Annex 1 sworn declaration? Who signs as DPO, and what is the position-based email? | Registration has a **20-day clock from launch**; the privacy notice, breach runbook and retention matrix all hang off it | before the pilot |
+| Q-New-3 | **Finance: the approval chain and who counts as an approver** (§12.2 Q15 restated) — does the council want segregation of duties (Treasurer records / Auditor verifies / President + Adviser approve above a threshold), and does the University Accountant want read access to receipts, or only signed copies? | P6's controls cannot be built without it, and the capability matrix in §7.2 changes | P6 |
+| Q-New-4 | **Clearance: does anything outside the council rely on it as a condition** (university, college, another org)? If yes, this needs the university's written agreement and a stated rule that the platform never blocks credentials, enrolment or examinations. | The clearance PDF and the public verification page design depend on it; a page that identifies a debtor publicly is the risk | before clearance is used |
+| Q-New-5 | **Records:** is the council covered by the university's Records Disposition Schedule (RA 9470 / NAP GRDS), and who is the records officer we take retention periods from? Are minutes and resolutions permanent records? | Retention cannot be invented; it settles how long attendance, fine and dispute records live (§8.9's table) | before launch |
+| Q-New-6 | **Cron workaround:** GitHub Actions now carries the sub-daily schedules (documented in `docs/CUTOVER.md`); it needs two repository settings from you, or your approval of an external scheduler instead. | Was blocking cutover (BC-3); unblocked in code, awaiting your nod | now |
+| Q-New-7 | **Windows/Android share of the officers' phones** — do we commit to Chromium as the supported scanner browser, or must the scan page work in iPhone Safari (where the barcode polyfill carries the load and push requires an installed PWA)? | Determines the scanner bundle, push expectations and the training material | P2 finish |
 
 ---
 
@@ -652,7 +721,27 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `POST /api/events/:id/cancel` (staff, audited) tells the registrants (or the required audience) exactly once, through the notification core with a per-event dedupe key; the event page shows a Cancelled badge with the reason and who called it off, and carries the cancel action
 - [ ] Freeze the expected roster at window close (benchmark BC-4)
 - [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
-- [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7
+- [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7 and §12.2's Q-New rows
+
+#### Benchmark amendment queue (from `docs/BENCHMARK-REVIEW.md` §4)
+
+| ID | What | State |
+|---|---|---|
+| BC-1 | Consent captured per purpose, not in bulk; minors' path; "Privacy & rights" page | **first half done** (consent recorded with its version, `feat/p4d-integrity-consent`); purposes/minors/rights page pending |
+| BC-2 | Data inventory + retention matrix, DPO named, breach runbook | **table landed** in §8.9; the retention jobs and the DPO depend on Q-New-2/Q-New-5 |
+| BC-3 | Fix the cron story (Hobby cannot take sub-daily schedules) | ✅ GitHub Actions + Hobby-safe `vercel.json`; needs the two repository settings (see §12.2 Q-New-6) |
+| BC-4 | Freeze the expected roster at window close so reports and fines reproduce | pending — next integrity slice |
+| BC-5 | Both scan timestamps, per-scan idempotency key, manual entries need a reason | pending — next integrity slice |
+| BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | pending |
+| BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
+| BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
+| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | partially by construction (P7's `public`/`officers` + audited writes); redaction + the aggregate rule pending |
+| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | pending |
+| BC-11 | Self-service privacy export + rectification queue | pending |
+| BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
+| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | pending (the P8 hardening slice) |
+
+Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review itself until their phase starts — P6 is already being built with NP-2/NP-3 in mind by its own agent.
 
 ### Elections (deferred)
 - [ ] Revisit with the COMELEC before election season
