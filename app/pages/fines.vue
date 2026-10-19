@@ -11,11 +11,13 @@ definePageMeta({ layout: 'dashboard', requiresAuth: true })
 interface FineRow {
   id: string
   kind: 'absent' | 'late'
+  sanctionType?: string
   amountCentavos: number
   status: 'unpaid' | 'paid' | 'waived'
   issuedAt: string
   paymentRef: string | null
   waiveReason: string | null
+  servedAt?: string | null
   event: { id: string, title: string, date: string } | null
 }
 interface Summary { count: number, unpaid: number, unpaidCentavos: number, unpaidPesos: string, cleared: boolean }
@@ -193,7 +195,14 @@ onMounted(load)
               <Badge :variant="statusVariants[fine.status]">
                 {{ fine.status }}
               </Badge>
-              <span class="text-xs text-slate">{{ fine.kind === 'absent' ? 'Absence' : 'Late' }} · {{ formatDate(fine.issuedAt) }}</span>
+              <span class="text-xs text-slate">
+                {{ fine.kind === 'absent' ? 'Absence' : 'Late' }}
+                <template v-if="fine.sanctionType === 'service'">
+                  · service{{ fine.servedAt ? ' — served' : ' — awaiting' }}
+                </template>
+                <template v-else-if="fine.sanctionType === 'warning'">· warning</template>
+                · {{ formatDate(fine.issuedAt) }}
+              </span>
             </div>
             <div class="font-semibold text-navy mt-1">
               {{ fine.event?.title ?? 'Event' }}

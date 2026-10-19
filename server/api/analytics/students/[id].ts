@@ -4,7 +4,7 @@ import { authenticate, requireStaff } from '../../../utils/auth'
 import { defineApiHandler, notFound, respond } from '../../../utils/http'
 import { attendedIds, methodMix, rate, signatureRate } from '../../../utils/analytics'
 import { attendanceRows, eventsInWindow, resolveSemester } from '../../../utils/analytics-data'
-import { formatPeso, totalCentavos } from '../../../utils/fines'
+import { clearanceState, formatPeso, totalCentavos } from '../../../utils/fines'
 
 /**
  * GET /api/analytics/students/:id?semesterId= — **Student 360** (plan §8.3):
@@ -67,6 +67,8 @@ export default defineApiHandler(async (event) => {
     include: { event: { select: { id: true, title: true, date: true } } }
   })
   const unpaid = totalCentavos(fines)
+  // D-01: cleared means nothing outstanding, service sanctions included.
+  const clearanceStanding = clearanceState(fines)
 
   const [payments, clearance] = await Promise.all([
     prisma.payment.findMany({
@@ -113,7 +115,8 @@ export default defineApiHandler(async (event) => {
       fines,
       unpaidCentavos: unpaid,
       unpaidPesos: formatPeso(unpaid),
-      cleared: unpaid === 0,
+      cleared: clearanceStanding.cleared,
+      outstanding: clearanceStanding.outstanding,
       payments,
       clearance
     },
