@@ -46,8 +46,10 @@ jobs:
       # a real database (every /api call is mocked in the browser), so a
       # reachable-looking placeholder is enough and no secret is involved.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/usc
-      # The workflow's own checkout is the app under test.
-      APP_URL: ''
+      # The workflow's own checkout is the app under test. APP_URL is
+      # deliberately NOT set: the Playwright config defaults to localhost:3100
+      # only when the variable is undefined, and an empty string would become
+      # an invalid base URL (the first run of this workflow proved that).
       AUTH_SECRET: scanner-durability-ci-placeholder
 
     steps:
