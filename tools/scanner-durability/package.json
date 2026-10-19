@@ -1,0 +1,13 @@
+{
+  "name": "usc-scanner-durability",
+  "private": true,
+  "description": "Golden-path guard for the offline scanner queue (BC-6): queue offline, reload, the banner keeps the same count, sync clears it.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

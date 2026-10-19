@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { api, isOfflineError } from '@/lib/api'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useScanQueue } from '@/composables/useScanQueue'
 import { classifyScan, findExactStudent } from '@/utils/scan'
+import { canQueueScan, storageAdvice, unacknowledgedRefusals } from '@/utils/scan-queue'
 import type { QueuedScan } from '@/utils/scan-queue'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
@@ -18,11 +19,37 @@ interface LookupStudent { id: string, name: string, studentNo: string | null, ye
 const route = useRoute()
 const router = useRouter()
 const geo = useGeolocation()
-const { pending, refused, syncing, lastSyncedAt, online, enqueue, forget, clearRefused, flush, refresh, startWatching } = useScanQueue()
+const {
+  pending,
+  refused,
+  acknowledgedIds,
+  storage,
+  syncing,
+  lastSyncedAt,
+  online,
+  enqueue,
+  forget,
+  acknowledgeRefused,
+  flush,
+  refresh,
+  refreshStorage,
+  startWatching
+} = useScanQueue()
 
 const events = ref<EventOption[]>([])
 const eventId = ref(typeof route.query.eventId === 'string' ? route.query.eventId : '')
 const selectedEvent = computed(() => events.value.find(e => e.id === eventId.value) ?? null)
+
+// BC-6 decisions (pure, unit-tested in `app/utils/scan-queue.ts`).
+const capacity = computed(() => canQueueScan(pending.value.length))
+const unacknowledged = computed(() => unacknowledgedRefusals(refused.value, acknowledgedIds.value))
+const storageState = computed(() => {
+  const reading = storage.value
+  // `persisted: false` is only "refused" once persist() actually answered.
+  const persisted = reading?.persisted === true ? true : reading?.requested ? false : null
+  return storageAdvice({ persisted, quota: reading?.quota ?? null, usage: reading?.usage ?? null })
+})
+const showStorageNotice = computed(() => !!storage.value?.requested || storageState.value.lowSpace)
 
 const scanning = ref(false)
 const result = ref<{ kind: 'ok' | 'warn' | 'error', message: string } | null>(null)
@@ -90,7 +117,23 @@ async function syncNow() {
 }
 
 async function queueOffline(scan: Omit<QueuedScan, 'id' | 'scannedAt'>) {
-  await enqueue({ ...scan, id: crypto.randomUUID(), scannedAt: new Date().toISOString() })
+  // Refuse loudly at the hard cap rather than growing an unrecoverable queue.
+  const room = canQueueScan(pending.value.length)
+  if (!room.allowed) {
+    say('error', room.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
+    return
+  }
+
+  // Before the first queued scan, ask the browser to protect this origin's
+  // storage and record the answer. Later scans only refresh the estimate.
+  if (!storage.value?.requested) await refreshStorage(true)
+  else await refreshStorage(false)
+
+  const stored = await enqueue({ ...scan, id: crypto.randomUUID(), scannedAt: new Date().toISOString() })
+  if (!stored.allowed) {
+    say('error', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
+    return
+  }
   say('warn', 'No signal — saved on this phone and sent automatically when the connection is back.')
 }
 
@@ -244,10 +287,23 @@ async function recordFromList(student: LookupStudent) {
   }
 }
 
+// --- Refuse to abandon queued work silently (BC-6) --------------------------
+function pendingWarning(): string | null {
+  if (pending.value.length === 0) return null
+  const count = pending.value.length
+  return `You still have ${count} unsynced scan${count === 1 ? '' : 's'} on this phone. They stay queued and sync when the connection is back.`
+}
+
+onBeforeRouteLeave(() => {
+  const warning = pendingWarning()
+  return warning ? window.confirm(warning) : true
+})
+
 onMounted(async () => {
   geo.startWatching()
 
   await refresh()
+  await refreshStorage()
   stopWatching = startWatching(() => {
     void flush(sendQueued)
   })
@@ -336,6 +392,18 @@ onUnmounted(() => {
       </p>
     </div>
 
+    <!-- BC-6: storage the browser may evict, stated plainly rather than hidden -->
+    <div
+      v-if="showStorageNotice && storageState.message"
+      data-testid="scan-storage-notice"
+      class="rounded-xl border-l-4 px-4 py-3 text-sm"
+      :class="storageState.lowSpace
+        ? 'border-danger bg-danger/10 text-danger'
+        : 'border-gold bg-gold/10 text-navy'"
+    >
+      {{ storageState.message }}
+    </div>
+
     <!-- Which event -->
     <Card>
       <CardContent class="p-4 space-y-2">
@@ -414,8 +482,15 @@ onUnmounted(() => {
       No signal — scans are saved on this phone and sent automatically when the connection is back.
     </div>
 
-    <Card v-if="pending.length > 0 || refused.length > 0">
+    <Card v-if="pending.length > 0 || refused.length > 0" id="queue">
       <CardContent class="p-4 space-y-3">
+        <div
+          v-if="capacity.atCap"
+          data-testid="scan-queue-full"
+          class="rounded-lg border-l-4 border-danger bg-danger/10 px-3 py-2 text-xs font-semibold text-danger"
+        >
+          {{ capacity.message }}
+        </div>
         <div class="flex items-center justify-between">
           <div class="text-xs font-bold uppercase tracking-wide text-slate">
             Waiting to sync
@@ -446,9 +521,14 @@ onUnmounted(() => {
           </li>
         </ul>
 
-        <div v-if="refused.length > 0" class="space-y-2">
-          <div class="text-xs font-bold uppercase tracking-wide text-danger">
-            Not recorded ({{ refused.length }})
+        <div v-if="refused.length > 0" class="space-y-2" data-testid="scan-refused-list">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-xs font-bold uppercase tracking-wide text-danger">
+              Not recorded ({{ refused.length }})
+            </div>
+            <span v-if="unacknowledged.length === 0" class="text-xs font-semibold text-slate">
+              Acknowledged
+            </span>
           </div>
           <ul class="divide-y divide-line text-sm">
             <li v-for="row in refused" :key="row.scan.id" class="py-1.5">
@@ -460,8 +540,15 @@ onUnmounted(() => {
               </div>
             </li>
           </ul>
-          <button class="text-xs font-semibold text-slate hover:underline" @click="clearRefused">
-            clear this list
+          <p class="text-xs text-slate">
+            Confirm you have seen these before you leave the scanner — the banner keeps showing them until you do.
+          </p>
+          <button
+            v-if="unacknowledged.length > 0"
+            class="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger/90"
+            @click="acknowledgeRefused"
+          >
+            Acknowledge {{ unacknowledged.length }}
           </button>
         </div>
 
