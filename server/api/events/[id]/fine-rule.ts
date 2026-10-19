@@ -18,8 +18,17 @@ export default defineApiHandler(async (event) => {
   if (!eventRow) throw notFound('Event not found')
 
   const findRule = () => prisma.fineRule.findUnique({ where: { eventId } })
-  const asRule = (row: { absentCentavos: number, lateCentavos: number, lateAfterMinutes: number } | null): FineRule | null =>
-    row ? { absentCentavos: row.absentCentavos, lateCentavos: row.lateCentavos, lateAfterMinutes: row.lateAfterMinutes } : null
+  const asRule = (row: { absentCentavos: number, lateCentavos: number, lateAfterMinutes: number, sanctionType?: string, authorityRef?: string | null, effectiveFrom?: Date | null } | null): FineRule | null =>
+    row
+      ? {
+          absentCentavos: row.absentCentavos,
+          lateCentavos: row.lateCentavos,
+          lateAfterMinutes: row.lateAfterMinutes,
+          sanctionType: (row.sanctionType ?? 'warning') as FineRule['sanctionType'],
+          authorityRef: row.authorityRef ?? null,
+          effectiveFrom: row.effectiveFrom ?? null
+        }
+      : null
 
   if (getMethod(event) === 'GET') {
     const [own, categoryRule, globalRule] = await Promise.all([

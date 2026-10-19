@@ -10,8 +10,17 @@ import { DEFAULT_FINE_RULE, formatPeso, resolveRule, validateRule, type FineRule
  * what most events use; a category can carry its own, and any single event can
  * override both. The resolved precedence lives in `server/utils/fines.ts`.
  */
-const asRule = (row: { absentCentavos: number, lateCentavos: number, lateAfterMinutes: number } | null): FineRule | null =>
-  row ? { absentCentavos: row.absentCentavos, lateCentavos: row.lateCentavos, lateAfterMinutes: row.lateAfterMinutes } : null
+const asRule = (row: { absentCentavos: number, lateCentavos: number, lateAfterMinutes: number, sanctionType?: string, authorityRef?: string | null, effectiveFrom?: Date | null } | null): FineRule | null =>
+  row
+    ? {
+        absentCentavos: row.absentCentavos,
+        lateCentavos: row.lateCentavos,
+        lateAfterMinutes: row.lateAfterMinutes,
+        sanctionType: (row.sanctionType ?? 'warning') as FineRule['sanctionType'],
+        authorityRef: row.authorityRef ?? null,
+        effectiveFrom: row.effectiveFrom ?? null
+      }
+    : null
 
 export default defineApiHandler(async (event) => {
   if (getMethod(event) !== 'GET' && getMethod(event) !== 'PUT') {

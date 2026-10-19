@@ -13,12 +13,14 @@ definePageMeta({ layout: 'dashboard', requiresAuth: true, roles: ['super_admin',
 interface FineRow {
   id: string
   kind: 'absent' | 'late'
+  sanctionType?: string
   amountCentavos: number
   status: 'unpaid' | 'paid' | 'waived'
   issuedAt: string
   paidAt: string | null
   paymentRef: string | null
   waiveReason: string | null
+  servedAt?: string | null
   user: { id: string, name: string, studentProfile: { studentNo: string, yearLevel: number | null } | null }
   event: { id: string, title: string, date: string }
 }
@@ -61,6 +63,27 @@ async function loadExcuses() {
     excuses.value = data.excuses ?? []
   } catch {
     excuses.value = []
+  }
+}
+
+/**
+ * D-01: a service sanction is closed by recording that it was served — never by
+ * a payment, which the API refuses for these.
+ */
+async function markServed(fine: FineRow) {
+  busy.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    const result = await api.post<{ standing: { cleared: boolean, outstanding: number } }>(`/fines/${fine.id}/served`, {})
+    notice.value = result.standing.cleared
+      ? `Recorded. ${fine.user.name} now has nothing outstanding.`
+      : `Recorded. ${fine.user.name} still has ${result.standing.outstanding} outstanding item(s).`
+    await Promise.all([load(), loadExcuses()])
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not record the service'
+  } finally {
+    busy.value = false
   }
 }
 
@@ -355,6 +378,8 @@ onMounted(async () => {
                 </td>
                 <td class="py-2 pr-3 text-slate">
                   {{ fine.kind === 'absent' ? 'Absent' : 'Late' }}
+                  <span v-if="fine.sanctionType === 'service'" class="ml-1 text-xs">· service</span>
+                  <span v-else-if="fine.sanctionType === 'warning'" class="ml-1 text-xs">· warning</span>
                 </td>
                 <td class="py-2 pr-3 text-right font-mono">
                   {{ peso(fine.amountCentavos) }}
@@ -363,6 +388,15 @@ onMounted(async () => {
                   <Badge :variant="statusVariants[fine.status]">
                     {{ fine.status }}
                   </Badge>
+                  <button
+                    v-if="fine.sanctionType === 'service' && !fine.servedAt && fine.status === 'unpaid'"
+                    class="ml-2 text-xs font-semibold text-navy hover:underline disabled:opacity-50"
+                    :disabled="busy"
+                    @click="markServed(fine)"
+                  >
+                    Mark served
+                  </button>
+                  <span v-else-if="fine.servedAt" class="ml-2 text-xs text-slate">served</span>
                 </td>
                 <td class="py-2 text-slate">
                   {{ formatDate(fine.issuedAt) }}

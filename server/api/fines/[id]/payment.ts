@@ -27,6 +27,14 @@ export default defineApiHandler(async (event) => {
   })
   if (!fine) throw new HttpError(404, 'Fine not found')
 
+  // D-01: a service sanction is not settled with money; it is served.
+  if (fine.sanctionType === 'service') {
+    throw new HttpError(409, 'This is a service sanction, not a fine — mark it served when the service is done.')
+  }
+  if (fine.sanctionType === 'warning') {
+    throw new HttpError(409, 'That was a warning; nothing is owed on it.')
+  }
+
   const blocked = paymentBlockedReason(fine)
   if (blocked) throw new HttpError(409, blocked)
 

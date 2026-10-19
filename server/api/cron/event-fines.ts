@@ -46,8 +46,17 @@ export default defineApiHandler(async (event) => {
   })
 
   const globalRow = await prisma.fineRule.findFirst({ where: { scope: 'global' } })
-  const asRule = (row: { absentCentavos: number, lateCentavos: number, lateAfterMinutes: number } | null): FineRule | null =>
-    row ? { absentCentavos: row.absentCentavos, lateCentavos: row.lateCentavos, lateAfterMinutes: row.lateAfterMinutes } : null
+  const asRule = (row: { absentCentavos: number, lateCentavos: number, lateAfterMinutes: number, sanctionType?: string, authorityRef?: string | null, effectiveFrom?: Date | null } | null): FineRule | null =>
+    row
+      ? {
+          absentCentavos: row.absentCentavos,
+          lateCentavos: row.lateCentavos,
+          lateAfterMinutes: row.lateAfterMinutes,
+          sanctionType: (row.sanctionType ?? 'warning') as FineRule['sanctionType'],
+          authorityRef: row.authorityRef ?? null,
+          effectiveFrom: row.effectiveFrom ?? null
+        }
+      : null
 
   const results: Array<{ eventId: string, title: string, audience: number, absent: number, late: number, totalCentavos: number, skipped: boolean }> = []
 
@@ -71,14 +80,20 @@ export default defineApiHandler(async (event) => {
       orderBy: { createdAt: 'asc' }
     })
 
-    // First time each person was seen, which is what lateness is measured from.
+    // First time each person was seen, which is what lateness is measured from,
+    // and their role, which is what D-01 sanctions depend on.
     const firstSeen = new Map<string, Date>()
     for (const record of attendance) {
       if (!firstSeen.has(record.userId)) firstSeen.set(record.userId, record.createdAt)
     }
+    const people = audience.length > 0
+      ? await prisma.user.findMany({ where: { id: { in: audience } }, select: { id: true, role: true } })
+      : []
+    const roles = new Map(people.map(person => [person.id, person.role]))
 
     const items = planFines({
       audience,
+      roles,
       firstSeen,
       opensAt: row.checkInOpensAt ?? row.date,
       rule
@@ -90,6 +105,7 @@ export default defineApiHandler(async (event) => {
             userId: item.userId,
             eventId: row.id,
             kind: item.kind,
+            sanctionType: item.sanctionType,
             amountCentavos: item.amountCentavos,
             ruleSnapshot: { ...rule, scope: eventRow ? 'event' : categoryRow ? 'category' : 'global' }
           })),
@@ -97,14 +113,19 @@ export default defineApiHandler(async (event) => {
         })
       : { count: 0 }
 
-    // Tell the people who owe (plan §8.4's fine-issued notification).
+    // Tell the people who owe (plan §8.4). The wording follows the sanction:
+    // money, service hours, or a warning that costs nothing (D-01).
     if (items.length > 0) {
       await notifyMany(notifier(prisma), items.map(item => ({
         userId: item.userId,
         kind: 'fine_issued',
-        title: `${item.kind === 'absent' ? 'Absence' : 'Late'} fine for ${row.title}`,
-        body: `A ${formatPeso(item.amountCentavos)} fine was recorded for ${row.title}. Settle it with the Treasurer, or file an excuse if there is a reason.`,
-        link: '/dashboard'
+        title: `${item.kind === 'absent' ? 'Absence' : 'Late'} recorded for ${row.title}`,
+        body: item.sanctionType === 'monetary'
+          ? `A ${formatPeso(item.amountCentavos)} fine was recorded for ${row.title}. Settle it with the Treasurer, or file an excuse if there is a reason.`
+          : item.sanctionType === 'service'
+            ? `You were marked ${item.kind} for ${row.title}. A service sanction applies — the council will tell you what to render and mark it served when it is done.`
+            : `You were marked ${item.kind} for ${row.title}. This is a warning; nothing is owed.`,
+        link: '/fines'
       })))
     }
 

@@ -53,6 +53,7 @@ model User {
   fines              Fine[]              @relation("FineOwner")
   finesPaid          Fine[]              @relation("FinePaidBy")
   fineWaivers        Fine[]              @relation("FineWaivedBy")
+  finesServed        Fine[]              @relation("FineServedBy")
   excuses            Excuse[]            @relation("ExcuseOwner")
   excusesReviewed    Excuse[]            @relation("ExcuseReviewer")
   budgetsCreated     Budget[]            @relation("BudgetCreator")
@@ -311,7 +312,13 @@ model FineRule {
   categoryId       String?  @unique
   absentCentavos   Int      @default(5000)
   lateCentavos     Int      @default(2500)
-  lateAfterMinutes Int      @default(30)
+  /// D-05: fifteen minutes by default; every event can override it.
+  lateAfterMinutes Int      @default(15)
+  /// D-01: what a breach costs, and the citation that permits charging money.
+  /// Monetary applies to officers only, and only when `authorityRef` is present.
+  sanctionType     String   @default("warning") // monetary | warning | service
+  authorityRef     String?
+  effectiveFrom    DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now()) @updatedAt
 
@@ -328,6 +335,8 @@ model Fine {
   userId         String
   eventId        String
   kind           String // absent | late
+  /// D-01: monetary (officers, with a citation), warning, or service.
+  sanctionType   String    @default("monetary")
   amountCentavos Int
   status         String    @default("unpaid") // unpaid | paid | waived
   ruleSnapshot   Json?
@@ -338,16 +347,22 @@ model Fine {
   waivedAt       DateTime?
   waivedBy       String?
   waiveReason    String?
+  /// D-01: a service sanction is an obligation until it is served.
+  servedAt       DateTime?
+  servedBy       String?
+  servedNote     String?
 
   user   User  @relation("FineOwner", fields: [userId], references: [id], onDelete: Cascade)
   event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   payer  User? @relation("FinePaidBy", fields: [paidBy], references: [id], onDelete: SetNull)
   waiver User? @relation("FineWaivedBy", fields: [waivedBy], references: [id], onDelete: SetNull)
+  server User? @relation("FineServedBy", fields: [servedBy], references: [id], onDelete: SetNull)
   excuses Excuse[]
   payment Payment?
 
   @@unique([userId, eventId])
   @@index([userId, status])
+  @@index([userId, sanctionType, status])
   @@index([eventId])
   @@index([status])
   @@map("fines")

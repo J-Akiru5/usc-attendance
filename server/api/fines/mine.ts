@@ -2,7 +2,7 @@ import { getMethod } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate } from '../../utils/auth'
 import { defineApiHandler, respond } from '../../utils/http'
-import { formatPeso, totalCentavos } from '../../utils/fines'
+import { clearanceState } from '../../utils/fines'
 
 /**
  * GET /api/fines/mine — a student's own fines and what they add up to
@@ -19,15 +19,18 @@ export default defineApiHandler(async (event) => {
     include: { event: { select: { id: true, title: true, date: true } } }
   })
 
-  const unpaid = totalCentavos(fines)
+  // D-01: "cleared" means nothing outstanding — an unserved service sanction
+  // stands exactly like unpaid money, and a warning never does.
+  const state = clearanceState(fines)
   return {
     fines,
     summary: {
       count: fines.length,
-      unpaid: fines.filter(f => f.status === 'unpaid').length,
-      unpaidCentavos: unpaid,
-      unpaidPesos: formatPeso(unpaid),
-      cleared: unpaid === 0
+      unpaid: state.outstanding,
+      unpaidCentavos: state.unpaidCentavos,
+      unpaidPesos: state.unpaidPesos,
+      outstanding: state.outstanding,
+      cleared: state.cleared
     }
   }
 })
