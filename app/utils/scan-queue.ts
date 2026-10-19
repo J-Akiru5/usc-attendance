@@ -18,6 +18,14 @@ export interface QueuedScan {
   accuracy: number | null
   /** When the scan happened, not when it was sent. */
   scannedAt: string
+  /**
+   * One opaque key per scan, generated when the scan is taken (BC-5). Every
+   * sync attempt reuses it, so the server can return the first record instead
+   * of writing a second one after a lost response.
+   */
+  idempotencyKey?: string
+  /** Why an officer recorded a manual entry by hand. Required for `manual`. */
+  manualReason?: string
 }
 
 export interface RefusedScan {
@@ -35,6 +43,17 @@ export interface FlushPlan {
   synced: QueuedScan[]
   retry: QueuedScan[]
   refused: Array<{ scan: QueuedScan, reason: string }>
+}
+
+/**
+ * The key a queued scan presents to the server. New scans carry the key they
+ * were given when taken; a row queued before BC-5 falls back to its local id,
+ * which was also created once per scan and survives every retry. Either way a
+ * retry is a replay, never a second check-in.
+ */
+export function scanIdempotencyKey(scan: Pick<QueuedScan, 'id' | 'idempotencyKey'>): string {
+  const key = scan.idempotencyKey?.trim()
+  return key ? key : scan.id
 }
 
 /**

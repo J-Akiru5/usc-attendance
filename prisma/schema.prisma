@@ -696,8 +696,17 @@ model Attendance {
   lat        Float?
   lng        Float?
   recordedBy String
+  /// The moment the server stands behind: the scan moment for a queued scan,
+  /// otherwise acceptance time (benchmark BC-5).
   createdAt  DateTime  @default(now())
   checkOutAt DateTime?
+  /// The moment the device claimed the scan happened — evidence, not truth.
+  /// Null for live scans that never sent one and for rows that predate BC-5.
+  scannedAt  DateTime?
+  /// Client-generated, one per scan; a retry reuses it instead of writing twice.
+  idempotencyKey String? @unique
+  /// Required for `method = "manual"`: why the officer recorded it by hand.
+  manualReason   String?
 
   event    Event?  @relation(fields: [eventId], references: [id])
   user     User    @relation(fields: [userId], references: [id])

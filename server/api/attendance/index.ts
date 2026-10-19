@@ -16,11 +16,20 @@ import {
   authorizeManualCheckIn,
   authorizeScanLocation
 } from '../../utils/attendance-rules'
+import { auditContext, auditWrite } from '../../utils/audit'
 import { auditDelegationUse, requireEventScope } from '../../utils/delegation'
 import { assertCheckInOpen } from '../../utils/retention'
 import { hasExplicitScanTime, resolveScanTime } from '../../utils/offline'
 import { assertEventActive } from '../../utils/cancellation'
 import { manilaDayRange } from '../../utils/time'
+import {
+  decideDeviceTime,
+  idempotencyKeyProblem,
+  idempotencyOutcome,
+  manualReasonProblem,
+  normalizeIdempotencyKey,
+  normalizeManualReason
+} from '../../utils/attendance'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
 
@@ -53,18 +62,69 @@ export default defineApiHandler(async (event) => {
   }
 
   if (routeMethod === 'POST') {
-    const { type, eventId, dutyDate, userId, method, lat, lng, accuracy, scannedAt: rawScannedAt } = await readJsonBody(event) ?? {}
+    const {
+      type, eventId, dutyDate, userId, method, lat, lng, accuracy,
+      scannedAt: rawScannedAt, idempotencyKey: rawKey, manualReason: rawReason
+    } = await readJsonBody(event) ?? {}
 
     if (!userId || !method) {
       throw badRequest('Missing required fields')
     }
 
-    // A queued offline scan carries the moment it happened; the guards below are
-    // then applied as of that moment rather than the sync time (plan §8.2).
-    const scanTime = resolveScanTime(rawScannedAt)
-    const stamped = hasExplicitScanTime(rawScannedAt)
+    if (method !== 'self' && method !== 'manual' && method !== 'barcode') {
+      throw badRequest('method must be \'self\', \'manual\' or \'barcode\'. QR check-ins go through /api/attendance/qr with a signed token.')
+    }
+
+    // An opaque per-scan key, optional for a live scan. A queued scan reuses the
+    // key it was given when it was taken, so a retry after a lost response is a
+    // replay rather than a second row (benchmark BC-5).
+    const keyProblem = idempotencyKeyProblem(rawKey)
+    if (keyProblem) throw badRequest(keyProblem)
+    const idempotencyKey = normalizeIdempotencyKey(rawKey)
+
+    // The device clock is evidence; the server clock is the authority. A queued
+    // scan still keeps its own moment for the window/fines, while a phone that
+    // claims the future is clamped to server time (and refused beyond the grace
+    // window). The raw claim is stored in `scannedAt` either way.
+    const now = new Date()
+    const deviceAt = hasExplicitScanTime(rawScannedAt) ? resolveScanTime(rawScannedAt, now) : null
+    const timing = decideDeviceTime(deviceAt, now)
+    if (!timing.accepted) throw badRequest('scannedAt cannot be in the future')
+    const scanTime = timing.effectiveAt
 
     const attendanceType = type || 'event'
+    const target = {
+      type: attendanceType,
+      eventId: attendanceType === 'event' && typeof eventId === 'string' ? eventId : null,
+      userId: String(userId)
+    }
+
+    // A replay must be answered before any guard: the first request already
+    // passed them, and re-running "already checked in" would turn a retry into a
+    // refusal. The key never lets an officer read another officer's record — a
+    // foreign key is a conflict with no details.
+    const existingByKey = idempotencyKey
+      ? await prisma.attendance.findUnique({
+          where: { idempotencyKey },
+          include: { user: { select: { id: true, name: true, position: true, role: true } } }
+        })
+      : null
+    const replay = idempotencyOutcome(existingByKey, { officerId: user.id, ...target })
+    if (replay === 'conflict') {
+      throw new HttpError(409, 'That scan key has already been used for a different check-in.')
+    }
+    if (replay === 'replay' && existingByKey) {
+      return respond(event, 200, { ...existingByKey, replayed: true })
+    }
+
+    // The manual fallback is the one place an officer picks a person by hand;
+    // the reason is what makes that choice reviewable (benchmark BC-5d).
+    let manualReason: string | null = null
+    if (method === 'manual') {
+      const reasonProblem = manualReasonProblem(rawReason)
+      if (reasonProblem) throw badRequest(reasonProblem)
+      manualReason = normalizeManualReason(rawReason)
+    }
 
     // Students are checked in by an officer scanning their QR - never by themselves.
     if (method === 'self' && user.role === 'student') {
@@ -77,10 +137,6 @@ export default defineApiHandler(async (event) => {
 
     if (attendanceType === 'duty' && !dutyDate) {
       throw badRequest('dutyDate is required for duty check-ins')
-    }
-
-    if (method !== 'self' && method !== 'manual' && method !== 'barcode') {
-      throw badRequest('method must be \'self\', \'manual\' or \'barcode\'. QR check-ins go through /api/attendance/qr with a signed token.')
     }
 
     // Resolve who may record whom, how, and where — all server-side.
@@ -155,36 +211,82 @@ export default defineApiHandler(async (event) => {
       }
     }
 
+    const scan = {
+      type: attendanceType,
+      eventId: attendanceType === 'event' ? eventId : null,
+      dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
+      userId,
+      method,
+      lat: resolved.lat,
+      lng: resolved.lng,
+      recordedBy: user.id,
+      scannedAt: timing.scannedAt,
+      idempotencyKey,
+      manualReason,
+      // A queued scan keeps its own (past) moment; a device claiming the future
+      // does not move the row — the server clock is the authority (BC-5).
+      ...(timing.usedDeviceTime && { createdAt: scanTime })
+    }
+
     try {
-      const record = await prisma.attendance.create({
-        data: {
-          type: attendanceType,
-          eventId: attendanceType === 'event' ? eventId : null,
-          dutyDate: attendanceType === 'duty' ? new Date(dutyDate) : null,
-          userId,
-          method,
-          lat: resolved.lat,
-          lng: resolved.lng,
-          recordedBy: user.id,
-          ...(stamped && { createdAt: scanTime })
-        },
-        include: {
-          user: { select: { id: true, name: true, position: true, role: true } }
+      const record = await prisma.$transaction(async (tx) => {
+        const created = await tx.attendance.create({
+          data: scan,
+          include: {
+            user: { select: { id: true, name: true, position: true, role: true } }
+          }
+        })
+
+        // The reason is part of recording the row, not a best-effort footnote:
+        // if the audit cannot be written, the manual check-in is not recorded.
+        if (manualReason) {
+          await auditWrite(tx, {
+            actor: user,
+            action: 'attendance_manual_entry',
+            targetType: 'attendance',
+            targetId: created.id,
+            userId,
+            details: {
+              reason: manualReason,
+              method,
+              type: attendanceType,
+              eventId: created.eventId,
+              scannedAt: timing.scannedAt?.toISOString() ?? null
+            },
+            ...auditContext(event)
+          })
         }
+
+        return created
       })
 
       if (delegatedScope) {
         await auditDelegationUse(prisma, user, eventId, delegatedScope, {
           attendanceId: record.id,
           targetUserId: userId,
-          ...(stamped && { scannedAt: scanTime.toISOString(), syncedAt: new Date().toISOString() })
+          ...(timing.usedDeviceTime && { scannedAt: scanTime.toISOString(), syncedAt: new Date().toISOString() })
         })
       }
 
       return respond(event, 201, record)
     } catch (dbErr: unknown) {
-      // P2002 = unique constraint violation (race fallback from partial unique index)
+      // P2002 = unique constraint violation. The open-record indexes catch two
+      // officers racing the same student; the key catches two copies of the same
+      // request. A raced key returns the winner, so the retry still sees success.
       if (isUniqueViolation(dbErr)) {
+        if (idempotencyKey) {
+          const raced = await prisma.attendance.findUnique({
+            where: { idempotencyKey },
+            include: { user: { select: { id: true, name: true, position: true, role: true } } }
+          })
+          const racedOutcome = idempotencyOutcome(raced, { officerId: user.id, ...target })
+          if (racedOutcome === 'replay' && raced) {
+            return respond(event, 200, { ...raced, replayed: true })
+          }
+          if (racedOutcome === 'conflict') {
+            throw new HttpError(409, 'That scan key has already been used for a different check-in.')
+          }
+        }
         throw forbidden(ALREADY_CHECKED_IN)
       }
       throw dbErr
