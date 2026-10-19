@@ -994,27 +994,45 @@ model Document {
   title          String
   body           String   @db.Text
   tags           String[]
+  /// Legacy mirror kept in step with `classification` so older queries, exports
+  /// and the live app keep working. Never authoritative: `classification` is.
   visibility     String   @default("officers") // public | officers
+  /// BC-9: public | officers | restricted. Only `public` may be served without a
+  /// session, and only through `redactedVersion` when one is set.
+  classification String   @default("officers")
   currentVersion Int      @default(1)
   archived       Boolean  @default(false)
   searchText     String   @default("") @db.Text
   /// tsvector generated from `searchText` by the migration (see the add_documents
   /// migration); queried with $queryRaw, never written through Prisma.
   searchVector   Unsupported("tsvector")?
+  /// The corpus a visitor may search: the redacted copy's text when one is in
+  /// force, otherwise the same text the officers search. Maintained on every
+  /// content change, so a public search can never match a redacted phrase.
+  publicSearchText String @default("") @db.Text
+  /// tsvector generated from `publicSearchText` by the document_classification
+  /// migration; queried with $queryRaw, never written through Prisma.
+  publicSearchVector Unsupported("tsvector")?
+  /// The version prepared for publication (a derivative, never the original).
+  redactedVersionId String?
+  /// What was removed, or why the existing text was already safe.
+  redactionNote  String?
   eventId        String?
   financeRef     String?
   createdBy      String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
 
-  type        DocumentType         @relation(fields: [typeId], references: [id])
-  event       Event?               @relation("DocumentEvent", fields: [eventId], references: [id], onDelete: SetNull)
-  creator     User                 @relation("DocumentCreator", fields: [createdBy], references: [id])
-  versions    DocumentVersion[]
-  attachments DocumentAttachment[]
+  type            DocumentType         @relation(fields: [typeId], references: [id])
+  event           Event?               @relation("DocumentEvent", fields: [eventId], references: [id], onDelete: SetNull)
+  creator         User                 @relation("DocumentCreator", fields: [createdBy], references: [id])
+  versions        DocumentVersion[]
+  attachments     DocumentAttachment[]
+  redactedVersion DocumentVersion?     @relation("DocumentRedactedVersion", fields: [redactedVersionId], references: [id], onDelete: SetNull)
 
   @@index([typeId, year])
   @@index([visibility, archived, createdAt])
+  @@index([classification, archived, createdAt])
   @@map("documents")
 }
 
@@ -1030,12 +1048,17 @@ model DocumentVersion {
   tags       String[]
   visibility String
   changeNote String?
+  /// BC-9: a derivative prepared for publication, not a new state of the
+  /// record. It stays in the immutable history next to the version it redacts.
+  isRedacted Boolean  @default(false)
   createdBy  String
   createdAt  DateTime @default(now())
 
   document    Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
   creator     User                 @relation("DocumentVersionCreator", fields: [createdBy], references: [id])
   attachments DocumentAttachment[]
+  /// Documents whose public copy is this version (at most one per document).
+  redactedFor Document[]           @relation("DocumentRedactedVersion")
 
   @@unique([documentId, version])
   @@index([documentId, version])

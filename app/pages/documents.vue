@@ -16,7 +16,9 @@ interface DocumentRow {
   summary: string
   year: number
   tags: string[]
-  currentVersion: number
+  version: number
+  isRedacted: boolean
+  redactionNote: string | null
   createdAt: string
   updatedAt: string
   type: { id: string, key: string, name: string }
@@ -31,8 +33,10 @@ interface DocumentDetail {
   body: string
   year: number
   tags: string[]
-  currentVersion: number
-  versions: { current: number, filed: number[] }
+  version: number
+  isRedacted: boolean
+  redaction: { note: string | null, preparedBy: string | null, preparedAt: string | null } | null
+  versions: { current: number, filed: number[] } | null
   attachments: { id: string, fileName: string, mime: string, size: number }[]
   creator: { name: string, position: string } | null
 }
@@ -134,7 +138,8 @@ onMounted(load)
         </h1>
         <p class="text-sm md:text-base text-white/60 mt-3 max-w-2xl leading-relaxed">
           The council's public record: resolutions, minutes, memoranda, the constitution and by-laws, and reports.
-          Search the archive — including the text inside the uploaded files.
+          Search the archive — including the text inside the uploaded files. Documents that name students are
+          published as redacted copies, with a note saying what was removed.
         </p>
       </div>
     </section>
@@ -237,8 +242,14 @@ onMounted(load)
                   {{ doc.type?.name ?? 'Document' }}
                 </span>
                 <span class="font-mono text-xs text-slate">{{ doc.number }}</span>
-                <span v-if="doc.currentVersion > 1" class="text-xs text-slate">
-                  · revision {{ doc.currentVersion }}
+                <span v-if="doc.version > 1" class="text-xs text-slate">
+                  · version {{ doc.version }}
+                </span>
+                <span
+                  v-if="doc.isRedacted"
+                  class="inline-flex items-center rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-dark"
+                >
+                  redacted copy
                 </span>
                 <span v-if="doc._count?.attachments" class="text-xs text-slate">
                   · {{ doc._count.attachments }} file{{ doc._count.attachments === 1 ? '' : 's' }}
@@ -250,6 +261,9 @@ onMounted(load)
               </h2>
               <p class="text-sm text-slate mt-1.5 leading-relaxed">
                 {{ doc.summary }}
+              </p>
+              <p v-if="doc.isRedacted && doc.redactionNote" class="text-xs text-slate mt-1.5 italic">
+                Published as a redacted copy — {{ doc.redactionNote }}
               </p>
 
               <div class="flex flex-wrap items-center gap-2 mt-3">
@@ -285,6 +299,17 @@ onMounted(load)
                 Loading…
               </div>
               <template v-else-if="detail">
+                <div
+                  v-if="detail.isRedacted"
+                  class="mb-3 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-ink"
+                >
+                  <span class="font-semibold">Redacted copy.</span>
+                  {{ detail.redaction?.note || 'Prepared for publication.' }}
+                  <span v-if="detail.redaction?.preparedBy" class="text-slate">
+                    · prepared by {{ detail.redaction.preparedBy }}
+                    <template v-if="detail.redaction.preparedAt"> on {{ formatDate(detail.redaction.preparedAt) }}</template>
+                  </span>
+                </div>
                 <p v-if="!detail.body" class="text-sm text-slate italic">
                   The text of this filing is in the attached file.
                 </p>

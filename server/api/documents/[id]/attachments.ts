@@ -5,7 +5,7 @@ import { requireCapability } from '../../../utils/rbac'
 import { badRequest, defineApiHandler, HttpError, notFound, readJsonBody, respond } from '../../../utils/http'
 import { extractAttachmentText, validateAttachmentMeta } from '../../../utils/documents'
 import { documentObjectKey, documentStorage } from '../../../utils/document-storage'
-import { rebuildSearchText } from '../../../utils/document-archive'
+import { rebuildPublicSearchText, rebuildSearchText } from '../../../utils/document-archive'
 
 /**
  * POST /api/documents/:id/attachments — add a file to a filing (plan §8.8).
@@ -73,8 +73,10 @@ export default defineApiHandler(async (event) => {
   })
 
   // The generated tsvector follows searchText, so re-build the corpus now that
-  // the file's words are known.
+  // the file's words are known. The public corpus follows it too unless a
+  // redacted copy is in force, in which case only that copy's files count.
   await rebuildSearchText(prisma, id, { title: document.title, body: document.body, tags: document.tags })
+  await rebuildPublicSearchText(prisma, id)
 
   await prisma.auditLog.create({
     data: {

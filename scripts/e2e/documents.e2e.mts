@@ -138,6 +138,7 @@ async function main() {
     body: 'WHEREAS, the council adopts the Panay coastal cleanup programme for this academic year.',
     tags: 'Environment, Senate',
     visibility: 'public',
+    confirmUnredactedPublish: true,
     financeRef: 'BL-2026-004'
   })
   const publicId = r._b?.document?.id
@@ -201,7 +202,8 @@ async function main() {
     year,
     title: `${tag} Notes from the river survey`,
     body: 'Filed with a text attachment.',
-    visibility: 'public'
+    visibility: 'public',
+    confirmUnredactedPublish: true
   })
   const textId = r._b?.document?.id
   check('the second document is filed (201)', r._s === 201 && !!textId, `${r._s}`)

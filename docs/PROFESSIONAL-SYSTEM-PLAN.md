@@ -358,8 +358,10 @@ flowchart LR
 ### 8.8 Documents & resolutions archive (Phase 7)
 
 - Types: minutes, resolutions, memos, constitution/by-laws, reports; auto-numbering (e.g., *Resolution No. 2026-014*).
-- Versions, attachments, tags, visibility (public / officers), full-text search, link documents to events/elections/finance records.
-- *Acceptance:* search finds a phrase inside an uploaded document's text; public visitors only see public documents.
+- Versions, attachments, tags, classification (`public` / `officers` / `restricted`), full-text search, link documents to events/elections/finance records.
+- **BC-9 — nothing is public unless explicitly published.** A filing is `officers` by default; `restricted` is staff-only and never appears in the public archive at all. Moving a filing to `public` is its own audited action: it records the document, the actor and whether a redacted copy was in force. Publishing without a redacted copy needs an explicit confirmation and writes a louder audit entry.
+- **Redacted copies are first-class versions.** `POST /api/documents/:id/redacted-copy` appends a version marked `isRedacted`, records who prepared it, when, and a required note. The public reader serves that version and its own attachments — never the original — and the public search corpus is rebuilt from it, so a redacted phrase cannot be found (or confirmed) by search. A public document with a redacted copy whose pointer no longer resolves serves nothing rather than falling back to the original.
+- *Acceptance:* search finds a phrase inside an uploaded document's text; public visitors only see public documents; a public document with a redacted copy serves the redacted text and never the original phrase; a restricted document returns nothing publicly; publishing is audited.
 
 ---
 
@@ -774,7 +776,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | **done** (2026-10-20, `feat/bc6-offline-durability`) |
 | BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
 | BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
-| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | partially by construction (P7's `public`/`officers` + audited writes); redaction + the aggregate rule pending |
+| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | **classification + redaction + audited publish done** (`feat/bc9-document-redaction`): `public`/`officers`/`restricted`, redacted versions with a note, public reader serves only the copy, publish audited (loud when no copy); the aggregate transparency document remains a P6/publishing task |
 | BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **in flight** (`bc10-audit-integrity`, agent) |
 | BC-11 | Self-service privacy export + rectification queue | pending |
 | BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |

@@ -3,10 +3,11 @@ import { prisma } from '../../utils/prisma'
 import { defineApiHandler, respond } from '../../utils/http'
 import { manilaYmd } from '../../utils/time'
 import {
-  documentListWhere,
   documentSummary,
   normalizeTags,
-  parseYear
+  parseYear,
+  publicDocumentContent,
+  publicDocumentWhere
 } from '../../utils/documents'
 import { searchDocumentIds } from '../../utils/document-archive'
 import { orderBy as orderByFor, parseTableQuery, skipTake } from '../../utils/pagination'
@@ -15,25 +16,108 @@ import { orderBy as orderByFor, parseTableQuery, skipTake } from '../../utils/pa
  * Everything a visitor may see. Deliberately no `financeRef` and no internal
  * ids other than the ones a link needs: the public side of a filing is the
  * filing, not the council's paperwork about it.
+ *
+ * BC-9: `redactedVersion` is fetched because it is the only body a public
+ * document with a redacted copy may show. The original columns are read here
+ * but never mapped into the response when the copy is in force.
  */
 const publicSelect = {
   id: true,
   number: true,
   title: true,
   body: true,
-  year: true,
   tags: true,
+  year: true,
+  classification: true,
+  redactedVersionId: true,
+  redactionNote: true,
   currentVersion: true,
+  archived: true,
   createdAt: true,
   updatedAt: true,
   type: { select: { id: true, key: true, name: true } },
   event: { select: { id: true, title: true, date: true } },
+  redactedVersion: {
+    select: {
+      version: true,
+      title: true,
+      body: true,
+      tags: true,
+      createdAt: true,
+      creator: { select: { name: true, position: true } },
+      _count: { select: { attachments: true } }
+    }
+  },
   _count: { select: { attachments: true } }
 } as const
 
-function withSummary<T extends { body: string }>(row: T) {
-  const { body, ...rest } = row
-  return { ...rest, summary: documentSummary(body) }
+type PublicRow = {
+  id: string
+  number: string
+  title: string
+  body: string
+  tags: string[]
+  year: number
+  classification: string
+  redactedVersionId: string | null
+  redactionNote: string | null
+  currentVersion: number
+  archived: boolean
+  createdAt: Date
+  updatedAt: Date
+  type: { id: string, key: string, name: string }
+  event: { id: string, title: string, date: Date } | null
+  redactedVersion: {
+    version: number
+    title: string
+    body: string
+    tags: string[]
+    createdAt: Date
+    creator: { name: string, position: string } | null
+    _count: { attachments: number }
+  } | null
+  _count: { attachments: number }
+}
+
+/**
+ * The list row a visitor gets. Built explicitly rather than by spreading the
+ * database row, so a body that must not be published cannot ride along in a
+ * later column.
+ */
+function withPublicSummary(row: PublicRow) {
+  const content = publicDocumentContent({
+    classification: row.classification,
+    archived: row.archived,
+    currentVersion: row.currentVersion,
+    title: row.title,
+    body: row.body,
+    tags: row.tags,
+    // The note is the "a copy is required" marker: if the pointer was ever
+    // cleared, the filing still must not fall back to its original text.
+    hasRedactedCopy: !!row.redactedVersionId || !!row.redactionNote,
+    redactedVersion: row.redactedVersion
+  })
+  if (!content.public) return null
+
+  const isRedacted = content.source === 'redacted'
+  return {
+    id: row.id,
+    number: row.number,
+    year: row.year,
+    title: content.title,
+    tags: content.tags,
+    summary: documentSummary(content.body),
+    version: content.version,
+    isRedacted,
+    redactionNote: isRedacted ? row.redactionNote : null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    type: row.type,
+    event: row.event,
+    _count: {
+      attachments: isRedacted ? (row.redactedVersion?._count.attachments ?? 0) : row._count.attachments
+    }
+  }
 }
 
 /**
@@ -94,6 +178,7 @@ export default defineApiHandler(async (event) => {
       tag,
       year,
       eventId,
+      corpus: 'public',
       limit: table.pageSize,
       offset: (table.page - 1) * table.pageSize
     })
@@ -102,7 +187,10 @@ export default defineApiHandler(async (event) => {
       : []
     const byId = new Map(rows.map(row => [row.id, row]))
     return {
-      documents: ids.flatMap(id => (byId.has(id) ? [withSummary(byId.get(id)!)] : [])),
+      documents: ids.flatMap((id) => {
+        const row = byId.get(id)
+        return row ? [withPublicSummary(row)].filter(Boolean) : []
+      }),
       types,
       total,
       page: table.page,
@@ -111,7 +199,7 @@ export default defineApiHandler(async (event) => {
     }
   }
 
-  const where = documentListWhere({ scope, archived, typeId: resolvedTypeId, tag, year, eventId })
+  const where = publicDocumentWhere({ archived, typeId: resolvedTypeId, tag, year, eventId })
   const [total, rows] = await Promise.all([
     prisma.document.count({ where }),
     prisma.document.findMany({
@@ -123,7 +211,7 @@ export default defineApiHandler(async (event) => {
   ])
 
   return {
-    documents: rows.map(row => withSummary(row)),
+    documents: rows.map(withPublicSummary).filter(row => row !== null),
     total,
     page: table.page,
     pageSize: table.pageSize,
