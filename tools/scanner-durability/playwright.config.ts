@@ -41,7 +41,7 @@ export default defineConfig({
         cwd: '../..',
         url: `${APP_URL}/login`,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 300_000,
         env: {
           NUXT_PUBLIC_SUPABASE_URL: SUPABASE_URL,
           NUXT_PUBLIC_SUPABASE_KEY: SUPABASE_KEY
