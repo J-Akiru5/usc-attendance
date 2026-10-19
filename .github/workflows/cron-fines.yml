@@ -6,8 +6,11 @@ name: Cron — fines
 # rather than in vercel.json because the Vercel project is on Hobby, which
 # allows only two daily cron jobs; the signature purge keeps one of those slots.
 #
-# Needs: repository secret CRON_SECRET, and optionally a repository variable
-# SITE_URL (defaults to the production domain).
+# Repository settings this needs:
+#   secret   CRON_SECRET — same value as the deployment's environment (D-04)
+#   variable SITE_URL    — set at cutover to the production domain. Until it is
+#                          set, this workflow skips quietly instead of failing
+#                          against a domain that does not exist yet.
 
 on:
   schedule:
@@ -21,10 +24,10 @@ jobs:
       - name: Generate fines for closed events
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SITE_URL: ${{ vars.SITE_URL || 'https://usc.syntaxure.dev' }}
+          SITE_URL: ${{ vars.SITE_URL }}
         run: |
-          if [ -z "$CRON_SECRET" ]; then
-            echo "CRON_SECRET is not configured for this repository yet — skipping"
+          if [ -z "$CRON_SECRET" ] || [ -z "$SITE_URL" ]; then
+            echo "CRON_SECRET / SITE_URL are not both configured for this repository yet — skipping"
             exit 0
           fi
           code=$(curl -sS -o /tmp/out.json -w '%{http_code}' -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/event-fines")
