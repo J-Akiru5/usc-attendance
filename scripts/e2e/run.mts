@@ -14,6 +14,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { createServer } from 'node:http'
 import { createConnection } from 'node:net'
 import { randomBytes } from 'node:crypto'
+import { statSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +22,37 @@ import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+/**
+ * The generated Prisma client has to be newer than the schema it came from. A
+ * merge that changes `prisma/schema.prisma` without regenerating locally leaves
+ * the dev server running on an old client, and every suite then fails with
+ * 500s and confusing cascades instead of saying why — which is exactly what
+ * happened when the finance and documents branches merged. Cheap to check,
+ * expensive to debug.
+ */
+function ensurePrismaClient(): void {
+  const schema = path.join(rootDir, 'prisma', 'schema.prisma')
+  const client = path.join(rootDir, 'node_modules', '.prisma', 'client', 'index.d.ts')
+
+  let fresh = false
+  try {
+    fresh = statSync(client).mtimeMs >= statSync(schema).mtimeMs
+  } catch {
+    fresh = false
+  }
+  if (fresh) return
+
+  console.log('[e2e] the prisma client is missing or older than the schema — regenerating before we start')
+  const result = spawnSync('npx.cmd', ['prisma', 'generate'], {
+    cwd: rootDir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
+  })
+  if (result.status !== 0) {
+    throw new Error('prisma generate failed — fix the schema before running the suites')
+  }
+}
 
 /**
  * Supabase has brief turns where the pooler accepts TCP but never answers; each
@@ -305,6 +337,7 @@ async function main(): Promise<void> {
     // Cold `nuxt dev` boots on a busy machine have taken over four minutes here,
     // and the first API request may itself trigger a slow compile — the window
     // only ever passes once Nitro (not Nuxt's boot page) answers.
+    ensurePrismaClient()
     await waitForDatabase(180000)
     await waitForServer(baseUrl, 600000)
     console.log('[e2e] dev server ready')
