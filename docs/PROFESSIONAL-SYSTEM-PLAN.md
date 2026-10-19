@@ -315,7 +315,7 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 ### 8.5 Absence fines & clearance (Phase 4)
 
 - **Fine rules**: global defaults **₱50 per absence** and **₱25 per late** (admin-editable), with optional per-event or per-category overrides; applies to the event's required audience; a configurable late threshold (minutes after the window opens).
-- **Authority and sanction type** *(benchmark BC-7 — before cutover)*: a **monetary** fine is only offered when the rule carries an `authorityRef` (the council resolution, and who approved it) and an `effectiveFrom` date; otherwise `sanctionType` is `warning` or `service`. The platform does not decide whether the council may charge money — Q-New-1 does — it records which decision was taken, by whom, so the policy can change without a code change. *(Schema addition pending; see the §14 amendment queue.)*
+- **Authority and sanction type** *(benchmark BC-7; decided as **D-01** in §12.3 — **monetary against an officer yes, not against a regular student**)*: a **monetary** fine is only offered when the rule carries an `authorityRef` (the council resolution, and who approved it) and an `effectiveFrom` date; otherwise `sanctionType` is `warning` or `service`. The platform does not decide whether the council may charge money — the council does (C-1 in `docs/COUNCIL-DECISIONS.md`) — it records which decision was taken, by whom, so the policy can change without a code change. *(Schema addition pending; see the §14 amendment queue.)*
 - **Dispute before collection** *(BC-7)*: a generated fine is `disputable` for *n* days (default 7). A dispute states a *fact* ("I was present", "the event was cancelled", "I was on official duty") and is decided like an excuse — but is not evidence of absence, which is why it is a separate flow from an excuse. Only when the window closes does the fine become `payable`.
 - **Nothing is charged for an event that did not happen** *(BC-7; **built** in `feat/p4e-event-cancellation`)*: `Event` carries `status` (`scheduled` · `cancelled`) with a reason, who and when; the fine job skips anything not scheduled, the reminder job skips it, check-ins and registrations are refused, and cancelling notifies the expected audience once. *Still to add from BC-7: voiding fines that were already generated when an event is cancelled after the fact, and the per-semester cap.*
 - After an event's window closes (cron), **no-shows** among the required audience get a fine; late arrivals get the late rate.
@@ -541,6 +541,37 @@ the university answer, not we:
 
 ---
 
+## 12.3 Decisions taken (2026-10-19)
+
+Answered in conversation with Jeff; recorded here as atomic rows so a later council decision changes **one row and
+one setting**, never a paragraph other paragraphs depend on. The council-facing versions of C-1…C-6 are written to
+be read aloud in **`docs/COUNCIL-DECISIONS.md`**.
+
+| id | Question | Answer | Effect |
+|---|---|---|---|
+| D-01 | Are monetary fines allowed? | **Monetary against an officer yes; not against a regular student** (RA 4206 as amended by RA 5546). Officers keep ₱ amounts; students default to `warning`/`service` | Fine rules gain a **sanction type per relationship**; absence is still recorded for everyone; **clearance becomes "no outstanding obligation"** — an unserved service sanction reads outstanding exactly like an unpaid fine |
+| D-02 | Does anything outside the council require clearance? | **Unknown — build informational, revisit** | `/verify` and the PDF stay non-gating; the plan states clearance never blocks enrolment, examinations or credentials; a switch is kept for later |
+| D-03 | Which phones must the scanner support? | **Mixed — iOS officers do QR-only duty** | Scanner enables 1D barcode formats on Chromium only, iOS is QR; **push promised on Android/PWA only**; offline-queue durability (BC-6) rises in priority because iOS evicts script storage |
+| D-04 | The cron scheduler | **GitHub Actions approved** | Already built (`.github/workflows/cron-*.yml`); needs the repository `CRON_SECRET` secret and `SITE_URL` variable; moves into `vercel.json` with no code change if the project ever moves to Pro |
+| D-05 | What counts as late? | **15 minutes globally, per-event override** | The code's current default flips from 30 to 15, in both the constant and the settings default |
+| D-06 | Who records payments and issues an OR? | **The Treasurer, or anyone holding the finance capability** | The payment route moves from "any staff" to `finance.manage` — a tightening, not a relaxation |
+| D-07 | What may the public `/verify/<code>` show? | **Status, date and issuer only**, with an optional last-4-digits challenge | A real change: the public response **loses the name, the student number and the covered amount** |
+| D-08 | Announcement email defaults | **Email off by default for announcements; on for transactional kinds** | The composer's default flips, and above-quota sends **refuse with options** instead of skipping silently |
+
+**Code deltas implied by the register** (each small and independent):
+
+1. **D-01** — an audience→sanction map in `server/utils/fines.ts`; student rules default to `warning`/`service`; the fine lifecycle gains a "served" state for service sanctions so clearance can read it as an obligation.
+2. **D-03** — platform-aware scanner formats (`Html5QrcodeSupportedFormats` gated on the user agent) and push copy that names Android/PWA only.
+3. **D-05** — the late default from 30 to 15 (constant + settings default).
+4. **D-06** — `POST /api/fines/:id/payment` guarded by `finance.manage` instead of `staff.access`.
+5. **D-07** — `publicVerification()` drops `name`/`studentNo`/`coveredPesos`; the page gains the last-4-digits challenge and its own test.
+6. **D-08** — the announcement composer defaults `email: false` per recipient preference handling, and warns/refuses when the audience exceeds the day's remaining quota (BC-12).
+
+**Still queued for verification** (not decisions): the 22-suite live batch on the merged `develop`, and the public
+parity gate before cutover.
+
+---
+
 ## 13. Agent working agreement
 
 Rules for any AI agent (Claude Code, Codex, Cursor, …) working on this plan:
@@ -722,6 +753,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 - [ ] Freeze the expected roster at window close (benchmark BC-4)
 - [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
 - [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7 and §12.2's Q-New rows
+- [ ] Apply the **D-01…D-08 code deltas** from §12.3 (sanction map, platform-aware scanner, late threshold 15, payment capability, trimmed `/verify` response, announcement email default) — and hand `docs/COUNCIL-DECISIONS.md` to the council for C-1…C-6
 
 #### Benchmark amendment queue (from `docs/BENCHMARK-REVIEW.md` §4)
 
