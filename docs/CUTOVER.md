@@ -24,13 +24,16 @@
       `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SITE_URL` = `NUXT_PUBLIC_SITE_URL` = `https://usc.syntaxure.dev`.
 - [ ] Optional, same screen: `SIGNATURE_STORAGE=r2` (the `R2_*` values are already there for photo uploads) and
       `RESEND_DAILY_LIMIT` if the free-plan ceiling moves.
-- [ ] **Vercel → Cron Jobs:** after the first production deployment of the Nuxt build, confirm **four** jobs exist,
-      all authorised with the same `CRON_SECRET` (each is idempotent, so a missed day catches up harmlessly):
-      - `/api/cron/purge-signatures` — `0 18 * * *` (daily)
-      - `/api/cron/event-reminders` — hourly (`0 * * * *`), sends the 24 h and 1 h reminders
-      - `/api/cron/announcements` — every few minutes (`*/15 * * * *`), sends scheduled announcements
-      - `/api/cron/event-fines` — daily (`0 19 * * *`), generates fines for events whose check-in window has closed
-      Trigger each manually once and confirm a 200.
+- [ ] **Crons:** the purge runs from `vercel.json` (daily, Hobby allows two). The other three run from **GitHub Actions**
+      (`.github/workflows/cron-*.yml`) because Hobby rejects sub-daily schedules *at deploy time* — an hourly entry there
+      fails the deployment outright:
+      - `cron-reminders.yml` — hourly, the 24 h and 1 h reminders
+      - `cron-announcements.yml` — every 15 minutes, scheduled announcements
+      - `cron-fines.yml` — daily 19:00, fines for events whose window has closed
+      All four share `CRON_SECRET`, and each is idempotent, so a missed or repeated run is harmless. Two repository
+      settings are needed for the workflows: a **secret** `CRON_SECRET` and, until the project moves to Pro/its own
+      domain, a **variable** `SITE_URL` pointing at the deployment. Trigger each manually once (`workflow_dispatch`)
+      and confirm a 200 — and when the project moves to Pro, the three can move back into `vercel.json` unchanged.
 - [ ] Adviser / Co-Adviser accounts once their school emails arrive (§12.2 Q12), with the Settings capability.
 - [ ] Semesters entered in Settings → Semesters for the current school year.
 

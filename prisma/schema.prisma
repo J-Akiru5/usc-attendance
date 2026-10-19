@@ -27,6 +27,13 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  /// Consent record (plan §11.2, benchmark BC-1): what the student agreed to and
+  /// when. Nullable because accounts that predate this have no recorded consent —
+  /// inventing one would be worse than admitting the gap.
+  consentAt      DateTime?
+  consentVersion String?
+  consentSource  String?
+
   createdEvents Event[]       @relation("EventCreator")
   attendance    Attendance[]
   recorded      Attendance[]  @relation("RecordedBy")
