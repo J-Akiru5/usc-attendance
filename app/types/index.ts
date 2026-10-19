@@ -13,6 +13,9 @@ export interface User {
   canDelegate?: boolean
   canConfigure?: boolean
   mustChangePassword?: boolean
+  /** Capabilities from the user's roles (plan §7.2) — the server-side truth the
+   * UI only mirrors to hide buttons. */
+  capabilities?: string[]
   createdAt: string
 }
 

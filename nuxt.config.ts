@@ -88,8 +88,10 @@ export default defineNuxtConfig({
         '/portal/how-it-works',
         '/portal/security',
         '/portal/faq',
-        // New in P7: the public archive of published documents and resolutions
-        // (plan §8.8). Added to the exclusion list only — no frozen page changed.
+        // Public transparency board (plan §8.7) and the public archive of
+        // published documents (plan §8.8) — two new routes; the frozen public
+        // pages above are untouched.
+        '/transparency',
         '/documents'
       ]
     }

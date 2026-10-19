@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
+import { manilaStamp } from './time'
 
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf'
 
@@ -54,18 +55,7 @@ export function parseFormat(input: unknown): ReportFormat | null {
 
 /** "2026-11-10 14:05:09" in Asia/Manila. */
 export function formatManila(d: Date): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Manila',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).formatToParts(d)
-  const g = (t: string) => parts.find(p => p.type === t)?.value ?? '00'
-  return `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}:${g('second')}`
+  return manilaStamp(d, true)
 }
 
 /** Filename-safe slug of the event title. */
@@ -287,4 +277,238 @@ export async function buildReport(
   if (format === 'csv') return { body: buildCsv(model), contentType: CONTENT_TYPES.csv, extension: 'csv' }
   if (format === 'xlsx') return { body: await buildXlsx(model), contentType: CONTENT_TYPES.xlsx, extension: 'xlsx' }
   return { body: await buildPdf(model), contentType: CONTENT_TYPES.pdf, extension: 'pdf' }
+}
+
+// ---------------------------------------------------------------------------
+// Generic table reports (plan §8.7 liquidation, and anything else that is a set
+// of tables rather than an attendance roster). Same formats, same CSV-safety and
+// page furniture as the attendance report above; the caller describes columns
+// and rows.
+// ---------------------------------------------------------------------------
+
+export interface TableColumn {
+  label: string
+  /** Column width in PDF points; the Excel width is derived from it. */
+  width: number
+  align?: 'left' | 'right'
+}
+
+export interface TableSection {
+  heading?: string
+  columns: TableColumn[]
+  rows: string[][]
+  /** Optional totals row, printed after the rows. */
+  totals?: string[]
+}
+
+export interface TableReportModel {
+  title: string
+  subtitle?: string
+  /** Extra context lines under the subtitle (period, status, …). */
+  meta?: string[]
+  sections: TableSection[]
+  /** Signatory lines / footnotes at the end of the document. */
+  notes?: string[]
+  generatedAt: string
+  generatedBy: string
+  /** Filename stem, no extension. */
+  stem: string
+}
+
+function normaliseRow(row: string[], width: number): string[] {
+  const out = row.slice(0, width).map(cell => String(cell ?? ''))
+  while (out.length < width) out.push('')
+  return out
+}
+
+export function buildTableCsv(model: TableReportModel): string {
+  const header = [model.title, model.subtitle].filter((part): part is string => !!part).map(csvField).join(' — ')
+  const blocks: string[] = [[header, ...(model.meta ?? []).map(csvField)].join('\r\n')]
+
+  for (const section of model.sections) {
+    const lines: string[] = []
+    if (section.heading) lines.push(csvField(section.heading))
+    lines.push(section.columns.map(c => csvField(c.label)).join(','))
+    for (const row of section.rows) lines.push(normaliseRow(row, section.columns.length).map(csvField).join(','))
+    if (section.totals) lines.push(normaliseRow(section.totals, section.columns.length).map(csvField).join(','))
+    blocks.push(lines.join('\r\n'))
+  }
+  if (model.notes?.length) blocks.push(model.notes.map(csvField).join('\r\n'))
+  blocks.push(csvField(`Generated ${model.generatedAt} by ${model.generatedBy}`))
+
+  // BOM so Excel opens UTF-8 text (names, "₱") correctly.
+  return '﻿' + blocks.join('\r\n\r\n') + '\r\n'
+}
+
+export async function buildTableXlsx(model: TableReportModel): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook()
+  wb.creator = model.generatedBy
+  wb.created = new Date()
+
+  const used = new Set<string>()
+  model.sections.forEach((section, index) => {
+    // Sheet names: unique, ≤ 31 chars, no characters Excel refuses.
+    const base = (section.heading ?? `Table ${index + 1}`).replace(/[\\/*?:[\]]/g, ' ').trim().slice(0, 31) || `Table ${index + 1}`
+    let name = base
+    let suffix = 2
+    while (used.has(name)) name = `${base.slice(0, 27)} ${suffix++}`
+    used.add(name)
+
+    const ws = wb.addWorksheet(name, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } })
+    ws.columns = section.columns.map(c => ({ width: Math.max(10, Math.round(c.width / 6)) }))
+    const width = section.columns.length
+
+    const title = ws.addRow([safeCell(model.title)])
+    title.font = { bold: true, size: 14 }
+    if (model.subtitle) ws.addRow([safeCell(model.subtitle)]).font = { size: 10, color: { argb: 'FF444444' } }
+    for (const meta of model.meta ?? []) ws.addRow([safeCell(meta)]).font = { size: 9, color: { argb: 'FF666666' } }
+    ws.addRow([])
+
+    const header = ws.addRow(section.columns.map(c => c.label))
+    header.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B2A4A' } }
+    header.alignment = { vertical: 'middle' }
+    header.height = 20
+
+    for (const row of section.rows) {
+      const added = ws.addRow(normaliseRow(row, width).map(safeCell))
+      added.alignment = { vertical: 'middle', wrapText: true }
+      section.columns.forEach((c, i) => {
+        if (c.align === 'right') added.getCell(i + 1).alignment = { horizontal: 'right', vertical: 'middle' }
+      })
+    }
+
+    if (section.totals) {
+      const totals = ws.addRow(normaliseRow(section.totals, width).map(safeCell))
+      totals.font = { bold: true }
+      totals.border = { top: { style: 'thin', color: { argb: 'FF1B2A4A' } } }
+    }
+  })
+
+  if (model.notes?.length || model.generatedAt) {
+    const ws = wb.addWorksheet('Notes')
+    ws.columns = [{ width: 100 }]
+    for (const note of model.notes ?? []) ws.addRow([safeCell(note)])
+    ws.addRow([])
+    ws.addRow([`Generated ${model.generatedAt} by ${model.generatedBy}`])
+  }
+
+  return Buffer.from(await wb.xlsx.writeBuffer())
+}
+
+export async function buildTablePdf(model: TableReportModel): Promise<Buffer> {
+  const pdf = await PDFDocument.create()
+  pdf.setTitle(model.title)
+  pdf.setAuthor(model.generatedBy)
+  pdf.setCreationDate(new Date())
+  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const navy = rgb(0.106, 0.165, 0.29)
+  const grey = rgb(0.4, 0.4, 0.4)
+
+  const MARGIN_X = 28
+  const ROW_H = 18
+
+  let page: PDFPage
+  let y = 0
+
+  const newPage = (first: boolean) => {
+    page = pdf.addPage([PAGE_W, PAGE_H])
+    y = PAGE_H - MARGIN_X
+    if (first) {
+      page.drawText(fit(model.title, bold, 16, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 14, size: 16, font: bold, color: navy })
+      y -= 28
+      if (model.subtitle) {
+        page.drawText(fit(model.subtitle, font, 10, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 8, size: 10, font, color: grey })
+        y -= 16
+      }
+      for (const meta of model.meta ?? []) {
+        page.drawText(fit(meta, font, 9, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 7, size: 9, font, color: grey })
+        y -= 13
+      }
+      y -= 6
+    } else {
+      page.drawText(fit(`${model.title} (continued)`, font, 9, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 9, size: 9, font, color: grey })
+      y -= 18
+    }
+  }
+
+  newPage(true)
+
+  for (const section of model.sections) {
+    if (y - 40 < MARGIN_X) newPage(false)
+    if (section.heading) {
+      page!.drawText(fit(section.heading, bold, 11, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 10, size: 11, font: bold, color: navy })
+      y -= 20
+    }
+
+    const drawHeaderRow = () => {
+      page!.drawRectangle({ x: MARGIN_X, y: y - ROW_H, width: PAGE_W - 2 * MARGIN_X, height: ROW_H, color: navy })
+      let x = MARGIN_X
+      section.columns.forEach((c) => {
+        const label = fit(c.label, bold, 8, c.width - 8)
+        const offset = c.align === 'right' ? c.width - 4 - bold.widthOfTextAtSize(label, 8) : 4
+        page!.drawText(label, { x: x + offset, y: y - 13, size: 8, font: bold, color: rgb(1, 1, 1) })
+        x += c.width
+      })
+      y -= ROW_H
+    }
+    drawHeaderRow()
+
+    const drawRow = (cells: string[], emphasise: boolean) => {
+      if (y - ROW_H < MARGIN_X + 18) {
+        newPage(false)
+        if (section.heading) {
+          page!.drawText(fit(`${section.heading} (continued)`, bold, 9, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 9, size: 9, font: bold, color: navy })
+          y -= 18
+        }
+        drawHeaderRow()
+      }
+      let x = MARGIN_X
+      const arm = emphasise ? bold : font
+      section.columns.forEach((c, i) => {
+        const raw = cells[i] ?? ''
+        const text = fit(raw, arm, 8, c.width - 8)
+        const offset = c.align === 'right' ? c.width - 4 - arm.widthOfTextAtSize(text, 8) : 4
+        page!.drawText(text, { x: x + offset, y: y - 13, size: 8, font: arm, color: emphasise ? navy : rgb(0.1, 0.1, 0.1) })
+        x += c.width
+      })
+      page!.drawLine({ start: { x: MARGIN_X, y: y - ROW_H }, end: { x: PAGE_W - MARGIN_X, y: y - ROW_H }, thickness: 0.4, color: rgb(0.85, 0.85, 0.85) })
+      y -= ROW_H
+    }
+
+    if (section.rows.length === 0) {
+      page!.drawText('No records.', { x: MARGIN_X + 4, y: y - 13, size: 9, font, color: grey })
+      y -= ROW_H
+    }
+    for (const row of section.rows) drawRow(normaliseRow(row, section.columns.length), false)
+    if (section.totals) drawRow(normaliseRow(section.totals, section.columns.length), true)
+    y -= 14
+  }
+
+  if (model.notes?.length) {
+    if (y - (model.notes.length + 2) * 13 < MARGIN_X) newPage(false)
+    for (const note of model.notes) {
+      page!.drawText(fit(note, font, 9, PAGE_W - 2 * MARGIN_X), { x: MARGIN_X, y: y - 8, size: 9, font, color: rgb(0.2, 0.2, 0.2) })
+      y -= 13
+    }
+  }
+
+  const footer = `Generated ${model.generatedAt} by ${model.generatedBy}`
+  pdf.getPages().forEach((p, i) => {
+    p.drawText(fit(footer, font, 7, PAGE_W - 2 * MARGIN_X - 80), { x: MARGIN_X, y: 14, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
+    const label = `Page ${i + 1} of ${pdf.getPageCount()}`
+    p.drawText(label, { x: PAGE_W - MARGIN_X - font.widthOfTextAtSize(label, 7), y: 14, size: 7, font, color: rgb(0.5, 0.5, 0.5) })
+  })
+
+  return Buffer.from(await pdf.save())
+}
+
+export async function buildTableReport(
+  model: TableReportModel,
+  format: ReportFormat
+): Promise<{ body: Buffer | string, contentType: string, extension: ReportFormat }> {
+  if (format === 'csv') return { body: buildTableCsv(model), contentType: CONTENT_TYPES.csv, extension: 'csv' }
+  if (format === 'xlsx') return { body: await buildTableXlsx(model), contentType: CONTENT_TYPES.xlsx, extension: 'xlsx' }
+  return { body: await buildTablePdf(model), contentType: CONTENT_TYPES.pdf, extension: 'pdf' }
 }

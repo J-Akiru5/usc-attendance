@@ -4,13 +4,17 @@ import { PDFDocument } from 'pdf-lib'
 import {
   buildCsv,
   buildPdf,
+  buildTableCsv,
+  buildTablePdf,
+  buildTableXlsx,
   buildXlsx,
   fileStem,
   formatManila,
   parseFormat,
   safeCell,
   type ReportModel,
-  type ReportRow
+  type ReportRow,
+  type TableReportModel
 } from '../../server/utils/report'
 
 // 1x1 transparent PNG
@@ -125,5 +129,85 @@ describe('buildPdf', () => {
   it('handles an empty roster', async () => {
     const buf = await buildPdf(model([]))
     expect((await PDFDocument.load(buf)).getPageCount()).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Generic table reports (plan §8.7's liquidation document)
+// ---------------------------------------------------------------------------
+function tableModel(): TableReportModel {
+  return {
+    title: 'Liquidation report — Pag-abi-abi 2026',
+    subtitle: 'Event: Pag-abi-abi (2026-11-02)',
+    meta: ['Status: released', 'Budget line: Events'],
+    sections: [
+      {
+        heading: 'Expenses, income and receipts',
+        columns: [
+          { label: 'Date', width: 70 },
+          { label: 'Description', width: 200 },
+          { label: 'Amount', width: 90, align: 'right' as const },
+          { label: 'Receipt', width: 150 }
+        ],
+        rows: [
+          ['2026-11-02', 'Tarp printing', '₱125.00', 'tarp.jpg'],
+          ['2026-11-02', 'Tricycle fare', '₱30.00', 'NO RECEIPT']
+        ],
+        totals: ['', 'Total expenses', '₱155.00', '']
+      }
+    ],
+    notes: ['Proposed ₱200.00 · Spent ₱155.00 · Variance ₱45.00 (underspent)'],
+    generatedAt: '2026-11-10 09:05',
+    generatedBy: 'Chene Manderico',
+    stem: 'liquidation-Pag-abi-abi-2026'
+  }
+}
+
+describe('buildTableReport', () => {
+  it('writes a CSV with the heading, the columns, every row and the totals', () => {
+    const csv = buildTableCsv(tableModel())
+    const text = csv.replace(/^\uFEFF/, '')
+    const lines = text.replace(/\r\n$/, '').split('\r\n')
+    expect(lines[0]).toContain('Liquidation report')
+    // A heading with a comma is quoted, exactly like any other CSV field.
+    expect(text).toContain('"Expenses, income and receipts"')
+    expect(lines).toContain('Date,Description,Amount,Receipt')
+    expect(lines).toContain('2026-11-02,Tarp printing,₱125.00,tarp.jpg')
+    expect(lines).toContain(',Total expenses,₱155.00,')
+    expect(text).toContain('Variance ₱45.00')
+    expect(lines.at(-1)).toContain('Generated 2026-11-10 09:05 by Chene Manderico')
+  })
+
+  it('neutralises formula-looking cells in the CSV', () => {
+    const model = tableModel()
+    model.sections[0]!.rows = [['2026-11-02', '=SUM(A1:A9)', '₱1.00', '']]
+    expect(buildTableCsv(model)).toContain('\'=SUM(A1:A9)')
+  })
+
+  it('writes an Excel workbook with one sheet per section and a notes sheet', async () => {
+    const buf = await buildTableXlsx(tableModel())
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(buf as unknown as ExcelJS.Buffer)
+    expect(wb.worksheets.map(ws => ws.name)).toEqual(['Expenses, income and receipts', 'Notes'])
+    const sheet = wb.getWorksheet('Expenses, income and receipts')!
+    const values = sheet.getSheetValues().flat()
+    expect(values).toContain('Description')
+    expect(values).toContain('Tarp printing')
+    expect(values).toContain('Total expenses')
+  })
+
+  it('produces a valid PDF, paginating a long table', async () => {
+    const model = tableModel()
+    model.sections[0]!.rows = Array.from({ length: 80 }, (_, i) => [`2026-11-${String((i % 28) + 1).padStart(2, '0')}`, `Item ${i + 1}`, '₱1.00', ''])
+    const buf = await buildTablePdf(model)
+    expect(buf.subarray(0, 5).toString()).toBe('%PDF-')
+    expect((await PDFDocument.load(buf)).getPageCount()).toBeGreaterThan(1)
+  })
+
+  it('renders an empty section without failing', async () => {
+    const model = tableModel()
+    model.sections[0]!.rows = []
+    expect(buildTableCsv(model)).toContain('Expenses, income and receipts')
+    expect((await buildTablePdf(model)).subarray(0, 5).toString()).toBe('%PDF-')
   })
 })

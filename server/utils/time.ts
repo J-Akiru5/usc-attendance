@@ -31,3 +31,23 @@ export function manilaHHMM(d: Date = new Date()): string {
   const mm = parts.find(p => p.type === 'minute')?.value ?? '00'
   return `${hh}:${mm}`
 }
+
+/**
+ * "2026-11-10 14:05" in Manila — the stamp documents and reports print
+ * (`withSeconds` adds the seconds the attendance report wants).
+ */
+export function manilaStamp(d: Date = new Date(), withSeconds = false): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: MANILA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(d)
+  const g = (t: string) => parts.find(p => p.type === t)?.value ?? '00'
+  const base = `${g('year')}-${g('month')}-${g('day')} ${g('hour')}:${g('minute')}`
+  return withSeconds ? `${base}:${g('second')}` : base
+}
