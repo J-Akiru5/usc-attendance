@@ -148,14 +148,14 @@ async function main() {
   check('the same publish is allowed once confirmed (200)', r._s === 200 && r._b?.document?.classification === 'public', `${r._s} ${r._b?.document?.classification}`)
 
   const loudAudit = await prisma.auditLog.findFirst({
-    where: { action: 'document_published_unredacted', details: { contains: publishedId } },
+    where: { action: 'document_published_unredacted', targetId: publishedId },
     orderBy: { createdAt: 'desc' }
   })
   const loudDetails = loudAudit ? JSON.parse(loudAudit.details ?? '{}') : {}
   check('the publish wrote a loud audit row', !!loudAudit, 'no document_published_unredacted row')
-  check('the audit names the document, the actor and the missing copy', loudDetails.documentId === publishedId
-  && loudDetails.actorName === 'E2E staff'
-  && loudDetails.redactedCopyInForce === false, JSON.stringify(loudDetails))
+  check('the audit names the document, the actor and the missing copy', loudAudit?.targetId === publishedId
+  && loudAudit?.performedBy === staff.id
+  && loudDetails.redactedCopyInForce === false, JSON.stringify({ target: loudAudit?.targetId, actor: loudAudit?.performedBy, details: loudDetails }))
   check('and carries the warning a reviewer needs', String(loudDetails.warning ?? '').includes('no unauthorised student name'), JSON.stringify(loudDetails.warning))
 
   r = await api(`/api/documents/public/${publishedId}`)
@@ -293,12 +293,12 @@ async function main() {
   check('publishing with a copy needs no confirmation flag (200)', r._s === 200 && r._b?.document?.classification === 'public', `${r._s} ${r._b?.document?.classification}`)
 
   const safeAudit = await prisma.auditLog.findFirst({
-    where: { action: 'document_published', details: { contains: copyFirstId } },
+    where: { action: 'document_published', targetId: copyFirstId },
     orderBy: { createdAt: 'desc' }
   })
   const safeDetails = safeAudit ? JSON.parse(safeAudit.details ?? '{}') : {}
   check('the safe publish is audited as such', !!safeAudit && safeDetails.redactedCopyInForce === true
-  && safeDetails.redactedVersionId !== null && safeDetails.actorName === 'E2E manager', JSON.stringify(safeDetails))
+  && safeDetails.redactedVersionId !== null && safeAudit?.performedBy === manager.id, JSON.stringify({ details: safeDetails, actor: safeAudit?.performedBy }))
 
   r = await api(`/api/documents/public/${copyFirstId}`)
   check('the public sees the copy, not the original name', r._s === 200
@@ -309,7 +309,7 @@ async function main() {
   r = await api(`/api/documents/${copyFirstId}`, { method: 'PUT', token: manager.token, body: { classification: 'restricted' } })
   check('a public filing can be restricted (200)', r._s === 200 && r._b?.document?.classification === 'restricted', `${r._s}`)
   const unpublishAudit = await prisma.auditLog.findFirst({
-    where: { action: 'document_unpublished', details: { contains: copyFirstId } },
+    where: { action: 'document_unpublished', targetId: copyFirstId },
     orderBy: { createdAt: 'desc' }
   })
   check('leaving public is audited too', !!unpublishAudit, 'no document_unpublished row')
