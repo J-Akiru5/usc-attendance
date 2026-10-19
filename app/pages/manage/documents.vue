@@ -34,7 +34,10 @@ interface DocumentRow {
   summary: string
   year: number
   tags: string[]
+  classification: 'public' | 'officers' | 'restricted'
   visibility: 'public' | 'officers'
+  redactedVersionId: string | null
+  redactionNote: string | null
   currentVersion: number
   archived: boolean
   eventId: string | null
@@ -64,9 +67,21 @@ interface VersionRow {
   title: string
   changeNote: string | null
   visibility: string
+  isRedacted: boolean
   createdAt: string
   creator: { id: string, name: string } | null
   _count: { attachments: number }
+}
+
+interface RedactedCopyRow {
+  id: string
+  version: number
+  title: string
+  body: string
+  tags: string[]
+  changeNote: string | null
+  createdAt: string
+  creator: { id: string, name: string } | null
 }
 
 interface DocumentDetail {
@@ -75,7 +90,11 @@ interface DocumentDetail {
   title: string
   body: string
   tags: string[]
+  classification: 'public' | 'officers' | 'restricted'
   visibility: 'public' | 'officers'
+  redactedVersionId: string | null
+  redactionNote: string | null
+  redactedVersion: RedactedCopyRow | null
   currentVersion: number
   archived: boolean
   eventId: string | null
@@ -103,7 +122,7 @@ const busy = ref(false)
 // Browsing
 const q = ref('')
 const typeId = ref('')
-const scope = ref<'all' | 'public' | 'officers'>('all')
+const scope = ref<'all' | 'public' | 'officers' | 'restricted'>('all')
 const archived = ref<'active' | 'archived' | 'all'>('active')
 const ranked = ref(false)
 
@@ -114,7 +133,8 @@ const form = ref({
   title: '',
   body: '',
   tags: '',
-  visibility: 'officers' as 'public' | 'officers',
+  classification: 'officers' as 'public' | 'officers' | 'restricted',
+  confirmUnredactedPublish: false,
   eventId: '',
   financeRef: ''
 })
@@ -123,7 +143,15 @@ const form = ref({
 const openId = ref('')
 const detail = ref<DocumentDetail | null>(null)
 const detailLoading = ref(false)
-const newVersion = ref({ title: '', body: '', tags: '', visibility: 'officers' as 'public' | 'officers', changeNote: '' })
+const newVersion = ref({ title: '', body: '', tags: '', changeNote: '' })
+const classificationDraft = ref<'public' | 'officers' | 'restricted'>('officers')
+const confirmUnredactedPublish = ref(false)
+const redaction = ref({
+  note: '',
+  body: '',
+  confirmExistingTextSafe: false
+})
+const redactionFile = ref<HTMLInputElement | null>(null)
 const links = ref({ eventId: '', financeRef: '' })
 const fileInput = ref<HTMLInputElement | null>(null)
 const oldVersion = ref<{ version: number, title: string, body: string, tags: string[], visibility: string, changeNote: string | null, createdAt: string, creator: { name: string } | null } | null>(null)
@@ -147,6 +175,18 @@ function manilaYear(): string {
 }
 
 const formatDateTime = formatManila
+
+/** A new original filed after the copy was prepared makes the copy stale. */
+const redactedCopyStale = computed(() => {
+  const copy = detail.value?.redactedVersion
+  return !!copy && (detail.value?.currentVersion ?? 0) > copy.version
+})
+
+function classificationVariant(value: string): 'default' | 'success' | 'warning' | 'danger' {
+  if (value === 'public') return 'success'
+  if (value === 'restricted') return 'danger'
+  return 'default'
+}
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
@@ -197,13 +237,17 @@ async function fileDocument() {
   error.value = ''
   notice.value = ''
   try {
+    if (form.value.classification === 'public' && !form.value.confirmUnredactedPublish) {
+      throw new Error('Publishing needs a confirmation that the text carries no unauthorised student name — or file it for officers first and prepare a redacted copy.')
+    }
     const data = await api.post<{ document: DocumentRow }>('/documents', {
       typeId: form.value.typeId,
       year: form.value.year,
       title: form.value.title,
       body: form.value.body,
       tags: form.value.tags,
-      visibility: form.value.visibility,
+      classification: form.value.classification,
+      confirmUnredactedPublish: form.value.confirmUnredactedPublish,
       eventId: form.value.eventId || undefined,
       financeRef: form.value.financeRef || undefined
     })
@@ -213,6 +257,7 @@ async function fileDocument() {
     form.value.tags = ''
     form.value.eventId = ''
     form.value.financeRef = ''
+    form.value.confirmUnredactedPublish = false
     await Promise.all([load(), loadTypes()])
     await open(data.document.id)
   } catch (err: unknown) {
@@ -239,8 +284,14 @@ async function open(id: string) {
       title: data.document.title,
       body: data.document.body,
       tags: data.document.tags.join(', '),
-      visibility: data.document.visibility,
       changeNote: ''
+    }
+    classificationDraft.value = data.document.classification
+    confirmUnredactedPublish.value = false
+    redaction.value = {
+      note: data.document.redactionNote ?? '',
+      body: data.document.redactedVersion?.body ?? data.document.body,
+      confirmExistingTextSafe: false
     }
     links.value = { eventId: data.document.eventId ?? '', financeRef: data.document.financeRef ?? '' }
   } catch (err: unknown) {
@@ -263,7 +314,6 @@ async function saveVersion() {
         title: newVersion.value.title,
         body: newVersion.value.body,
         tags: newVersion.value.tags,
-        visibility: newVersion.value.visibility,
         changeNote: newVersion.value.changeNote || undefined
       }
     )
@@ -337,6 +387,93 @@ async function saveLinks() {
   }
 }
 
+/**
+ * Publishing is its own action (BC-9). With a redacted copy in force it is a
+ * plain move; without one the server insists on a confirmation, and so do we.
+ */
+async function saveClassification() {
+  if (!detail.value) return
+  if (classificationDraft.value === detail.value.classification) {
+    notice.value = 'The filing already has that classification.'
+    return
+  }
+  if (classificationDraft.value === 'public' && !detail.value.redactedVersionId && !confirmUnredactedPublish.value) {
+    error.value = 'Publishing without a redacted copy needs confirmation — prepare a redacted copy, or tick the confirmation once you have checked the text for student names.'
+    return
+  }
+  busy.value = true
+  error.value = ''
+  notice.value = ''
+  try {
+    await api.put(`/documents/${detail.value.id}`, {
+      classification: classificationDraft.value,
+      confirmUnredactedPublish: confirmUnredactedPublish.value
+    })
+    notice.value = classificationDraft.value === 'public'
+      ? (detail.value.redactedVersionId
+          ? 'Published. The public archive serves the redacted copy.'
+          : 'Published without a redacted copy — the audited entry records that decision.')
+      : classificationDraft.value === 'restricted'
+        ? 'Restricted. It is hidden from the public archive and its files are refused publicly.'
+        : 'Moved to officers only — no longer publicly readable.'
+    confirmUnredactedPublish.value = false
+    const id = detail.value.id
+    openId.value = ''
+    await Promise.all([load(), open(id)])
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not change the classification'
+  } finally {
+    busy.value = false
+  }
+}
+
+/**
+ * Prepare the version the public may read. A redacted copy is a derivative: it
+ * never replaces the original, and the public reader will never fall back to
+ * the original once one exists.
+ */
+async function prepareRedactedCopy() {
+  if (!detail.value) return
+  if (!redaction.value.note.trim()) {
+    error.value = 'A redaction note is required — say what was removed, or why the text is already safe.'
+    return
+  }
+  busy.value = true
+  error.value = ''
+  notice.value = ''
+  try {
+    const payload: Record<string, unknown> = {
+      redactionNote: redaction.value.note,
+      confirmExistingTextSafe: redaction.value.confirmExistingTextSafe
+    }
+    if (!redaction.value.confirmExistingTextSafe) payload.body = redaction.value.body
+
+    const file = redaction.value.confirmExistingTextSafe ? null : redactionFile.value?.files?.[0]
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        throw new Error('Files up to 4 MB can be uploaded from here for now — split larger scans.')
+      }
+      payload.fileName = file.name
+      payload.mime = file.type || 'text/plain'
+      payload.dataBase64 = await fileToBase64(file)
+    }
+
+    const data = await api.post<{ version: { version: number } }>(
+      `/documents/${detail.value.id}/redacted-copy`,
+      payload
+    )
+    notice.value = `Redacted copy v${data.version.version} prepared. The public archive serves only this version and its own files.`
+    if (redactionFile.value) redactionFile.value.value = ''
+    const id = detail.value.id
+    openId.value = ''
+    await Promise.all([load(), open(id)])
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not prepare the redacted copy'
+  } finally {
+    busy.value = false
+  }
+}
+
 async function toggleArchive() {
   if (!detail.value) return
   busy.value = true
@@ -394,7 +531,8 @@ onMounted(async () => {
       </h1>
       <p class="text-sm text-slate mt-1">
         Minutes, resolutions, memos, the constitution and reports. Each one is numbered for its type and year, keeps
-        every version it ever had, and can be published to the site.
+        every version it ever had, and has a classification of its own. Publishing is a separate, audited act: nothing
+        is public unless someone publishes it, and a document that names students goes out as a redacted copy.
       </p>
     </div>
 
@@ -429,10 +567,13 @@ onMounted(async () => {
             >
           </div>
           <div class="space-y-2">
-            <Label>Visibility</Label>
-            <select v-model="form.visibility" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+            <Label>Classification</Label>
+            <select v-model="form.classification" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
               <option value="officers">
                 Officers only
+              </option>
+              <option value="restricted">
+                Restricted — staff only, never public
               </option>
               <option value="public">
                 Public — shows on /documents
@@ -440,6 +581,14 @@ onMounted(async () => {
             </select>
           </div>
         </div>
+
+        <label v-if="form.classification === 'public'" class="flex items-start gap-2 rounded-lg border border-gold/50 bg-gold/10 p-3 text-xs text-ink">
+          <input v-model="form.confirmUnredactedPublish" type="checkbox" class="mt-0.5">
+          <span>
+            I have checked this text and it names no student without their publication consent. Filing it public is
+            recorded in the audit log as a publish without a redacted copy.
+          </span>
+        </label>
 
         <p class="text-xs text-slate">
           Next number: <span class="font-mono font-semibold text-navy">{{ nextNumber || '—' }}</span>
@@ -508,13 +657,16 @@ onMounted(async () => {
       </select>
       <select v-model="scope" class="rounded-lg border border-line px-3 py-2 text-sm" @change="load">
         <option value="all">
-          Every visibility
+          Every classification
         </option>
         <option value="public">
           Public
         </option>
         <option value="officers">
           Officers only
+        </option>
+        <option value="restricted">
+          Restricted
         </option>
       </select>
       <select v-model="archived" class="rounded-lg border border-line px-3 py-2 text-sm" @change="load">
@@ -549,8 +701,11 @@ onMounted(async () => {
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <Badge :variant="row.visibility === 'public' ? 'success' : 'default'">
-                {{ row.visibility }}
+              <Badge :variant="classificationVariant(row.classification)">
+                {{ row.classification }}
+              </Badge>
+              <Badge v-if="row.redactedVersionId" variant="warning">
+                redacted copy in force
               </Badge>
               <Badge v-if="row.archived" variant="warning">
                 archived
@@ -600,11 +755,116 @@ onMounted(async () => {
               </div>
             </div>
 
+            <!-- Classification and the public copy (BC-9) -->
+            <div class="rounded-lg border border-line bg-paper p-3 space-y-3">
+              <div class="text-xs font-semibold text-navy uppercase tracking-wide">
+                Classification and publication
+              </div>
+              <p class="text-xs text-slate">
+                <Badge :variant="classificationVariant(detail.classification)">
+                  {{ detail.classification }}
+                </Badge>
+                <span v-if="detail.classification !== 'public'" class="ml-2">
+                  Not in the public archive. Publishing is a separate, audited action.
+                </span>
+                <span v-else-if="detail.redactedVersion" class="ml-2">
+                  Public readers are served the redacted copy v{{ detail.redactedVersion.version }} — never this original text.
+                </span>
+                <span v-else class="ml-2">
+                  Public readers are served this original text; no redacted copy is in force.
+                </span>
+              </p>
+
+              <p v-if="detail.redactedVersion" class="text-xs text-ink">
+                <span class="font-semibold">Redaction note:</span> {{ detail.redactionNote }}
+                <span class="text-slate">
+                  · prepared by {{ detail.redactedVersion.creator?.name ?? 'Unknown' }}
+                  on {{ formatDateTime(detail.redactedVersion.createdAt) }}
+                </span>
+                <span v-if="redactedCopyStale" class="text-danger font-semibold">
+                  · a newer original exists — prepare a fresh copy
+                </span>
+              </p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:items-end">
+                <div class="space-y-1 sm:col-span-2">
+                  <Label class="text-xs">Change classification</Label>
+                  <select v-model="classificationDraft" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                    <option value="officers">
+                      Officers only
+                    </option>
+                    <option value="restricted">
+                      Restricted — staff only, never public
+                    </option>
+                    <option value="public">
+                      Public
+                    </option>
+                  </select>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  :disabled="busy"
+                  @click="saveClassification"
+                >
+                  Save classification
+                </Button>
+              </div>
+
+              <label
+                v-if="classificationDraft === 'public' && !detail.redactedVersionId"
+                class="flex items-start gap-2 rounded-lg border border-gold/50 bg-gold/10 p-3 text-xs text-ink"
+              >
+                <input v-model="confirmUnredactedPublish" type="checkbox" class="mt-0.5">
+                <span>
+                  I have checked this text and it names no student without their publication consent. Publishing
+                  without a redacted copy is recorded as such in the audit log.
+                </span>
+              </label>
+            </div>
+
+            <!-- Prepare the public copy -->
+            <div class="rounded-lg border border-line p-3 space-y-2">
+              <div class="text-xs font-semibold text-navy uppercase tracking-wide">
+                {{ detail.redactedVersion ? 'Prepare a new redacted copy' : 'Prepare a redacted copy' }}
+              </div>
+              <p class="text-xs text-slate">
+                The copy becomes its own version. The public archive will serve it — and only files attached to it —
+                instead of the original. The note is published with it.
+              </p>
+              <Input v-model="redaction.note" placeholder="e.g. Removed the names of three students; officers' names kept" />
+              <label class="flex items-start gap-2 text-xs text-ink">
+                <input v-model="redaction.confirmExistingTextSafe" type="checkbox" class="mt-0.5">
+                <span>The current text is already safe — publish this wording unchanged.</span>
+              </label>
+              <textarea
+                v-if="!redaction.confirmExistingTextSafe"
+                v-model="redaction.body"
+                rows="4"
+                class="w-full rounded-lg border border-line px-3 py-2 text-sm"
+                placeholder="The text as the public should read it"
+              />
+              <input
+                ref="redactionFile"
+                type="file"
+                :disabled="redaction.confirmExistingTextSafe"
+                accept="application/pdf,text/plain,text/markdown,text/csv,image/png,image/jpeg"
+                class="text-xs"
+              >
+              <Button size="sm" :disabled="busy || !redaction.note.trim()" @click="prepareRedactedCopy">
+                Prepare redacted copy
+              </Button>
+            </div>
+
             <!-- Attachments -->
             <div class="rounded-lg border border-line bg-paper p-3 space-y-2">
               <div class="text-xs font-semibold text-navy uppercase tracking-wide">
                 Attached files
               </div>
+              <p v-if="detail.redactedVersion" class="text-xs text-danger">
+                A redacted copy is in force: these original files are no longer served publicly. Attach the public
+                file to the redacted copy instead.
+              </p>
               <p v-if="detail.attachments.length === 0" class="text-xs text-slate">
                 No file yet. Text files, markdown, CSV and PDFs are read at upload so their words are searchable.
               </p>
@@ -692,6 +952,9 @@ onMounted(async () => {
                     <Badge v-if="version.version === detail.currentVersion" class="ml-2" variant="success">
                       current
                     </Badge>
+                    <Badge v-if="version.isRedacted" class="ml-2" variant="warning">
+                      redacted copy
+                    </Badge>
                   </span>
                   <span class="text-xs text-slate">
                     {{ version.creator?.name ?? 'Unknown' }} · {{ formatDateTime(version.createdAt) }}
@@ -735,18 +998,14 @@ onMounted(async () => {
                 class="w-full rounded-lg border border-line px-3 py-2 text-sm"
                 placeholder="The text as it should now read"
               />
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Input v-model="newVersion.tags" placeholder="tags, comma separated" />
-                <select v-model="newVersion.visibility" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
-                  <option value="officers">
-                    Officers only
-                  </option>
-                  <option value="public">
-                    Public
-                  </option>
-                </select>
                 <Input v-model="newVersion.changeNote" placeholder="What changed (optional)" />
               </div>
+              <p class="text-xs text-slate">
+                A new version corrects the record. It does not change who may read the filing — that is the separate,
+                audited classification action above.
+              </p>
               <Button size="sm" :disabled="busy" @click="saveVersion">
                 Save as the next version
               </Button>

@@ -14,7 +14,7 @@ import {
  */
 
 /** Any client that can write documents — the root client or a transaction. */
-export type DocumentDb = Pick<PrismaClient, 'document' | 'documentAttachment'>
+export type DocumentDb = Pick<PrismaClient, 'document' | 'documentAttachment' | 'documentVersion'>
 
 /**
  * Hands out the next filing number for a type and year.
@@ -65,10 +65,70 @@ export async function rebuildSearchText(
   return searchText
 }
 
+/**
+ * The visitor's corpus (BC-9). Normally the same words the officers search, but
+ * when a redacted copy is in force it is built from *that* version and its own
+ * files only — so a public search cannot find, and therefore cannot confirm,
+ * a phrase that only exists in the original. A pointer that does not resolve
+ * produces an empty corpus rather than falling back to the original.
+ */
+export async function rebuildPublicSearchText(db: DocumentDb, documentId: string): Promise<string> {
+  const document = await db.document.findUnique({
+    where: { id: documentId },
+    select: { title: true, body: true, tags: true, redactedVersionId: true }
+  })
+  if (!document) throw new Error('The document disappeared while its public corpus was rebuilt')
+
+  let content: { title: string, body: string, tags: string[] } = {
+    title: document.title,
+    body: document.body,
+    tags: document.tags
+  }
+
+  let attachmentTexts: Array<string | null> = []
+
+  if (document.redactedVersionId) {
+    const copy = await db.documentVersion.findFirst({
+      where: { id: document.redactedVersionId, documentId },
+      select: { title: true, body: true, tags: true }
+    })
+    if (copy) {
+      content = copy
+      const attachments = await db.documentAttachment.findMany({
+        where: { documentId, versionId: document.redactedVersionId },
+        select: { textContent: true },
+        orderBy: { createdAt: 'asc' },
+        take: MAX_CORPUS_ATTACHMENTS
+      })
+      attachmentTexts = attachments.map(attachment => attachment.textContent)
+    } else {
+      content = { title: '', body: '', tags: [] }
+    }
+  } else {
+    const attachments = await db.documentAttachment.findMany({
+      where: { documentId },
+      select: { textContent: true },
+      orderBy: { createdAt: 'asc' },
+      take: MAX_CORPUS_ATTACHMENTS
+    })
+    attachmentTexts = attachments.map(attachment => attachment.textContent)
+  }
+
+  const searchText = documentSearchText({ ...content, attachmentTexts })
+  await db.document.update({ where: { id: documentId }, data: { publicSearchText: searchText } })
+  return searchText
+}
+
 export interface DocumentSearchParams extends DocumentListFilters {
   q: string
   limit: number
   offset: number
+  /**
+   * Which corpus to search: `staff` (the original record) or `public` (the
+   * redacted copy when one is in force). The public corpus also pins the
+   * classification, so a restricted filing can never surface through search.
+   */
+  corpus?: 'staff' | 'public'
 }
 
 export interface DocumentSearchResult {
@@ -97,24 +157,36 @@ export async function searchDocumentIds(params: DocumentSearchParams): Promise<D
   const conditions: Prisma.Sql[] = []
   if (params.archived === 'active') conditions.push(Prisma.sql`d."archived" = FALSE`)
   if (params.archived === 'archived') conditions.push(Prisma.sql`d."archived" = TRUE`)
-  if (params.scope === 'public') conditions.push(Prisma.sql`d."visibility" = 'public'`)
-  if (params.scope === 'officers') conditions.push(Prisma.sql`d."visibility" = 'officers'`)
+  if (params.corpus === 'public') {
+    // Classification is the authority, and the visitor's corpus is the redacted
+    // text. Both together mean search can neither list an unpublished filing nor
+    // match a phrase that was redacted out of one.
+    conditions.push(Prisma.sql`d."classification" = 'public'`)
+  } else {
+    const scope = params.scope
+    if (scope === 'public' || scope === 'officers' || scope === 'restricted') {
+      conditions.push(Prisma.sql`d."classification" = ${scope}`)
+    }
+  }
   if (params.typeId) conditions.push(Prisma.sql`d."typeId" = ${params.typeId}`)
   if (params.tag) conditions.push(Prisma.sql`${params.tag} = ANY(d."tags")`)
   if (params.year) conditions.push(Prisma.sql`d."year" = ${params.year}`)
   if (params.eventId) conditions.push(Prisma.sql`d."eventId" = ${params.eventId}`)
 
+  const vector = params.corpus === 'public' ? Prisma.sql`d."publicSearchVector"` : Prisma.sql`d."searchVector"`
+  const corpusText = params.corpus === 'public' ? Prisma.sql`d."publicSearchText"` : Prisma.sql`d."searchText"`
+
   const tsquery = buildSearchQuery(params.q)
   const fallback = !tsquery && params.q.trim().length > 0
   if (tsquery) {
-    conditions.push(Prisma.sql`d."searchVector" @@ to_tsquery('simple', ${tsquery})`)
+    conditions.push(Prisma.sql`${vector} @@ to_tsquery('simple', ${tsquery})`)
   } else if (fallback) {
-    conditions.push(Prisma.sql`d."searchText" ILIKE ${`%${escapeLike(params.q.trim())}%`}`)
+    conditions.push(Prisma.sql`${corpusText} ILIKE ${`%${escapeLike(params.q.trim())}%`}`)
   }
 
   const where = conditions.length > 0 ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}` : Prisma.empty
   const rank = tsquery
-    ? Prisma.sql`, ts_rank(d."searchVector", to_tsquery('simple', ${tsquery})) AS rank`
+    ? Prisma.sql`, ts_rank(${vector}, to_tsquery('simple', ${tsquery})) AS rank`
     : Prisma.empty
   const order = tsquery
     ? Prisma.sql`ORDER BY rank DESC, d."createdAt" DESC`

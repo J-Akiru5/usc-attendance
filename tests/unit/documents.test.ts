@@ -308,14 +308,17 @@ describe('visibility', () => {
 
   it('builds a browse filter that hides archived filings by default', () => {
     expect(documentListWhere({ scope: 'officers', archived: 'active' }))
-      .toEqual({ visibility: 'officers', archived: false })
+      .toEqual({ classification: 'officers', archived: false })
     expect(documentListWhere({ scope: 'all', archived: 'all' })).toEqual({})
     expect(documentListWhere({ scope: 'public', archived: 'archived', tag: 'budget', year: 2026 }))
-      .toEqual({ visibility: 'public', archived: true, tags: { has: 'budget' }, year: 2026 })
+      .toEqual({ classification: 'public', archived: true, tags: { has: 'budget' }, year: 2026 })
+    expect(documentListWhere({ scope: 'restricted', archived: 'active' }))
+      .toEqual({ classification: 'restricted', archived: false })
   })
 
   it('reads the scope and archive flags a URL may carry', () => {
     expect(parseDocumentScope('public')).toBe('public')
+    expect(parseDocumentScope('restricted')).toBe('restricted')
     expect(parseDocumentScope('students')).toBe('all')
     expect(parseArchivedFilter('true')).toBe('archived')
     expect(parseArchivedFilter('all')).toBe('all')

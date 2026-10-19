@@ -3,7 +3,13 @@ import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
 import { requireCapability } from '../../utils/rbac'
 import { badRequest, defineApiHandler, notFound, readJsonBody, respond } from '../../utils/http'
-import { validateFinanceRef } from '../../utils/documents'
+import {
+  publishAudit,
+  publishRequiresConfirmation,
+  validateClassification,
+  validateFinanceRef,
+  visibilityForClassification
+} from '../../utils/documents'
 
 /**
  * /api/documents/:id — one filing, in full (plan §8.8).
@@ -18,6 +24,18 @@ const detailInclude = {
   type: { select: { id: true, key: true, name: true, prefix: true, pad: true } },
   creator: { select: { id: true, name: true, position: true } },
   event: { select: { id: true, title: true, date: true } },
+  redactedVersion: {
+    select: {
+      id: true,
+      version: true,
+      title: true,
+      body: true,
+      tags: true,
+      changeNote: true,
+      createdAt: true,
+      creator: { select: { id: true, name: true } }
+    }
+  },
   versions: {
     orderBy: { version: 'desc' },
     select: {
@@ -26,6 +44,7 @@ const detailInclude = {
       title: true,
       changeNote: true,
       visibility: true,
+      isRedacted: true,
       createdAt: true,
       creator: { select: { id: true, name: true } },
       _count: { select: { attachments: true } }
@@ -73,7 +92,25 @@ export default defineApiHandler(async (event) => {
   requireCapability(user, 'documents.publish')
   const body = await readJsonBody(event) ?? {}
 
-  const data: { eventId?: string | null, financeRef?: string | null, archived?: boolean } = {}
+  const data: { eventId?: string | null, financeRef?: string | null, archived?: boolean, classification?: string, visibility?: string } = {}
+
+  let classificationChange: { from: string, to: string } | null = null
+
+  // BC-9: publishing is its own audited act. `visibility` is deliberately not
+  // read here — content fields never silently move a filing's audience.
+  if ('classification' in body) {
+    const to = validateClassification(body.classification)
+    const from = document.classification
+    if (to !== from) {
+      const hasRedactedCopy = !!document.redactedVersionId
+      if (publishRequiresConfirmation({ from, to, hasRedactedCopy }) && body.confirmUnredactedPublish !== true) {
+        throw badRequest('Publishing without a redacted copy needs confirmation — prepare a redacted copy, or set confirmUnredactedPublish to true once you have checked the text for student names')
+      }
+      data.classification = to
+      data.visibility = visibilityForClassification(to)
+      classificationChange = { from, to }
+    }
+  }
 
   if ('eventId' in body) {
     const requested = typeof body.eventId === 'string' ? body.eventId.trim() : ''
@@ -103,14 +140,60 @@ export default defineApiHandler(async (event) => {
     include: detailInclude
   })
 
+  const publication = classificationChange
+    ? publishAudit({
+        from: classificationChange.from,
+        to: classificationChange.to,
+        hasRedactedCopy: !!document.redactedVersionId
+      })
+    : null
+
   await prisma.auditLog.create({
     data: {
       userId: user.id,
-      action: data.archived === undefined ? 'document_updated' : data.archived ? 'document_archived' : 'document_restored',
-      details: JSON.stringify({ documentId: id, number: document.number, changes: Object.keys(data) }),
+      action: auditAction(data, classificationChange, publication),
+      details: JSON.stringify(
+        publication
+          ? {
+              documentId: id,
+              number: document.number,
+              actor: user.id,
+              actorName: user.name,
+              from: classificationChange?.from,
+              to: classificationChange?.to,
+              redactedCopyInForce: publication.redactedCopyInForce,
+              redactedVersionId: document.redactedVersionId,
+              confirmedUnredacted: body.confirmUnredactedPublish === true,
+              warning: publication.warning,
+              changes: Object.keys(data)
+            }
+          : {
+              documentId: id,
+              number: document.number,
+              actorName: user.name,
+              changes: Object.keys(data)
+            }
+      ),
       performedBy: user.id
     }
   })
 
   return { document: updated }
 })
+
+/**
+ * The action name for a metadata change. A publish gets the dedicated, louder
+ * action; a move out of public is its own event; everything else stays the
+ * generic update/archive pair.
+ */
+function auditAction(
+  data: { archived?: boolean },
+  classificationChange: { from: string, to: string } | null,
+  publication: ReturnType<typeof publishAudit>
+): string {
+  if (publication) return publication.action
+  if (classificationChange) {
+    return classificationChange.from === 'public' ? 'document_unpublished' : 'document_reclassified'
+  }
+  return data.archived === undefined ? 'document_updated' : data.archived ? 'document_archived' : 'document_restored'
+}

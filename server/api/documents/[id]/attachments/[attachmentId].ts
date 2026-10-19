@@ -3,7 +3,7 @@ import { prisma } from '../../../../utils/prisma'
 import { authenticate } from '../../../../utils/auth'
 import { hasCapability } from '../../../../utils/rbac'
 import { defineApiHandler, HttpError, notFound, respond } from '../../../../utils/http'
-import { documentIsPubliclyReadable } from '../../../../utils/documents'
+import { attachmentIsPubliclyReadable } from '../../../../utils/documents'
 import { documentStorage } from '../../../../utils/document-storage'
 
 /**
@@ -31,11 +31,20 @@ export default defineApiHandler(async (event) => {
 
   const attachment = await prisma.documentAttachment.findUnique({
     where: { id: attachmentId },
-    include: { document: { select: { id: true, visibility: true, archived: true } } }
+    include: {
+      document: {
+        select: { id: true, classification: true, redactedVersionId: true, archived: true }
+      }
+    }
   })
   if (!attachment || attachment.documentId !== documentId) throw notFound('Attachment not found')
 
-  if (!hasCapability(capabilities, 'staff.access') && !documentIsPubliclyReadable(attachment.document)) {
+  if (!hasCapability(capabilities, 'staff.access') && !attachmentIsPubliclyReadable({
+    classification: attachment.document.classification,
+    archived: attachment.document.archived,
+    redactedVersionId: attachment.document.redactedVersionId,
+    attachmentVersionId: attachment.versionId
+  })) {
     throw notFound('Attachment not found')
   }
 
