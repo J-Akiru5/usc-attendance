@@ -20,7 +20,13 @@ export const CAPABILITIES = [
   'content.manage',
   'students.manage',
   'duties.manage',
-  'photos.manage'
+  'photos.manage',
+  // Finance (plan §8.7): the Treasurer manages the budget and holds the money,
+  // the President / Adviser record their own "noted" step in-app, the Auditor
+  // reads everything. The migration seeds the matching roles.
+  'finance.manage',
+  'finance.note',
+  'finance.audit'
 ] as const
 
 export type Capability = typeof CAPABILITIES[number]
@@ -33,7 +39,10 @@ export const SYSTEM_ROLES = [
   'student',
   'settings_manager',
   'delegator',
-  'content_manager'
+  'content_manager',
+  'treasurer',
+  'finance_noter',
+  'auditor'
 ] as const
 
 export type SystemRole = typeof SYSTEM_ROLES[number]
@@ -91,6 +100,16 @@ export function requireCapability(user: { capabilities?: readonly string[] }, ca
   }
   if (!hasCapability(user.capabilities, capability)) {
     throw new HttpError(403, `Access denied. Required capability: ${capability}`)
+  }
+}
+
+/** The same, for a route any one of several capabilities may open. */
+export function requireAnyCapability(user: { capabilities?: readonly string[] }, capabilities: readonly Capability[]) {
+  if (!user.capabilities) {
+    throw new HttpError(403, 'Access denied. Missing capability context.')
+  }
+  if (!capabilities.some(capability => hasCapability(user.capabilities!, capability))) {
+    throw new HttpError(403, `Access denied. Required capability: ${capabilities.join(' or ')}`)
   }
 }
 

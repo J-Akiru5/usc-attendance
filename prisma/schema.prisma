@@ -47,6 +47,10 @@ model User {
   fineWaivers        Fine[]              @relation("FineWaivedBy")
   excuses            Excuse[]            @relation("ExcuseOwner")
   excusesReviewed    Excuse[]            @relation("ExcuseReviewer")
+  budgetsCreated     Budget[]            @relation("BudgetCreator")
+  budgetEntries      BudgetEntry[]       @relation("BudgetEntryRecorder")
+  proposalsCreated   BudgetProposal[]    @relation("ProposalCreator")
+  proposalSteps      ProposalStep[]      @relation("ProposalStepActor")
 
   @@map("users")
 }
@@ -169,6 +173,10 @@ model Event {
   recurrenceIndex Int?
   series      Event?  @relation("EventSeries", fields: [seriesId], references: [id], onDelete: Cascade)
   occurrences Event[] @relation("EventSeries")
+
+  /// Finance (plan §8.7): proposals raised for this event, so a liquidation
+  /// report can be produced per event.
+  proposals BudgetProposal[] @relation("ProposalEvent")
 
   @@index([categoryId])
   @@index([seriesId])
@@ -343,6 +351,165 @@ model Excuse {
   @@map("excuses")
 }
 
+/// A semester budget (plan §8.7): one per semester, split into line items.
+/// Amounts are integer **centavos** like every other money field in this schema.
+model Budget {
+  id         String   @id @default(uuid())
+  semesterId String   @unique
+  /// open = the spending term; closed = kept for the record, new expenses refused.
+  status     String   @default("open")
+  notes      String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  semester Semester         @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  creator  User             @relation("BudgetCreator", fields: [createdBy], references: [id])
+  lines    BudgetLine[]
+  proposals BudgetProposal[]
+
+  @@map("budgets")
+}
+
+/// One line of a budget ("Office supplies", "Pag-abi-abi event"). `allocatedCentavos`
+/// is what the council planned to spend; income and expenses are recorded as
+/// `budget_entries` against the line, so remaining = allocated + income − expenses.
+model BudgetLine {
+  id                String   @id @default(uuid())
+  budgetId          String
+  name              String
+  category          String   @default("other") // supplies | events | travel | communication | other
+  allocatedCentavos Int      @default(0)
+  notes             String?
+  sortOrder         Int      @default(0)
+  archived          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  budget    Budget          @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  entries   BudgetEntry[]
+  proposals BudgetProposal[]
+
+  @@unique([budgetId, name])
+  @@index([budgetId, sortOrder])
+  @@map("budget_lines")
+}
+
+/// Money actually moved (plan §8.7): an expense with its receipt, or income such
+/// as collected fines and fees. An expense may be tied to the proposal that
+/// authorised it, which is what the liquidation report reconciles.
+model BudgetEntry {
+  id             String   @id @default(uuid())
+  lineId         String
+  kind           String // income | expense
+  amountCentavos Int
+  description    String
+  /// Where income came from ("fines" | "fees" | "donation" | "other"); null for expenses.
+  source         String?
+  spentAt        DateTime
+  proposalId     String?
+  /// Receipt in object storage (plan §11.1 — never the database). The row keeps
+  /// only the key, type, size and original filename.
+  receiptKey  String?
+  receiptMime String?
+  receiptSize Int?
+  receiptName String?
+  /// Set when the line's remaining budget was deliberately exceeded (plan §8.7
+  /// acceptance: an override is explicit and audited).
+  overrideReason String?
+  recordedBy     String
+  createdAt      DateTime @default(now())
+
+  line     BudgetLine      @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  proposal BudgetProposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  recorder User            @relation("BudgetEntryRecorder", fields: [recordedBy], references: [id])
+
+  @@index([lineId, spentAt])
+  @@index([proposalId])
+  @@index([kind, spentAt])
+  @@map("budget_entries")
+}
+
+/// A budget proposal (plan §8.7): decided by the body in a meeting (minutes
+/// linked), noted by the President, the Adviser and the University Accountant,
+/// approved by the Campus Administrator, released, then liquidated. The steps
+/// live in `proposal_steps` — every one of them time-stamped and audited — and
+/// the status here is the derived position in that state machine.
+model BudgetProposal {
+  id             String   @id @default(uuid())
+  budgetId       String
+  lineId         String?
+  eventId        String?
+  /// Used when the proposal is for a project rather than a calendar event.
+  projectName    String?
+  title          String
+  description    String
+  /// What the body approved, in centavos.
+  amountCentavos Int
+  status         String   @default("decided") // decided | noted | approved | released | liquidated | rejected
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  budget  Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  line    BudgetLine?    @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  event   Event?         @relation("ProposalEvent", fields: [eventId], references: [id], onDelete: SetNull)
+  creator User           @relation("ProposalCreator", fields: [createdBy], references: [id])
+  steps   ProposalStep[]
+  entries BudgetEntry[]
+
+  @@index([budgetId, status])
+  @@index([lineId])
+  @@index([eventId])
+  @@map("budget_proposals")
+}
+
+/// One recorded step of a proposal. The University Accountant and the Campus
+/// Administrator are external signatories (plan §8.7): the Treasurer records
+/// their step with the date and the signed copy, so no account is needed — the
+/// signatory's name and role are kept here and the uploader stays visible in
+/// `actorUserId`.
+model ProposalStep {
+  id            String   @id @default(uuid())
+  proposalId    String
+  step          String // decided | noted_president | noted_adviser | noted_university_accountant | approved | released | liquidated | rejected
+  /// The officer who recorded the step (the Treasurer for external signatories).
+  actorUserId   String?
+  /// Who actually signed, for the external steps.
+  signatoryName String?
+  signatoryRole String?
+  /// The date the step happened (the meeting / signing date), UTC.
+  actedAt       DateTime @default(now())
+  note          String?
+  /// Signed copy of the noting/approval, in object storage.
+  attachmentKey  String?
+  attachmentMime String?
+  attachmentSize Int?
+  attachmentName String?
+  createdAt      DateTime @default(now())
+
+  proposal BudgetProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  actor    User?          @relation("ProposalStepActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([proposalId, step])
+  @@index([step, actedAt])
+  @@map("proposal_steps")
+}
+
+/// Finance-wide switches (plan §8.7). One row, like `org_profile`. The
+/// transparency board is off until the council turns it on.
+model FinanceSettings {
+  id                 String   @id @default(uuid())
+  transparencyPublic Boolean  @default(false)
+  /// Optional line shown under the public totals ("figures as of the 2nd
+  /// semester A.Y. 2026-2027"). Never personal names.
+  transparencyNote   String?
+  updatedBy          String?
+  updatedAt          DateTime @updatedAt
+
+  @@map("finance_settings")
+}
+
 /// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,
 /// Seminar, …. Editable by settings managers; archived rather than deleted
 /// while events still reference them.
@@ -389,6 +556,9 @@ model Semester {
   startsOn  DateTime
   endsOn    DateTime // exclusive end
   createdAt DateTime @default(now())
+
+  /// Finance (plan §8.7): at most one budget per semester.
+  budgets   Budget[]
 
   @@index([startsOn])
   @@map("semesters")
