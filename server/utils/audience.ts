@@ -111,8 +111,12 @@ export function audienceColumns(spec: AudienceSpec): {
 
 /** The students required to attend an event, resolved from live data. */
 export async function resolveAudience(db: PrismaClient, spec: AudienceSpec): Promise<string[]> {
+  // A studentProfile *is* the statement "this person is a student of this
+  // college / year / section", so the audience follows the profile rather than
+  // the role: an officer who is also a student belongs to their own cohort
+  // (and is the only way D-01's officer-sanction path is reachable).
   const students = await db.user.findMany({
-    where: { active: true, role: 'student' },
+    where: { active: true, studentProfile: { isNot: null } },
     select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
   })
 

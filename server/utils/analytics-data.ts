@@ -94,8 +94,9 @@ export async function registrationsByEvent(db: PrismaClient, eventIds: string[])
 
 /** Active students with their placement — the audience stand-in until targeting lands. */
 export async function activeAudience(db: PrismaClient): Promise<AudienceLike[]> {
+  // Follow the profile, not the role - same reasoning as resolveAudience.
   const rows = await db.user.findMany({
-    where: { active: true, role: 'student' },
+    where: { active: true, studentProfile: { isNot: null } },
     select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
   })
   return rows.map(row => ({
