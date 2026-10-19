@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import type { AttendanceLike, AudienceLike } from './analytics'
+import { activeStudentPlacements } from './audience'
 
 /**
  * The rows the analytics routes share (plan §8.3). Kept apart from
@@ -92,17 +93,7 @@ export async function registrationsByEvent(db: PrismaClient, eventIds: string[])
   return map
 }
 
-/** Active students with their placement — the audience stand-in until targeting lands. */
+/** Active students with their placement — the live audience (see `audience.ts`). */
 export async function activeAudience(db: PrismaClient): Promise<AudienceLike[]> {
-  const rows = await db.user.findMany({
-    // Follow the profile, not the role — same reasoning as resolveAudience.
-    where: { active: true, studentProfile: { isNot: null } },
-    select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
-  })
-  return rows.map(row => ({
-    userId: row.id,
-    collegeId: row.studentProfile?.collegeId ?? null,
-    yearLevel: row.studentProfile?.yearLevel ?? null,
-    sectionId: row.studentProfile?.sectionId ?? null
-  }))
+  return activeStudentPlacements(db)
 }
