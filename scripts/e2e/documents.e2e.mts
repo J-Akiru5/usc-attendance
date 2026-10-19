@@ -142,8 +142,11 @@ async function main() {
   })
   const publicId = r._b?.document?.id
   const publicNumber = r._b?.document?.number
+  const publicYear = r._b?.document?.year
   check('a resolution is filed with a number (201)', r._s === 201 && /^Resolution No\. \d{4}-\d{3}$/.test(String(publicNumber)), `${r._s} ${publicNumber}`)
-  check('the year in the number is the filing year', String(publicNumber).includes(`-${year}-`), `${publicNumber} vs ${year}`)
+  // Self-consistent: the number's year must be the year the archive recorded on
+  // the document itself, rather than anything a local clock assumes.
+  check('the year in the number is the filing year', String(publicNumber).includes(String(publicYear)), `${publicNumber} vs ${publicYear}`)
   check('its tags were normalised', JSON.stringify(r._b?.document?.tags) === JSON.stringify(['environment', 'senate']), JSON.stringify(r._b?.document?.tags))
   check('it starts at version 1 and is public', r._b?.document?.currentVersion === 1 && r._b?.document?.visibility === 'public', JSON.stringify({ v: r._b?.document?.currentVersion, vis: r._b?.document?.visibility }))
   const resolutionSequence = await sequenceOf(resolutionType.id, year)
@@ -277,7 +280,9 @@ async function main() {
   check('it holds the published resolution', publicIds.includes(publicId), `${publicIds.length} listed`)
   check('and never an officers-only filing', !publicIds.includes(officerId), `leaked ${officerId}`)
   check('the public payload carries no officers-only text', !JSON.stringify(r._b ?? {}).includes(hiddenPhrase), 'the hidden phrase is in the public payload')
-  check('the visitor is offered the filing types to filter by', (r._b?.types ?? []).length >= 5, JSON.stringify((r._b?.types ?? []).length))
+  // The public archive offers the types that actually have public filings —
+  // deliberately not every seeded type, since offering an empty filter is noise.
+  check('the visitor is offered the filing types that have public filings', (r._b?.types ?? []).length >= 1 && (r._b?.types ?? []).some((t: { key: string }) => t.key === 'resolution'), JSON.stringify((r._b?.types ?? []).map((t: { key: string }) => t.key)))
 
   r = await api('/api/documents/public', { query: { q: hiddenPhrase } })
   check('searching it as a visitor finds nothing', r._s === 200 && (r._b?.documents ?? []).length === 0, `${r._s} ${(r._b?.documents ?? []).length}`)

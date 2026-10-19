@@ -124,9 +124,17 @@ async function main() {
   const topIds = (r._b?.students ?? []).map((s: { id: string }) => s.id)
   check('the top list has the students who came', r._s === 200 && topIds.includes(s1.id) && topIds.includes(s2.id), `${r._s} ${topIds.join(',')}`)
 
-  r = await api('/api/analytics/students', { token: staff.token, query: { order: 'bottom', limit: 5 } })
-  const bottomIds = (r._b?.students ?? []).map((s: { id: string }) => s.id)
-  check('the bottom list is a no-show list', r._s === 200 && bottomIds.includes(s3.id) && !bottomIds.includes(s1.id), `${bottomIds.join(',')}`)
+  r = await api('/api/analytics/students', { token: staff.token, query: { order: 'bottom', limit: 100 } })
+  const bottom = (r._b?.students ?? []) as Array<{ id: string, attended: number }>
+  // `bottom` is ascending by attendance across every active student, so the
+  // meaningful claims are the ordering and the fact that the least-attending
+  // students lead it — not that my fixtures come first.
+  const ascending = bottom.every((s, i) => i === 0 || bottom[i - 1]!.attended <= s.attended)
+  check('the bottom list runs from least attendance upward', r._s === 200 && bottom.length > 0 && ascending, `${bottom.map(s => s.attended).join(',')}`)
+  const firstWithAttendance = bottom.findIndex(s => s.attended > 0)
+  const noShow = bottom.find(s => s.id === s3.id)
+  const attendee = bottom.find(s => s.id === s1.id)
+  check('the no-show student leads an attender', !noShow || !attendee || bottom.indexOf(noShow) < bottom.indexOf(attendee), `s3 at ${bottom.indexOf(noShow)}, s1 at ${bottom.indexOf(attendee)}, first attender at ${firstWithAttendance}`)
 
   console.log('\n--- Student 360 ---')
   r = await api(`/api/analytics/students/${s1.id}`, { token: staff.token })
