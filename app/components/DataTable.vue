@@ -51,6 +51,9 @@ const emit = defineEmits<{
 const showChooser = ref(false)
 const showViews = ref(false)
 const newViewName = ref('')
+const uid = useId()
+const searchId = `datatable-search-${uid}`
+const viewNameId = `datatable-view-name-${uid}`
 
 const shown = computed(() => props.columns.filter(c => props.visibleColumns.includes(c.key)))
 
@@ -65,7 +68,9 @@ function saveCurrentView() {
 <template>
   <div class="space-y-3">
     <div class="flex flex-wrap items-center gap-2">
+      <label :for="searchId" class="sr-only">Search</label>
       <input
+        :id="searchId"
         :value="q"
         type="search"
         placeholder="Search…"
@@ -94,7 +99,12 @@ function saveCurrentView() {
           {{ exportLabel }}
         </Button>
 
-        <Button variant="outline" size="sm" @click="showChooser = !showChooser">
+        <Button
+          variant="outline"
+          size="sm"
+          :aria-expanded="showChooser"
+          @click="showChooser = !showChooser"
+        >
           Columns
         </Button>
         <div v-if="showChooser" class="absolute right-0 top-full z-30 mt-1 w-56 rounded-xl border border-line bg-white p-2 shadow-lg">
@@ -113,7 +123,12 @@ function saveCurrentView() {
           </label>
         </div>
 
-        <Button variant="outline" size="sm" @click="showViews = !showViews">
+        <Button
+          variant="outline"
+          size="sm"
+          :aria-expanded="showViews"
+          @click="showViews = !showViews"
+        >
           Views <Badge v-if="views.length" variant="default" class="ml-1">
             {{ views.length }}
           </Badge>
@@ -122,14 +137,19 @@ function saveCurrentView() {
           <div class="text-[10px] font-bold uppercase tracking-wider text-slate">
             Saved views
           </div>
-          <ul v-if="views.length" class="max-h-56 space-y-1 overflow-auto">
+          <ul v-if="views.length" class="max-h-56 space-y-1 overflow-auto" tabindex="0">
             <li v-for="view in views" :key="view.id" class="flex items-center justify-between gap-2 rounded px-2 py-1 text-sm">
-              <button class="truncate text-navy hover:underline" @click="emit('apply-view', view); showViews = false">
+              <button type="button" class="truncate text-navy hover:underline" @click="emit('apply-view', view); showViews = false">
                 {{ view.name }}
               </button>
               <span class="flex items-center gap-1">
-                <button class="text-xs text-slate hover:text-navy" title="Overwrite with the current filters" @click="emit('update-view', view.id)">Save</button>
-                <button class="text-xs text-danger hover:underline" @click="emit('delete-view', view.id)">Delete</button>
+                <button
+                  type="button"
+                  class="inline-flex min-h-6 items-center text-xs text-slate hover:text-navy"
+                  title="Overwrite with the current filters"
+                  @click="emit('update-view', view.id)"
+                >Save</button>
+                <button type="button" class="inline-flex min-h-6 items-center text-xs text-danger hover:underline" @click="emit('delete-view', view.id)">Delete</button>
               </span>
             </li>
           </ul>
@@ -137,7 +157,9 @@ function saveCurrentView() {
             No views yet — set your filters, then save them under a name.
           </p>
           <div class="flex items-center gap-2 border-t border-line pt-2">
+            <label :for="viewNameId" class="sr-only">View name</label>
             <input
+              :id="viewNameId"
               v-model="newViewName"
               placeholder="View name"
               class="w-full rounded-lg border border-line px-2 py-1.5 text-sm"
@@ -160,22 +182,33 @@ function saveCurrentView() {
       {{ error }}
     </div>
 
-    <div class="overflow-x-auto rounded-xl border border-line bg-white">
+    <div
+      class="overflow-x-auto rounded-xl border border-line bg-white"
+      tabindex="0"
+      role="region"
+      :aria-label="title || 'Results table'"
+    >
       <table class="w-full text-sm">
+        <caption class="sr-only">
+          {{ title || 'Results' }}
+        </caption>
         <thead class="bg-paper">
           <tr>
             <th
               v-for="column in shown"
               :key="column.key"
+              :aria-sort="column.sortable ? (sort === column.key ? (dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined"
               class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-slate whitespace-nowrap"
             >
               <button
                 v-if="column.sortable"
-                class="flex items-center gap-1 hover:text-navy"
+                type="button"
+                class="flex min-h-6 items-center gap-1 hover:text-navy"
+                :aria-label="`Sort by ${column.label}`"
                 @click="emit('sort', column.key)"
               >
                 {{ column.label }}
-                <span class="text-[9px]">{{ sort === column.key ? (dir === 'asc' ? '▲' : '▼') : '↕' }}</span>
+                <span class="text-[9px]" aria-hidden="true">{{ sort === column.key ? (dir === 'asc' ? '▲' : '▼') : '↕' }}</span>
               </button>
               <template v-else>
                 {{ column.label }}

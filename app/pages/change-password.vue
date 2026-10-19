@@ -80,7 +80,7 @@ async function handleChangePassword() {
           <div class="text-sm font-bold text-white leading-tight">
             University Student Council
           </div>
-          <div class="text-[10px] text-white/50 font-mono uppercase tracking-wider">
+          <div class="text-[10px] text-white/75 font-mono uppercase tracking-wider">
             ISUFST Dingle Campus
           </div>
         </div>
@@ -94,7 +94,7 @@ async function handleChangePassword() {
         <h1 class="text-4xl font-bold font-serif text-white mb-2 leading-tight">
           Change Your Password
         </h1>
-        <p class="text-white/60 text-base leading-relaxed mb-10">
+        <p class="text-white/80 text-base leading-relaxed mb-10">
           Your temporary password must be changed before you can access the system. Choose a strong, unique password.
         </p>
 
@@ -102,7 +102,7 @@ async function handleChangePassword() {
           <div
             v-for="item in ['At least 8 characters', 'Use a mix of letters, numbers, and symbols', 'Do not reuse old passwords']"
             :key="item"
-            class="flex items-center gap-3 text-sm text-white/70"
+            class="flex items-center gap-3 text-sm text-white/80"
           >
             <div class="w-5 h-5 rounded-full bg-gold/20 border border-gold/40 flex items-center justify-center shrink-0">
               <svg
@@ -125,7 +125,7 @@ async function handleChangePassword() {
       </div>
 
       <div class="relative z-10">
-        <p class="text-xs text-white/30 font-mono">
+        <p class="text-xs text-white/60 font-mono">
           © 2026 USC Digital Portal · Developed by Syntaxure Labs
         </p>
       </div>
@@ -189,8 +189,9 @@ async function handleChangePassword() {
               >
               <button
                 type="button"
-                class="absolute inset-y-0 right-3 flex items-center text-slate hover:text-navy transition-colors"
-                tabindex="-1"
+                class="absolute inset-y-0 right-3 flex w-8 items-center justify-center text-slate hover:text-navy transition-colors"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                :aria-pressed="showPassword"
                 @click="showPassword = !showPassword"
               >
                 <svg
@@ -262,8 +263,9 @@ async function handleChangePassword() {
               >
               <button
                 type="button"
-                class="absolute inset-y-0 right-3 flex items-center text-slate hover:text-navy transition-colors"
-                tabindex="-1"
+                class="absolute inset-y-0 right-3 flex w-8 items-center justify-center text-slate hover:text-navy transition-colors"
+                :aria-label="showConfirm ? 'Hide password confirmation' : 'Show password confirmation'"
+                :aria-pressed="showConfirm"
                 @click="showConfirm = !showConfirm"
               >
                 <svg
@@ -317,7 +319,8 @@ async function handleChangePassword() {
         <!-- Logout option -->
         <p class="text-center text-xs text-slate mt-6">
           <button
-            class="text-navy underline hover:text-gold transition-colors"
+            type="button"
+            class="inline-flex min-h-6 items-center text-navy underline hover:text-gold transition-colors"
             @click="auth.logout(); router.push('/login')"
           >
             Log out instead

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { cn } from '@/lib/utils'
 
 const auth = useAuthStore()
-const router = useRouter()
 const route = useRoute()
 
 const navItems = [
@@ -41,28 +40,29 @@ function isActive(to: string) {
       </div>
     </div>
 
-    <nav class="flex-1 p-4 space-y-1">
+    <nav aria-label="Portal sections" class="flex-1 p-4 space-y-1">
       <template v-for="item in navItems" :key="item.to">
-        <button
+        <NuxtLink
           v-if="item.roles.includes(auth.user?.role || '') && (!item.managers || auth.canManageSettings)"
+          :to="item.to"
+          :aria-current="isActive(item.to) ? 'page' : undefined"
           :class="cn(
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
             isActive(item.to)
               ? 'bg-white/10 text-white'
-              : 'text-white/60 hover:text-white hover:bg-white/5'
+              : 'text-white/75 hover:text-white hover:bg-white/5'
           )"
-          @click="router.push(item.to)"
         >
-          <span class="w-5 h-5 flex items-center justify-center text-xs opacity-70">
+          <span class="w-5 h-5 flex items-center justify-center text-xs opacity-70" aria-hidden="true">
             {{ item.icon }}
           </span>
           {{ item.label }}
-        </button>
+        </NuxtLink>
       </template>
     </nav>
 
     <div class="p-4 border-t border-white/10">
-      <div class="text-xs text-white/40 font-mono">
+      <div class="text-xs text-white/70 font-mono">
         ISUFST · Dingle Campus
       </div>
     </div>

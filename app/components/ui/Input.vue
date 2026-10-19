@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 
 interface Props {
+  id?: string
   type?: string
   placeholder?: string
   disabled?: boolean
@@ -20,7 +21,7 @@ const emit = defineEmits<{
 
 const classes = computed(() =>
   cn(
-    'flex h-10 w-full rounded-lg border border-line bg-paper-panel px-3 py-2 text-sm text-ink placeholder:text-slate/60 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy disabled:cursor-not-allowed disabled:opacity-50',
+    'flex h-10 w-full rounded-lg border border-line bg-paper-panel px-3 py-2 text-sm text-ink placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy disabled:cursor-not-allowed disabled:opacity-50',
     props.class
   )
 )
@@ -28,6 +29,7 @@ const classes = computed(() =>
 
 <template>
   <input
+    :id="id"
     :type="type"
     :placeholder="placeholder"
     :disabled="disabled"

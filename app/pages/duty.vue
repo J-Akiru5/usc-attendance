@@ -148,7 +148,7 @@ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
       <h1 class="text-2xl font-bold">
         {{ getGreeting() }},<br>{{ auth.user?.name }}
       </h1>
-      <p class="text-white/50 text-sm mt-1">
+      <p class="text-white/75 text-sm mt-1">
         {{ auth.user?.position }}
       </p>
     </div>
@@ -230,7 +230,7 @@ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
         <span class="text-lg font-black text-ink">
           {{ checkingIn ? 'Checking in...' : 'Check in for duty' }}
         </span>
-        <span class="text-xs text-yellow-900">Record your office attendance</span>
+        <span class="text-xs text-navy-deep">Record your office attendance</span>
       </button>
 
       <!-- Check Out Button -->
@@ -243,7 +243,7 @@ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
         <span class="text-lg font-black text-white">
           {{ checkingOut ? 'Checking out...' : 'Check Out' }}
         </span>
-        <span class="text-xs text-white/60">End your duty session</span>
+        <span class="text-xs text-white/75">End your duty session</span>
       </button>
 
       <!-- Complete badge -->
@@ -257,6 +257,7 @@ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
     <!-- Actions -->
     <div class="flex gap-3">
       <button
+        type="button"
         class="flex-1 text-center text-xs text-navy font-bold hover:underline py-2"
         @click="router.push('/check-in')"
       >
@@ -267,7 +268,7 @@ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
     <!-- Bottom stamp -->
     <div class="bg-gold rounded-lg px-5 py-3 flex items-center justify-between text-xs font-bold">
       <span class="text-navy-deep">ISUFST · Dingle Campus</span>
-      <span class="text-yellow-900">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
+      <span class="text-navy-deep">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
     </div>
   </div>
 </template>

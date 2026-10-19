@@ -117,7 +117,7 @@ onMounted(load)
       </button>
     </div>
 
-    <div v-if="error" class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+    <div v-if="error" role="alert" class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
       {{ error }}
     </div>
 
@@ -159,7 +159,7 @@ onMounted(load)
           >
             Save preferences
           </button>
-          <span v-if="preferencesSaved" class="text-xs text-success">Saved.</span>
+          <span v-if="preferencesSaved" role="status" class="text-xs text-success">Saved.</span>
         </div>
       </CardContent>
     </Card>
@@ -204,12 +204,17 @@ onMounted(load)
             <NuxtLink
               v-if="notification.link"
               :to="notification.link"
-              class="text-xs font-semibold text-navy hover:underline"
+              class="inline-flex min-h-6 items-center text-xs font-semibold text-navy underline hover:underline"
               @click="markRead(notification)"
             >
               Open
             </NuxtLink>
-            <button v-if="!notification.readAt" class="text-xs text-slate hover:underline" @click="markRead(notification)">
+            <button
+              v-if="!notification.readAt"
+              type="button"
+              class="inline-flex min-h-6 items-center text-xs text-slate hover:underline"
+              @click="markRead(notification)"
+            >
               Mark read
             </button>
           </div>

@@ -174,7 +174,7 @@ onMounted(async () => {
       </p>
     </div>
 
-    <div v-if="error" class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+    <div v-if="error" role="alert" class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
       {{ error }}
     </div>
     <div v-if="notice" class="rounded-xl border-l-4 border-success bg-success/10 px-4 py-3 text-sm text-navy">
@@ -236,23 +236,24 @@ onMounted(async () => {
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="space-y-2">
-            <Label>Absence (₱)</Label>
-            <Input v-model="rule.absentPesos" type="number" />
+            <Label for="fine-rule-absent">Absence (₱)</Label>
+            <Input id="fine-rule-absent" v-model="rule.absentPesos" type="number" />
           </div>
           <div class="space-y-2">
-            <Label>Late (₱)</Label>
-            <Input v-model="rule.latePesos" type="number" />
+            <Label for="fine-rule-late">Late (₱)</Label>
+            <Input id="fine-rule-late" v-model="rule.latePesos" type="number" />
           </div>
           <div class="space-y-2">
-            <Label>Late after (minutes)</Label>
-            <Input v-model="rule.lateAfterMinutes" type="number" />
+            <Label for="fine-rule-late-after">Late after (minutes)</Label>
+            <Input id="fine-rule-late-after" v-model="rule.lateAfterMinutes" type="number" />
           </div>
         </div>
         <p class="text-xs text-slate">
           New rates apply to events whose fines have not been generated yet; existing fines keep the rule they were issued under.
         </p>
         <button
-          class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          type="button"
+          class="min-h-6 rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           :disabled="busy"
           @click="saveRule"
         >
@@ -271,7 +272,7 @@ onMounted(async () => {
           <li v-for="row in excuses" :key="row.id" class="py-2 space-y-1">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="min-w-0">
-                <NuxtLink :to="`/manage/students/${row.student.id}`" class="font-medium text-navy hover:underline">
+                <NuxtLink :to="`/manage/students/${row.student.id}`" class="font-medium text-navy underline hover:underline">
                   {{ row.student.name }}
                 </NuxtLink>
                 <span v-if="row.student.studentProfile" class="ml-2 font-mono text-xs text-slate">{{ row.student.studentProfile.studentNo }}</span>
@@ -283,17 +284,19 @@ onMounted(async () => {
                   :href="`/api/excuses/${row.id}/attachment`"
                   target="_blank"
                   rel="noopener"
-                  class="text-xs font-semibold text-navy hover:underline"
+                  class="text-xs font-semibold text-navy underline hover:underline"
                 >Attachment</a>
                 <button
-                  class="rounded-lg bg-navy px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                  type="button"
+                  class="min-h-6 rounded-lg bg-navy px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
                   :disabled="busy"
                   @click="reviewExcuse(row, 'approve')"
                 >
                   Approve
                 </button>
                 <button
-                  class="rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-navy disabled:opacity-50"
+                  type="button"
+                  class="min-h-6 rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-navy disabled:opacity-50"
                   :disabled="busy"
                   @click="reviewExcuse(row, 'deny')"
                 >
@@ -314,7 +317,13 @@ onMounted(async () => {
 
     <!-- Filter -->
     <div class="flex items-center gap-2">
-      <select v-model="statusFilter" class="rounded-lg border border-line px-3 py-1.5 text-sm" @change="load">
+      <label for="fines-status-filter" class="sr-only">Filter by status</label>
+      <select
+        id="fines-status-filter"
+        v-model="statusFilter"
+        class="min-h-9 rounded-lg border border-line px-3 py-1.5 text-sm"
+        @change="load"
+      >
         <option value="unpaid">
           Unpaid
         </option>
@@ -339,7 +348,12 @@ onMounted(async () => {
     </div>
     <Card v-else>
       <CardContent class="p-4">
-        <div class="overflow-x-auto">
+        <div
+          class="overflow-x-auto"
+          tabindex="0"
+          role="region"
+          aria-label="Fines table"
+        >
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-xs uppercase tracking-wide text-slate border-b border-line">
@@ -366,13 +380,13 @@ onMounted(async () => {
             <tbody class="divide-y divide-line">
               <tr v-for="fine in visible" :key="fine.id" class="hover:bg-paper">
                 <td class="py-2 pr-3">
-                  <NuxtLink :to="`/manage/students/${fine.user.id}`" class="font-medium text-navy hover:underline">
+                  <NuxtLink :to="`/manage/students/${fine.user.id}`" class="font-medium text-navy underline hover:underline">
                     {{ fine.user.name }}
                   </NuxtLink>
                   <span v-if="fine.user.studentProfile" class="ml-2 font-mono text-xs text-slate">{{ fine.user.studentProfile.studentNo }}</span>
                 </td>
                 <td class="py-2 pr-3">
-                  <NuxtLink :to="`/manage/events/${fine.event.id}`" class="text-navy hover:underline">
+                  <NuxtLink :to="`/manage/events/${fine.event.id}`" class="text-navy underline hover:underline">
                     {{ fine.event.title }}
                   </NuxtLink>
                 </td>
@@ -390,7 +404,8 @@ onMounted(async () => {
                   </Badge>
                   <button
                     v-if="fine.sanctionType === 'service' && !fine.servedAt && fine.status === 'unpaid'"
-                    class="ml-2 text-xs font-semibold text-navy hover:underline disabled:opacity-50"
+                    type="button"
+                    class="ml-2 inline-flex min-h-6 items-center text-xs font-semibold text-navy underline hover:underline disabled:opacity-50"
                     :disabled="busy"
                     @click="markServed(fine)"
                   >

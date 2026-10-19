@@ -174,7 +174,7 @@ function getGreeting() {
         <div class="w-10 h-10 rounded-full bg-navy border-2 border-gold flex items-center justify-center text-gold font-bold text-xs">
           USC
         </div>
-        <div class="text-xs text-white/50 font-mono">
+        <div class="text-xs text-white/75 font-mono">
           {{ new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }}
         </div>
       </div>
@@ -185,19 +185,19 @@ function getGreeting() {
       <h1 class="text-2xl font-bold">
         {{ getGreeting() }},<br>{{ auth.user?.name }}
       </h1>
-      <p class="text-white/50 text-sm mt-1">
+      <p class="text-white/75 text-sm mt-1">
         {{ auth.user?.position }}
       </p>
     </div>
 
     <!-- Duty Card (if has duty today) -->
-    <div
+    <NuxtLink
       v-if="hasDutyToday && !dutyAlreadyCheckedIn"
-      class="bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
-      @click="router.push('/duty')"
+      to="/duty"
+      class="block bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
     >
       <div class="flex items-center gap-3">
-        <div class="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_0_4px_rgba(201,162,75,0.15)]" />
+        <div class="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_0_4px_rgba(201,162,75,0.15)]" aria-hidden="true" />
         <div class="flex-1">
           <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">
             Office Duty
@@ -210,7 +210,7 @@ function getGreeting() {
           Tap to check in
         </Badge>
       </div>
-    </div>
+    </NuxtLink>
 
     <!-- Mode selector (no event pre-selected) -->
     <div v-if="mode === 'select' && !selectedEventId">
@@ -236,10 +236,11 @@ function getGreeting() {
         No events available
       </div>
       <div v-else class="space-y-2">
-        <div
+        <button
           v-for="event in events.events"
           :key="event.id"
-          class="bg-paper-panel rounded-xl border border-line p-4 cursor-pointer hover:shadow-md transition-shadow"
+          type="button"
+          class="min-h-11 w-full rounded-xl border border-line bg-paper-panel p-4 text-left hover:shadow-md transition-shadow"
           @click="selectEvent(event.id)"
         >
           <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">
@@ -251,7 +252,7 @@ function getGreeting() {
           <div class="text-xs text-slate">
             {{ formatTime(event.date) }}
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -328,7 +329,7 @@ function getGreeting() {
           <span class="text-lg font-black text-white">
             {{ checkingOut ? 'Checking out...' : 'Check Out' }}
           </span>
-          <span class="text-xs text-white/60">End your session</span>
+          <span class="text-xs text-white/75">End your session</span>
         </button>
       </div>
 
@@ -357,7 +358,7 @@ function getGreeting() {
         <span class="text-lg font-black text-ink">
           {{ checkingIn ? 'Checking in...' : 'Check in now' }}
         </span>
-        <span class="text-xs text-yellow-900">Location confirmed automatically</span>
+        <span class="text-xs text-navy-deep">Location confirmed automatically</span>
       </button>
 
       <!-- QR alternative -->
@@ -373,7 +374,11 @@ function getGreeting() {
 
       <!-- Change event -->
       <div class="text-center">
-        <button class="text-xs text-slate hover:text-navy" @click="selectedEventId = null; mode = 'select'">
+        <button
+          type="button"
+          class="inline-flex min-h-6 items-center text-xs text-slate hover:text-navy"
+          @click="selectedEventId = null; mode = 'select'"
+        >
           &larr; Choose a different event
         </button>
       </div>
@@ -382,7 +387,7 @@ function getGreeting() {
     <!-- Bottom stamp (matches mockup) -->
     <div class="bg-gold rounded-lg px-5 py-3 flex items-center justify-between text-xs font-bold">
       <span class="text-navy-deep">ISUFST · Dingle Campus</span>
-      <span class="text-yellow-900">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
+      <span class="text-navy-deep">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
     </div>
   </div>
 </template>

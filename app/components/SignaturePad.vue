@@ -77,6 +77,7 @@ defineExpose({ clear })
       ref="canvas"
       class="w-full touch-none rounded-lg border-2 border-dashed border-line bg-white"
       style="aspect-ratio: 600 / 220"
+      role="img"
       aria-label="Signature drawing area"
       @pointerdown="down"
       @pointermove="move"
@@ -86,7 +87,7 @@ defineExpose({ clear })
     />
     <div class="mt-1 flex justify-between text-[11px] text-slate">
       <span>Sign inside the box with your finger or mouse</span>
-      <button type="button" class="underline hover:text-navy" @click="clear">
+      <button type="button" class="inline-flex min-h-6 items-center underline hover:text-navy" @click="clear">
         Clear
       </button>
     </div>

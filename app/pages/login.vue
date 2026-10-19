@@ -98,7 +98,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
     <p class="text-center text-sm text-muted">
       Forgot your password?
-      <NuxtLink to="/reset-password" class="text-primary font-medium hover:underline">
+      <NuxtLink to="/reset-password" class="text-primary font-medium underline hover:underline">
         Reset it
       </NuxtLink>
     </p>
