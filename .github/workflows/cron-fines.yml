@@ -1,0 +1,33 @@
+name: Cron — fines
+
+# Daily. Fine generation only becomes due once an event's check-in window has
+# closed, and the run is idempotent (`events.finesIssuedAt` plus the unique
+# (userId, eventId) index), so the exact hour does not matter. This runs here
+# rather than in vercel.json because the Vercel project is on Hobby, which
+# allows only two daily cron jobs; the signature purge keeps one of those slots.
+#
+# Needs: repository secret CRON_SECRET, and optionally a repository variable
+# SITE_URL (defaults to the production domain).
+
+on:
+  schedule:
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  fines:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate fines for closed events
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://usc.syntaxure.dev' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured for this repository yet — skipping"
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/event-fines")
+          echo "HTTP $code"
+          cat /tmp/out.json || true
+          test "$code" = "200"

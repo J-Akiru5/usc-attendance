@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../../utils/supabase'
 import { siteUrl } from '../../utils/site'
 import { clientIp, overLimit, parseRegistration, STUDENT_ROLE } from '../../utils/students'
 import { parsePlacement, resolvePlacement } from '../../utils/academic'
+import { consentFrom } from '../../utils/consent'
 import { defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
 
 const GENERIC
@@ -42,6 +43,9 @@ export default defineApiHandler(async (event) => {
 
   const body = await readJsonBody(event)
   const input = parseRegistration(body)
+  // Recorded, not just required (benchmark BC-1): who agreed, to which version
+  // of the notice, and when.
+  const consent = consentFrom(body ?? {}, 'register')
   // Academic placement (optional): validated against the reference data. The
   // legacy free-text `program` column is still filled in — with the program's
   // official name when a placement was chosen — so older screens keep working.
@@ -99,6 +103,11 @@ export default defineApiHandler(async (event) => {
         role: STUDENT_ROLE,
         mustChangePassword: false,
         active: true,
+        // Demonstrable consent (plan §11.2): the version matters as much as the
+        // timestamp, because the notice will change.
+        consentAt: consent.consentAt,
+        consentVersion: consent.consentVersion,
+        consentSource: consent.consentSource,
         studentProfile: {
           create: {
             studentNo: input.studentNo,

@@ -10,6 +10,8 @@ import LocationPicker from '@/components/ui/LocationPicker.vue'
 import { downloadAttendance, type ExportFormat } from '@/lib/download'
 import EventAccessPanel from '@/components/EventAccessPanel.vue'
 import CheckInWindowPanel from '@/components/CheckInWindowPanel.vue'
+import Input from '@/components/ui/Input.vue'
+import Label from '@/components/ui/Label.vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 
@@ -21,6 +23,41 @@ const events = useEventStore()
 const auth = useAuthStore()
 
 const eventId = computed(() => route.params.id as string)
+
+// Cancellation (benchmark BC-7): a rained-out assembly must not fine anyone.
+const cancelOpen = ref(false)
+const cancelReason = ref('')
+const cancelError = ref('')
+const cancelNotice = ref('')
+
+const cancelledInfo = computed(() => {
+  const row = events.currentEvent as unknown as {
+    status?: string | null
+    cancelledAt?: string | null
+    cancelReason?: string | null
+    canceller?: { id: string, name: string } | null
+  } | null
+  if (!row || row.status !== 'cancelled') return null
+  return {
+    at: row.cancelledAt ?? null,
+    reason: row.cancelReason ?? null,
+    by: row.canceller?.name ?? null
+  }
+})
+
+async function cancelEvent() {
+  cancelError.value = ''
+  cancelNotice.value = ''
+  try {
+    const result = await api.post<{ notified: number }>(`/events/${eventId.value}/cancel`, { reason: cancelReason.value.trim() || null })
+    cancelNotice.value = `Cancelled. ${result.notified} ${result.notified === 1 ? 'person' : 'people'} were told.`
+    cancelOpen.value = false
+    cancelReason.value = ''
+    await events.fetchEvent(eventId.value)
+  } catch (err: unknown) {
+    cancelError.value = err instanceof Error ? err.message : 'Could not cancel the event'
+  }
+}
 
 // Who is coming (plan §8.2): seats, queue and the list behind them.
 interface RegistrationRow {
@@ -179,6 +216,13 @@ function methodBadgeVariant(method: string) {
             {{ audienceInfo }}
           </span>
         </p>
+        <p v-if="cancelledInfo" class="mt-2 text-xs">
+          <span class="rounded-full bg-danger px-2.5 py-1 font-semibold text-white">
+            Cancelled
+          </span>
+          <span v-if="cancelledInfo.reason" class="ml-2 text-white/60">“{{ cancelledInfo.reason }}”</span>
+          <span v-if="cancelledInfo.by" class="ml-2 text-white/40">by {{ cancelledInfo.by }}</span>
+        </p>
         <p class="text-white/40 text-xs mt-1">
           Radius: {{ events.currentEvent.radiusMeters }}m
         </p>
@@ -228,6 +272,41 @@ function methodBadgeVariant(method: string) {
         :opens-at="events.currentEvent.checkInOpensAt"
         :closes-at="events.currentEvent.checkInClosesAt"
       />
+
+      <!-- Calling it off (benchmark BC-7): a cancelled event is inert. -->
+      <Card v-if="!cancelledInfo">
+        <CardContent class="p-6 space-y-3">
+          <div class="font-semibold text-navy font-serif">
+            Cancel this event
+          </div>
+          <p class="text-sm text-slate">
+            Use this when the event will not happen. Reminders stop, check-ins are refused, and no fines are
+            generated for it — everyone expected was told so nobody shows up to an empty venue. Cancelling is
+            final; call a new event if it is rescheduled.
+          </p>
+          <div v-if="cancelError" class="text-sm text-danger">
+            {{ cancelError }}
+          </div>
+          <div v-if="cancelNotice" class="text-sm text-success">
+            {{ cancelNotice }}
+          </div>
+          <div v-if="cancelOpen" class="space-y-2">
+            <Label>Why? (optional — it goes in the notice)</Label>
+            <Input v-model="cancelReason" placeholder="Typhoon signal 3" />
+            <div class="flex items-center gap-2">
+              <button class="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white" @click="cancelEvent">
+                Cancel the event
+              </button>
+              <button class="text-xs text-slate hover:underline" @click="cancelOpen = false">
+                Keep it
+              </button>
+            </div>
+          </div>
+          <button v-else class="text-xs font-semibold text-danger hover:underline" @click="cancelOpen = true">
+            Cancel event…
+          </button>
+        </CardContent>
+      </Card>
 
       <EventAccessPanel
         v-if="auth.user?.canDelegate || auth.isSuperAdmin"

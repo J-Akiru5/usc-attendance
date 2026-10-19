@@ -37,7 +37,9 @@ export default defineApiHandler(async (event) => {
     const to = new Date(now.getTime() + (window.hours + 0.25) * 3600_000)
 
     const events = await prisma.event.findMany({
-      where: { date: { gte: from, lte: to } },
+      // Cancelled events are inert: no reminders for something that is not
+      // happening (benchmark BC-7).
+      where: { date: { gte: from, lte: to }, status: 'scheduled' },
       select: {
         id: true,
         title: true,

@@ -56,6 +56,8 @@ export default defineApiHandler(async (event) => {
         creator: { select: { id: true, name: true, position: true, role: true } },
         category: { select: { id: true, code: true, name: true, color: true } },
         _count: { select: { attendance: true, occurrences: true } },
+        // Cancellation (benchmark BC-7), with who called it off.
+        canceller: { select: { id: true, name: true } },
         // Required audience (plan §8.2) with the labels the page shows.
         audienceCollege: { select: { id: true, code: true, name: true } },
         audienceSection: { select: { id: true, name: true } },
