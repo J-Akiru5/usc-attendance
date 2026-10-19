@@ -457,9 +457,12 @@ A phase/feature is done only when:
   action that is audited, and a redacted copy where the public record needs one.
 - **The platform must never be the mechanism that blocks enrolment, examinations or credentials** (RA 11984's direction;
   BC-8). Clearance shows standing; it is not a gate, and nothing in the UI or the PDF may imply otherwise.
-- **Audit integrity (BC-10):** `audit_logs` gains `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId`, becomes
-  append-only in code (asserted by a test), and records **reads** of sensitive records (Student 360, excuse attachments,
-  student lookup) as well as writes.
+- **Audit integrity (BC-10):** `audit_logs` carries `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId`, is
+  append-only in code (asserted by a unit test and by the live suite), and records **reads** of sensitive records
+  (Student 360, excuse attachments, scanner lookup) as well as writes. `ipHash` is SHA-256 of the client address and
+  `AUDIT_IP_SALT`; the raw address is never stored or logged, and a missing salt degrades to no hash rather than a
+  reversible one. `GET /api/settings/audit-health` counts actions over 24 h/7 d and flags an action that ran on each of
+  the previous three days but has not run today ("silent gap").
 - **Secrets:** never in code or logs; Vercel env vars; rotate `QR_SECRET`, `CRON_SECRET` if leaked.
 - **Weak passwords:** the `admin@usc.edu.ph` account currently uses a development password — **must** be changed before students are invited (tracked in §14).
 
@@ -750,6 +753,14 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - additive `status` (`scheduled` | `cancelled`) + `cancelledAt`/`cancelledBy`/`cancelReason`; cancellation is **one-way on purpose** (re-instating an event would quietly re-arm the fines and reminders)
   - a cancelled event is inert everywhere: `assertEventActive` is called from `assertCheckInOpen` (so every check-in path refuses), the registration route refuses (409), and both the reminder and the fine crons filter cancelled events out entirely — without this a rained-out assembly would have billed everyone who stayed home
   - `POST /api/events/:id/cancel` (staff, audited) tells the registrants (or the required audience) exactly once, through the notification core with a per-event dedupe key; the event page shows a Cancelled badge with the reason and who called it off, and carries the cancel action
+- [x] Audit-log integrity (2026-10-20, `feat/bc10-audit-integrity`) — benchmark BC-10
+  - additive `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId` on `audit_logs`, with indexes on `(targetType, targetId)` and `requestId`; the migration is additive and old rows keep their meaning
+  - `server/utils/audit.ts`: `auditWrite` fills the target, the actor's role, a per-request id and a **salted SHA-256** of the client address; `auditRead` refuses to write a row that cannot name its target. The raw address is never persisted or logged, and without `AUDIT_IP_SALT` no hash is stored at all
+  - reads audited: `student_record_viewed` (Student 360), `excuse_attachment_viewed`, `student_lookup_performed` — metadata only (surface, counts, owner flag), never a name, student number or query
+  - append-only in code: a unit test scans every file under `server/` for `auditLog.update`/`delete`/`upsert` and raw `UPDATE`/`DELETE` on `audit_logs`; the live suite repeats the scan and proves an existing row is unchanged after later requests
+  - `GET /api/settings/audit-health` (settings managers): counts by action for 24 h and 7 d, plus silent gaps (zero today after three non-zero days) and a truncation flag at the row cap
+  - migrated to the helper (target populated): fines (payment, service served, excuse filed/reviewed, rules), clearance issue/revoke, announcements (create/update/delete/send, manual and cron), registrations, events (series create/update, delete, cancel, fine rule), documents (filed/updated/versioned), finance (budget opened, entries + overrides, proposals + steps), students updated, delegation grant/revoke/use, attendance signing, fines generated
+  - still on the legacy shape, deliberately: reference-data CRUD, semesters, auth/register, settings retention/transparency, document types/attachments, budget lines, purge — low-value for evidence or already safe; see the BC-10 row below
 - [ ] Freeze the expected roster at window close (benchmark BC-4)
 - [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
 - [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7 and §12.2's Q-New rows
@@ -768,7 +779,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
 | BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
 | BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | partially by construction (P7's `public`/`officers` + audited writes); redaction + the aggregate rule pending |
-| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | pending |
+| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **done** (`feat/bc10-audit-integrity`); deferred: the "every mutating route writes an audit row" coverage test, and the hash-chained log (BL-1) |
 | BC-11 | Self-service privacy export + rectification queue | pending |
 | BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
 | BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | pending (the P8 hardening slice) |

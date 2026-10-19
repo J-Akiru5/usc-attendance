@@ -17,6 +17,7 @@ import {
   validateFinanceRef
 } from '../../utils/documents'
 import { nextDocumentSequence, searchDocumentIds } from '../../utils/document-archive'
+import { auditContext, auditWrite } from '../../utils/audit'
 import { orderBy as orderByFor, parseTableQuery, skipTake } from '../../utils/pagination'
 
 /**
@@ -195,19 +196,13 @@ export default defineApiHandler(async (event) => {
 
     const created = await prisma.document.findUniqueOrThrow({ where: { id: createdId }, select: listSelect })
 
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'document_filed',
-        details: JSON.stringify({
-          documentId: created.id,
-          number: created.number,
-          type: type.key,
-          year,
-          visibility: content.visibility
-        }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'document_filed',
+      targetType: 'document',
+      targetId: created.id,
+      details: { number: created.number, type: type.key, year, visibility: content.visibility },
+      ...auditContext(event)
     })
 
     return respond(event, 201, { document: withSummary(created) })

@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../utils/auth'
 import { requireCapability } from '../../utils/rbac'
 import { badRequest, defineApiHandler, notFound, readJsonBody, respond } from '../../utils/http'
 import { validateFinanceRef } from '../../utils/documents'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * /api/documents/:id — one filing, in full (plan §8.8).
@@ -103,13 +104,13 @@ export default defineApiHandler(async (event) => {
     include: detailInclude
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: data.archived === undefined ? 'document_updated' : data.archived ? 'document_archived' : 'document_restored',
-      details: JSON.stringify({ documentId: id, number: document.number, changes: Object.keys(data) }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: data.archived === undefined ? 'document_updated' : data.archived ? 'document_archived' : 'document_restored',
+    targetType: 'document',
+    targetId: id,
+    details: { number: document.number, changes: Object.keys(data) },
+    ...auditContext(event)
   })
 
   return { document: updated }

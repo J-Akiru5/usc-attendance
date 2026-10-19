@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'crypto'
 import { prisma } from '../../utils/prisma'
 import { defineApiHandler, HttpError, respond } from '../../utils/http'
 import { dispatchAnnouncement, dueAnnouncements } from '../../utils/announce'
+import { auditWrite } from '../../utils/audit'
 
 /**
  * GET /api/cron/announcements — called every few minutes with CRON_SECRET
@@ -37,13 +38,13 @@ export default defineApiHandler(async (event) => {
     // to weigh the quota, so email is not attempted from the scheduler.
     const outcome = await dispatchAnnouncement(prisma, row, { now, email: false })
     results.push({ id: row.id, title: row.title, ...outcome })
-    await prisma.auditLog.create({
-      data: {
-        userId: row.createdBy,
-        action: 'announcement_sent',
-        details: JSON.stringify({ announcementId: row.id, by: 'cron', ...outcome }),
-        performedBy: row.createdBy
-      }
+    await auditWrite(prisma, {
+      // The scheduler is the actor; the announcement is the target.
+      actor: null,
+      action: 'announcement_sent',
+      targetType: 'announcement',
+      targetId: row.id,
+      details: { by: 'cron', email: false, ...outcome }
     })
   }
 

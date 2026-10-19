@@ -3,6 +3,7 @@ import { prisma } from '../../../utils/prisma'
 import { authenticate } from '../../../utils/auth'
 import { badRequest, defineApiHandler, notFound, respond } from '../../../utils/http'
 import { requireEventScope } from '../../../utils/delegation'
+import { auditContext, auditRead } from '../../../utils/audit'
 
 /**
  * GET /api/events/:id/student-lookup?q= — who is being scanned (plan §8.2).
@@ -58,6 +59,18 @@ export default defineApiHandler(async (event) => {
   // anything less definite is offered to the officer as a choice.
   const wanted = q.toUpperCase()
   const exact = students.find(s => (s.studentNo ?? '').toUpperCase() === wanted) ?? null
+
+  // BC-10: the door lookup is a sensitive read (it searches names and student
+  // numbers). One row per lookup, naming the event and how many rows matched —
+  // never the query or a person.
+  await auditRead(prisma, {
+    actor: user,
+    action: 'student_lookup_performed',
+    targetType: 'event',
+    targetId: eventId,
+    details: { surface: 'scanner_lookup', matches: students.length, exact: exact !== null },
+    ...auditContext(event)
+  })
 
   return { query: q, exact: exact?.id ?? null, students }
 })

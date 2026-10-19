@@ -2,6 +2,7 @@ import { getMethod } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * POST /api/clearance/revoke — pull a certificate back (plan §8.5): issued in
@@ -31,13 +32,14 @@ export default defineApiHandler(async (event) => {
     }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'clearance_revoked',
-      details: JSON.stringify({ clearanceId, studentId: clearance.userId, note: revoked.note }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'clearance_revoked',
+    targetType: 'clearance',
+    targetId: clearanceId,
+    userId: clearance.userId,
+    details: { note: revoked.note },
+    ...auditContext(event)
   })
 
   return { clearance: { id: revoked.id, revokedAt: revoked.revokedAt } }

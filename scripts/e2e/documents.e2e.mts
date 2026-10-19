@@ -359,7 +359,7 @@ async function main() {
   r = await api('/api/documents', { token: staff.token, query: { scope: 'officers', archived: 'all' } })
   check('the officers-only scope returns only officers-only filings', r._s === 200 && (r._b?.documents ?? []).every((d: { visibility: string }) => d.visibility === 'officers'), `${r._s}`)
 
-  const audit = await prisma.auditLog.findFirst({ where: { action: 'document_filed', details: { contains: publicId } } })
+  const audit = await prisma.auditLog.findFirst({ where: { action: 'document_filed', targetType: 'document', targetId: publicId } })
   check('every write left an audit row', !!audit && !!audit.performedBy, JSON.stringify(audit?.action))
 }
 

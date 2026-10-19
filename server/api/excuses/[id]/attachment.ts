@@ -3,6 +3,7 @@ import { prisma } from '../../../utils/prisma'
 import { authenticate } from '../../../utils/auth'
 import { defineApiHandler, HttpError } from '../../../utils/http'
 import { hasEventScope } from '../../../utils/delegation'
+import { auditContext, auditRead } from '../../../utils/audit'
 import { excuseStorage } from '../../../utils/excuse-storage'
 
 /**
@@ -36,6 +37,17 @@ export default defineApiHandler(async (event) => {
   if (!store) throw new HttpError(503, 'Attachment storage is not configured')
 
   const bytes = await store.get(excuse.attachmentKey)
+  // BC-10: the evidence was read, so the reader is recorded. The row names the
+  // excuse and whether the reader was its owner; it never names the document.
+  await auditRead(prisma, {
+    actor: user,
+    action: 'excuse_attachment_viewed',
+    targetType: 'excuse',
+    targetId: id,
+    userId: excuse.userId,
+    details: { surface: 'excuse_attachment', owner: excuse.userId === user.id },
+    ...auditContext(event)
+  })
   setResponseHeader(event, 'Content-Type', excuse.attachmentMime ?? 'application/octet-stream')
   setResponseHeader(event, 'Cache-Control', 'private, max-age=60')
   return bytes

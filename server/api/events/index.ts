@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, notFound, readJsonBody, respond } from '../../utils/http'
 import { createOccurrences, planOccurrences } from '../../utils/event-series'
 import { audienceColumns, parseAudience } from '../../utils/audience'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /** Shared shape for the event form and the calendar (plan §8.2). */
 const eventInclude = {
@@ -117,13 +118,13 @@ export default defineApiHandler(async (event) => {
         ...audienceColumns(audience)
       })
       occurrenceCount = created + 1
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'event_series_created',
-          details: JSON.stringify({ eventId: eventRow.id, rrule: series.rrule, occurrences: occurrenceCount }),
-          performedBy: user.id
-        }
+      await auditWrite(prisma, {
+        actor: user,
+        action: 'event_series_created',
+        targetType: 'event',
+        targetId: eventRow.id,
+        details: { rrule: series.rrule, occurrences: occurrenceCount },
+        ...auditContext(event)
       })
     }
 

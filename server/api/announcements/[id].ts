@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, noContent, readJsonBody, respond } from '../../utils/http'
 import { audienceColumns, parseAudience, specFromEvent } from '../../utils/audience'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 /**
  * PUT/DELETE /api/announcements/:id — editing and removing.
@@ -20,8 +21,12 @@ export default defineApiHandler(async (event) => {
   if (getMethod(event) === 'DELETE') {
     if (existing.status === 'sent') throw new HttpError(409, 'A sent announcement is a record — it cannot be deleted')
     await prisma.announcement.delete({ where: { id } })
-    await prisma.auditLog.create({
-      data: { userId: user.id, action: 'announcement_deleted', details: JSON.stringify({ announcementId: id }), performedBy: user.id }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'announcement_deleted',
+      targetType: 'announcement',
+      targetId: id,
+      ...auditContext(event)
     })
     return noContent(event, 204)
   }
@@ -66,8 +71,13 @@ export default defineApiHandler(async (event) => {
       }
     })
 
-    await prisma.auditLog.create({
-      data: { userId: user.id, action: 'announcement_updated', details: JSON.stringify({ announcementId: id, status: updated.status }), performedBy: user.id }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'announcement_updated',
+      targetType: 'announcement',
+      targetId: id,
+      details: { status: updated.status },
+      ...auditContext(event)
     })
 
     return updated

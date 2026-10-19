@@ -5,6 +5,7 @@ import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '
 import { excuseBlockedReason, validateAttachment, validateExcuse } from '../../../utils/excuses'
 import { excuseObjectKey, excuseStorage } from '../../../utils/excuse-storage'
 import { hasEventScope } from '../../../utils/delegation'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * /api/fines/:id/excuse — the student files an excuse against their own fine
@@ -82,13 +83,14 @@ export default defineApiHandler(async (event) => {
     }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'excuse_filed',
-      details: JSON.stringify({ excuseId: excuse.id, fineId, category: input.category, hasAttachment: !!attachment }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'excuse_filed',
+    targetType: 'excuse',
+    targetId: excuse.id,
+    userId: user.id,
+    details: { fineId, category: input.category, hasAttachment: !!attachment },
+    ...auditContext(event)
   })
 
   return respond(event, 201, { excuse })

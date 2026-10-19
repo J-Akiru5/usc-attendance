@@ -3,6 +3,7 @@ import { prisma } from '../../../utils/prisma'
 import { authenticate, requireStaff } from '../../../utils/auth'
 import { defineApiHandler, noContent, notFound, readJsonBody, respond } from '../../../utils/http'
 import { DEFAULT_FINE_RULE, formatPeso, validateRule, type FineRule } from '../../../utils/fines'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * GET/PUT/DELETE /api/events/:id/fine-rule — a single event's override of the
@@ -48,8 +49,13 @@ export default defineApiHandler(async (event) => {
 
   if (getMethod(event) === 'DELETE') {
     await prisma.fineRule.deleteMany({ where: { eventId } })
-    await prisma.auditLog.create({
-      data: { userId: user.id, action: 'fine_rule_cleared', details: JSON.stringify({ eventId }), performedBy: user.id }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'fine_rule_cleared',
+      targetType: 'event',
+      targetId: eventId,
+      details: { scope: 'event' },
+      ...auditContext(event)
     })
     return noContent(event, 204)
   }
@@ -65,8 +71,13 @@ export default defineApiHandler(async (event) => {
       update: rule
     })
 
-    await prisma.auditLog.create({
-      data: { userId: user.id, action: 'fine_rule_updated', details: JSON.stringify({ eventId, ...rule }), performedBy: user.id }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'fine_rule_updated',
+      targetType: 'event',
+      targetId: eventId,
+      details: { scope: 'event', ...rule },
+      ...auditContext(event)
     })
 
     return { rule: asRule(saved), pesos: { absent: formatPeso(saved.absentCentavos), late: formatPeso(saved.lateCentavos) } }

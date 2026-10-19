@@ -4,6 +4,7 @@ import { authenticate, requireStaff } from '../../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '../../../utils/http'
 import { waiverFor } from '../../../utils/excuses'
 import { notifyUser, notifier } from '../../../utils/notify'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * POST /api/excuses/:id/review — approve (which waives the fine) or deny
@@ -46,13 +47,14 @@ export default defineApiHandler(async (event) => {
     }
   })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: decision === 'approve' ? 'excuse_approved' : 'excuse_denied',
-      details: JSON.stringify({ excuseId: id, fineId: excuse.fine.id, note }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: decision === 'approve' ? 'excuse_approved' : 'excuse_denied',
+    targetType: 'excuse',
+    targetId: id,
+    userId: excuse.userId,
+    details: { fineId: excuse.fine.id, note },
+    ...auditContext(event)
   })
 
   await notifyUser(notifier(prisma), {

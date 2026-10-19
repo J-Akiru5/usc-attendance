@@ -5,6 +5,7 @@ import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '
 import { deriveStatus, dispatchAnnouncement, emailBudgetError, renderAnnouncementBody } from '../../utils/announce'
 import { resolveAudience, specFromEvent, audienceColumns, parseAudience } from '../../utils/audience'
 import { emailQuota } from '../../utils/email-quota'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 import { dedupeKeyFor } from '../../utils/notify'
 
@@ -76,13 +77,13 @@ export default defineApiHandler(async (event) => {
       }
     })
 
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: status === 'sent' ? 'announcement_sent' : 'announcement_created',
-        details: JSON.stringify({ announcementId: created.id, status, audience: audience.type }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: status === 'sent' ? 'announcement_sent' : 'announcement_created',
+      targetType: 'announcement',
+      targetId: created.id,
+      details: { status, audience: audience.type },
+      ...auditContext(event)
     })
 
     if (status === 'sent') {

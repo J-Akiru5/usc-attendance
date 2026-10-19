@@ -5,6 +5,7 @@ import { defineApiHandler, HttpError, respond } from '../../utils/http'
 import { fineDeadline, formatPeso, planFines, resolveRule, type FineRule } from '../../utils/fines'
 import { resolveAudience, specFromEvent } from '../../utils/audience'
 import { notifier, notifyMany } from '../../utils/notify'
+import { auditWrite } from '../../utils/audit'
 
 /**
  * GET /api/cron/event-fines — called daily with CRON_SECRET (plan §8.5): for
@@ -130,13 +131,14 @@ export default defineApiHandler(async (event) => {
     }
 
     await prisma.event.update({ where: { id: row.id }, data: { finesIssuedAt: now } })
-    await prisma.auditLog.create({
-      data: {
-        userId: row.id,
-        action: 'fines_generated',
-        details: JSON.stringify({ eventId: row.id, fineCount: created.count, absent: items.filter(i => i.kind === 'absent').length, late: items.filter(i => i.kind === 'late').length, rule }),
-        performedBy: row.id
-      }
+    await auditWrite(prisma, {
+      // A system job has no signed-in actor, but the event it acted on is the
+      // evidence that matters. Request context would be the cron's, not a person's.
+      actor: null,
+      action: 'fines_generated',
+      targetType: 'event',
+      targetId: row.id,
+      details: { fineCount: created.count, absent: items.filter(i => i.kind === 'absent').length, late: items.filter(i => i.kind === 'late').length, rule }
     })
 
     results.push({

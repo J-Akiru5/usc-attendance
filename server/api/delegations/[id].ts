@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { authenticate } from '../../utils/auth'
 import { defineApiHandler, notFound, respond } from '../../utils/http'
 import { requireCanDelegate } from '../../utils/delegation'
+import { auditContext, auditWrite } from '../../utils/audit'
 
 // ---------------------------------------------------------------------------
 // DELETE /api/delegations/:id  — revoke immediately (President/Secretary only)
@@ -26,13 +27,14 @@ export default defineApiHandler(async (event) => {
       where: { id },
       data: { revokedAt: now, revokedBy: actor.id }
     })
-    await tx.auditLog.create({
-      data: {
-        userId: grant.userId,
-        action: 'delegation_revoked',
-        details: JSON.stringify({ eventId: grant.eventId, grantId: id }),
-        performedBy: actor.id
-      }
+    await auditWrite(tx, {
+      actor,
+      action: 'delegation_revoked',
+      targetType: 'delegation_grant',
+      targetId: id,
+      userId: grant.userId,
+      details: { eventId: grant.eventId },
+      ...auditContext(event)
     })
     return updated
   })

@@ -795,8 +795,17 @@ model AuditLog {
   action      String   // "account_created", "password_changed", "password_reset", "officer_deactivated", "role_changed", "manual_override"
   details     String?  // JSON string with additional context
   performedBy String?  // user ID of the admin/system performing the action
+  // BC-10 (plan §11.2): evidence, not a diary. A row must be able to say
+  // *which* record it touched and *who* read it, without storing an address.
+  targetType  String?  // "student" | "fine" | "payment" | "clearance" | "event" | …
+  targetId    String?
+  actorRole   String?  // the actor's role at the time, so a later promotion does not rewrite history
+  ipHash      String?  // SHA-256(AUDIT_IP_SALT + client IP); the raw address is never stored
+  requestId   String?  // one id shared by every row written while serving one request
   createdAt   DateTime @default(now())
 
+  @@index([targetType, targetId])
+  @@index([requestId])
   @@map("audit_logs")
 }
 

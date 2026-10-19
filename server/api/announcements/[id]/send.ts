@@ -5,6 +5,7 @@ import { defineApiHandler, HttpError, readJsonBody, respond } from '../../../uti
 import { dispatchAnnouncement, emailBudgetError } from '../../../utils/announce'
 import { resolveAudience, specFromEvent } from '../../../utils/audience'
 import { emailQuota } from '../../../utils/email-quota'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * POST /api/announcements/:id/send — send a draft or a scheduled announcement
@@ -37,13 +38,13 @@ export default defineApiHandler(async (event) => {
 
   const outcome = await dispatchAnnouncement(prisma, existing, { email: wantsEmail })
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'announcement_sent',
-      details: JSON.stringify({ announcementId: id, email: wantsEmail, ...outcome }),
-      performedBy: user.id
-    }
+  await auditWrite(prisma, {
+    actor: user,
+    action: 'announcement_sent',
+    targetType: 'announcement',
+    targetId: id,
+    details: { email: wantsEmail, ...outcome },
+    ...auditContext(event)
   })
 
   return { announcement: { id, status: 'sent', sentAt: new Date().toISOString() }, dispatch: outcome }

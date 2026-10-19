@@ -5,6 +5,7 @@ import { badRequest, defineApiHandler, notFound, respond } from '../../../utils/
 import { cancelRegistration, registerForEvent, seatsLeft } from '../../../utils/registrations'
 import { notifyUser, dedupeKeyFor, notifier } from '../../../utils/notify'
 import { assertEventActive } from '../../../utils/cancellation'
+import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
  * /api/events/:id/registration — the caller's own place at an event (plan §8.2).
@@ -43,13 +44,14 @@ export default defineApiHandler(async (event) => {
     if (!eventRow.registrationRequired) throw badRequest('This event does not take registrations')
 
     const result = await registerForEvent(prisma, { eventId, userId: user.id, capacity: eventRow.capacity })
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: result.status === 'registered' ? 'event_registration_created' : 'event_registration_waitlisted',
-        details: JSON.stringify({ eventId, status: result.status, position: result.position }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: result.status === 'registered' ? 'event_registration_created' : 'event_registration_waitlisted',
+      targetType: 'event',
+      targetId: eventId,
+      userId: user.id,
+      details: { status: result.status, position: result.position },
+      ...auditContext(event)
     })
 
     // Tell them where they stand (plan §8.4). Best effort: a mail problem must
@@ -73,13 +75,16 @@ export default defineApiHandler(async (event) => {
     const result = await cancelRegistration(prisma, { eventId, userId: user.id, capacity: eventRow.capacity })
     if (!result.cancelled) throw notFound('You are not registered for this event')
 
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'event_registration_cancelled',
-        details: JSON.stringify({ eventId, promoted: result.promotedUserId }),
-        performedBy: user.id
-      }
+    await auditWrite(prisma, {
+      actor: user,
+      action: 'event_registration_cancelled',
+      targetType: 'event',
+      targetId: eventId,
+      userId: user.id,
+      // The promoted person's id is not copied here: the promotion is theirs,
+      // and the registration row already records it.
+      details: { promoted: !!result.promotedUserId },
+      ...auditContext(event)
     })
 
     // Somebody just moved up (plan §8.4). Best effort, like the confirmation.
