@@ -109,8 +109,22 @@ export function audienceColumns(spec: AudienceSpec): {
   }
 }
 
-/** The students required to attend an event, resolved from live data. */
-export async function resolveAudience(db: PrismaClient, spec: AudienceSpec): Promise<string[]> {
+/** A student and the placement that decides whether they match an audience. */
+export interface StudentPlacement {
+  userId: string
+  collegeId: string | null
+  yearLevel: number | null
+  sectionId: string | null
+}
+
+/**
+ * Every active student with their placement, in one query. The audience
+ * resolvers and the roster snapshot both read this, so there is exactly one
+ * definition of "the student body".
+ */
+export async function activeStudentPlacements(db: PrismaClient): Promise<StudentPlacement[]> {
+  // Follow the profile, not the role: an officer who is also a student belongs
+  // to their own cohort (D-01), and a profile is the statement of membership.
   const students = await db.user.findMany({
     // A studentProfile *is* the statement "this person is a student of this
     // college / year / section", so the audience follows the profile rather than
@@ -120,17 +134,18 @@ export async function resolveAudience(db: PrismaClient, spec: AudienceSpec): Pro
     select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
   })
 
-  if (spec.type === 'all') return students.map(row => row.id)
-
-  const members: Array<{ id: string } & AudienceLike> = students.map(row => ({
+  return students.map(row => ({
     userId: row.id,
-    id: row.id,
     collegeId: row.studentProfile?.collegeId ?? null,
     yearLevel: row.studentProfile?.yearLevel ?? null,
     sectionId: row.studentProfile?.sectionId ?? null
   }))
+}
 
-  return members.filter(member => matchesAudience(member, spec)).map(member => member.id)
+/** The students required to attend an event, resolved from live data. */
+export async function resolveAudience(db: PrismaClient, spec: AudienceSpec): Promise<string[]> {
+  const members = await activeStudentPlacements(db)
+  return members.filter(member => matchesAudience(member, spec)).map(member => member.userId)
 }
 
 /**
