@@ -1,0 +1,93 @@
+name: scanner-durability
+
+# Offline-queue durability gate (benchmark BC-6).
+#
+# This runs the golden path that the build agent could not: queue two scans with
+# the attendance API failing, reload the page, prove the banner and the IndexedDB
+# count survived, then let the API answer and prove the queue drains. The spec
+# fakes auth and mocks every /api call, so it needs no database, no officer
+# account and no camera — only a Nuxt dev server on port 3100.
+#
+# The pure decisions behind the queue (cap, banner, refusal acknowledgement,
+# storage nudge) are unit-tested in tests/unit/scan-queue.test.ts and run in ci.yml.
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'tools/scanner-durability/**'
+      - 'nuxt.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/scanner-durability.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'app/**'
+      - 'tools/scanner-durability/**'
+      - 'nuxt.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/scanner-durability.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: scanner-durability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      CI: 'true'
+      # The dev server imports the Prisma client at boot. The spec never reaches
+      # a real database (every /api call is mocked in the browser), so a
+      # reachable-looking placeholder is enough and no secret is involved.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/usc
+      # The workflow's own checkout is the app under test.
+      APP_URL: ''
+      AUTH_SECRET: scanner-durability-ci-placeholder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install the app
+        run: npm ci
+
+      - name: Install the durability runner
+        working-directory: tools/scanner-durability
+        run: npm ci
+
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tools/scanner-durability/package-lock.json') }}
+
+      - name: Install Chromium
+        working-directory: tools/scanner-durability
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the offline-queue golden path
+        working-directory: tools/scanner-durability
+        run: npm test
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-durability-report
+          path: |
+            tools/scanner-durability/report
+            tools/scanner-durability/test-results
+          if-no-files-found: ignore
+          retention-days: 14
