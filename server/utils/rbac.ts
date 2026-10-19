@@ -26,7 +26,9 @@ export const CAPABILITIES = [
   // reads everything. The migration seeds the matching roles.
   'finance.manage',
   'finance.note',
-  'finance.audit'
+  'finance.audit',
+  // Documents (plan §8.8): filing, versioning and — audited — publishing.
+  'documents.publish'
 ] as const
 
 export type Capability = typeof CAPABILITIES[number]
@@ -73,6 +75,7 @@ export function capabilitiesFromFlags(user: LegacyFlags): Capability[] {
     caps.add('attendance.export')
     caps.add('duties.manage')
     caps.add('photos.manage')
+    caps.add('documents.publish')
   }
   if (user.canDelegate) {
     caps.add('delegation.grant')

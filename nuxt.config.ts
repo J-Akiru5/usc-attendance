@@ -88,9 +88,11 @@ export default defineNuxtConfig({
         '/portal/how-it-works',
         '/portal/security',
         '/portal/faq',
-        // Public transparency board (plan §8.7) — a new route; the frozen
-        // public pages above are untouched.
-        '/transparency'
+        // Public transparency board (plan §8.7) and the public archive of
+        // published documents (plan §8.8) — two new routes; the frozen public
+        // pages above are untouched.
+        '/transparency',
+        '/documents'
       ]
     }
   }

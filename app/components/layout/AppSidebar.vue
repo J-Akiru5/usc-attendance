@@ -17,6 +17,7 @@ const navItems = [
   { label: 'Students', to: '/manage/students', icon: '🎓', roles: ['super_admin'] },
   { label: 'Finance', to: '/manage/finance', icon: '💰', roles: ['super_admin', 'staff'] },
   { label: 'Academics', to: '/manage/academics', icon: '🏛', roles: ['super_admin', 'staff', 'client'], managers: true },
+  { label: 'Documents', to: '/manage/documents', icon: '📜', roles: ['super_admin', 'staff'] },
   { label: 'Settings', to: '/manage/settings', icon: '⚙', roles: ['super_admin', 'staff', 'client'], managers: true },
   { label: 'Schedules', to: '/manage/schedules', icon: '📋', roles: ['super_admin'] }
 ]
