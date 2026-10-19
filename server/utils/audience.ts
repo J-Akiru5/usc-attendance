@@ -109,24 +109,37 @@ export function audienceColumns(spec: AudienceSpec): {
   }
 }
 
-/** The students required to attend an event, resolved from live data. */
-export async function resolveAudience(db: PrismaClient, spec: AudienceSpec): Promise<string[]> {
+/** A student and the placement that decides whether they match an audience. */
+export interface StudentPlacement {
+  userId: string
+  collegeId: string | null
+  yearLevel: number | null
+  sectionId: string | null
+}
+
+/**
+ * Every active student with their placement, in one query. The audience
+ * resolvers and the roster snapshot both read this, so there is exactly one
+ * definition of "the student body".
+ */
+export async function activeStudentPlacements(db: PrismaClient): Promise<StudentPlacement[]> {
   const students = await db.user.findMany({
     where: { active: true, role: 'student' },
     select: { id: true, studentProfile: { select: { collegeId: true, yearLevel: true, sectionId: true } } }
   })
 
-  if (spec.type === 'all') return students.map(row => row.id)
-
-  const members: Array<{ id: string } & AudienceLike> = students.map(row => ({
+  return students.map(row => ({
     userId: row.id,
-    id: row.id,
     collegeId: row.studentProfile?.collegeId ?? null,
     yearLevel: row.studentProfile?.yearLevel ?? null,
     sectionId: row.studentProfile?.sectionId ?? null
   }))
+}
 
-  return members.filter(member => matchesAudience(member, spec)).map(member => member.id)
+/** The students required to attend an event, resolved from live data. */
+export async function resolveAudience(db: PrismaClient, spec: AudienceSpec): Promise<string[]> {
+  const members = await activeStudentPlacements(db)
+  return members.filter(member => matchesAudience(member, spec)).map(member => member.userId)
 }
 
 /**

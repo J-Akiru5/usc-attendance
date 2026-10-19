@@ -77,6 +77,57 @@ interface Registrations {
 const registrations = ref<Registrations | null>(null)
 const registrationsError = ref('')
 
+// The expected roster (benchmark BC-4): frozen at window close, or on demand.
+interface SnapshotState {
+  frozen: boolean
+  frozenAt: string | null
+  count: number
+  source: string | null
+  due: boolean
+}
+const snapshot = ref<SnapshotState | null>(null)
+const snapshotError = ref('')
+const freezeError = ref('')
+const freezeNotice = ref('')
+const freezing = ref(false)
+// Registration events count registrants as "expected" on the dashboard, while
+// the frozen audience still governs fines — say so rather than implying the two
+// lists are always the same.
+const registrationBasis = computed(() => {
+  const row = events.currentEvent as unknown as { registrationRequired?: boolean } | null
+  return row?.registrationRequired === true
+})
+
+async function loadSnapshot() {
+  snapshotError.value = ''
+  try {
+    snapshot.value = await api.get<SnapshotState>(`/events/${eventId.value}/snapshot`)
+  } catch (err: unknown) {
+    snapshotError.value = err instanceof Error ? err.message : 'Could not read the roster state'
+  }
+}
+
+async function freezeRoster(refresh: boolean) {
+  if (refresh && !window.confirm('Re-freeze the expected roster with the current audience? Reports and fines will use the new list from now on.')) return
+  freezeError.value = ''
+  freezeNotice.value = ''
+  freezing.value = true
+  try {
+    const result = await api.post<{ count: number, written: boolean, created: number, removed: number, changed: number }>(
+      `/events/${eventId.value}/snapshot`,
+      { refresh }
+    )
+    freezeNotice.value = result.written
+      ? `Frozen — ${result.count} ${result.count === 1 ? 'person' : 'people'}.`
+      : 'The roster already matched what was frozen; nothing changed.'
+    await loadSnapshot()
+  } catch (err: unknown) {
+    freezeError.value = err instanceof Error ? err.message : 'Could not freeze the roster'
+  } finally {
+    freezing.value = false
+  }
+}
+
 // Required audience (plan §8.2) with the labels the API already resolved.
 const audienceInfo = computed(() => {
   const row = events.currentEvent as unknown as {
@@ -126,6 +177,7 @@ onMounted(() => {
   events.fetchEvent(eventId.value)
   events.fetchAttendance(eventId.value)
   void loadRegistrations()
+  void loadSnapshot()
 })
 
 function formatDate(dateStr: string) {
@@ -151,6 +203,18 @@ function formatCheckInTime(dateStr: string) {
     minute: '2-digit',
     second: '2-digit',
     hour12: true
+  })
+}
+
+function formatSnapshotTime(dateStr: string | null) {
+  if (!dateStr) return 'an unknown time'
+  return new Date(dateStr).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
   })
 }
 
@@ -272,6 +336,62 @@ function methodBadgeVariant(method: string) {
         :opens-at="events.currentEvent.checkInOpensAt"
         :closes-at="events.currentEvent.checkInClosesAt"
       />
+
+      <!-- Expected roster (benchmark BC-4): the population reports and fines read. -->
+      <Card>
+        <CardContent class="p-6 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="font-semibold text-navy font-serif">
+              Expected roster
+            </div>
+            <Badge v-if="snapshot" :variant="snapshot.frozen ? 'success' : 'default'">
+              {{ snapshot.frozen ? 'Frozen' : 'Live' }}
+            </Badge>
+          </div>
+          <p v-if="snapshotError" class="text-sm text-danger">
+            {{ snapshotError }}
+          </p>
+          <p v-else-if="!snapshot" class="text-sm text-slate">
+            Checking the roster…
+          </p>
+          <p v-else-if="snapshot.frozen" class="text-sm text-slate">
+            Frozen at <span class="font-medium text-navy">{{ formatSnapshotTime(snapshot.frozenAt) }}</span>
+            — {{ snapshot.count }} {{ snapshot.count === 1 ? 'person' : 'people' }}.
+            Fines read this list, so a later transfer cannot change who was charged.
+            <template v-if="registrationBasis">
+              The dashboard counts registrants for this event, because it takes registrations.
+            </template>
+          </p>
+          <p v-else class="text-sm text-slate">
+            Not frozen yet. Until the check-in window closes the roster is resolved live; the fine run
+            freezes it at the close. You can freeze it early once the audience is final.
+          </p>
+          <div v-if="freezeError" class="text-sm text-danger">
+            {{ freezeError }}
+          </div>
+          <div v-if="freezeNotice" class="text-sm text-success">
+            {{ freezeNotice }}
+          </div>
+          <div class="flex items-center gap-3">
+            <Button
+              v-if="snapshot && !snapshot.frozen"
+              variant="outline"
+              :disabled="freezing"
+              @click="freezeRoster(false)"
+            >
+              {{ freezing ? 'Freezing…' : 'Freeze the roster now' }}
+            </Button>
+            <button
+              v-else-if="snapshot?.frozen"
+              class="text-xs text-slate hover:underline disabled:opacity-50"
+              :disabled="freezing"
+              @click="freezeRoster(true)"
+            >
+              {{ freezing ? 'Re-freezing…' : 'Re-freeze with the current audience…' }}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Calling it off (benchmark BC-7): a cancelled event is inert. -->
       <Card v-if="!cancelledInfo">
