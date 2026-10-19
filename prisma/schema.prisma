@@ -69,6 +69,8 @@ model User {
   clearances         Clearance[]         @relation("ClearanceStudent")
   clearancesIssued   Clearance[]         @relation("ClearanceIssuer")
   clearancesRevoked  Clearance[]         @relation("ClearanceRevoker")
+  privacyRequests    PrivacyRequest[]    @relation("PrivacyRequester")
+  privacyDecisions   PrivacyRequest[]    @relation("PrivacyDecider")
 
   @@map("users")
 }
@@ -447,6 +449,36 @@ model Clearance {
 
   @@index([userId, issuedAt])
   @@map("clearances")
+}
+
+/// A data-subject rectification request (benchmark BC-11, plan §8.9).
+///
+/// The row is the proposal and the decision, never a second copy of the
+/// profile: after an accepted request the profile row is the current truth and
+/// `audit_logs` is the evidence of who changed it and why. `currentValue` is a
+/// snapshot taken when the student filed, so a reviewer can still see what they
+/// were asking to change if the record moved in the meantime.
+model PrivacyRequest {
+  id            String    @id @default(uuid())
+  userId        String
+  kind          String    @default("rectification") // rectification (future: erasure, portability)
+  field         String    // name | studentNo | yearLevel | section
+  currentValue  String?
+  proposedValue String
+  note          String?   // the student's own explanation
+  status        String    @default("pending") // pending | accepted | rejected
+  reason        String?   // the staff decision reason (required by the route)
+  decidedBy     String?
+  decidedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  requester User  @relation("PrivacyRequester", fields: [userId], references: [id], onDelete: Cascade)
+  decider   User? @relation("PrivacyDecider", fields: [decidedBy], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@map("privacy_requests")
 }
 
 /// An excuse filed against a fine (plan §8.5). Approving it waives the fine.
