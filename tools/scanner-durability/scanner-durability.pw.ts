@@ -118,6 +118,9 @@ async function signIn(context: BrowserContext, baseURL: string): Promise<void> {
 }
 
 async function queueOneScan(page: Page, expected: number): Promise<void> {
+  // BC-5: the manual fallback refuses a check-in without a reason, so the
+  // golden path records one - which is the rule the officer now has to follow.
+  await page.locator('#scan-reason').fill('phone dead')
   await page.getByPlaceholder('2024-00123 or a name').fill(STUDENT_NO)
   await page.getByRole('button', { name: 'Find', exact: true }).click()
   await expect(page.getByTestId('scan-unsynced-banner')).toContainText(`${expected} unsynced scan`)
