@@ -30,10 +30,14 @@
       - `cron-reminders.yml` — hourly, the 24 h and 1 h reminders
       - `cron-announcements.yml` — every 15 minutes, scheduled announcements
       - `cron-fines.yml` — daily 19:00, fines for events whose window has closed
-      All four share `CRON_SECRET`, and each is idempotent, so a missed or repeated run is harmless. Two repository
-      settings are needed for the workflows: a **secret** `CRON_SECRET` and, until the project moves to Pro/its own
-      domain, a **variable** `SITE_URL` pointing at the deployment. Trigger each manually once (`workflow_dispatch`)
-      and confirm a 200 — and when the project moves to Pro, the three can move back into `vercel.json` unchanged.
+      All four share `CRON_SECRET`, and each is idempotent, so a missed or repeated run is harmless. The repository
+      **secret** `CRON_SECRET` is already set (generate a fresh one with `openssl rand -hex 32` if it ever needs
+      rotating, and set the same value in the deployment's environment — the endpoints read it there). The repository
+      **variable** `SITE_URL` is deliberately **left unset until cutover**: the workflows require both values and skip
+      with a one-line explanation until then, rather than failing hourly against a domain that does not exist yet.
+      **Setting `SITE_URL` at cutover is the single switch that turns all three schedules on.** Trigger each manually
+      once (`workflow_dispatch`) and confirm a 200 — and when the project moves to Pro, the three can move back into
+      `vercel.json` unchanged.
 - [ ] Adviser / Co-Adviser accounts once their school emails arrive (§12.2 Q12), with the Settings capability.
 - [ ] Semesters entered in Settings → Semesters for the current school year.
 
