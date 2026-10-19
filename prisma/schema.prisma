@@ -27,7 +27,15 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  /// Consent record (plan §11.2, benchmark BC-1): what the student agreed to and
+  /// when. Nullable because accounts that predate this have no recorded consent —
+  /// inventing one would be worse than admitting the gap.
+  consentAt      DateTime?
+  consentVersion String?
+  consentSource  String?
+
   createdEvents Event[]       @relation("EventCreator")
+  cancelledEvents Event[]     @relation("EventCanceller")
   attendance    Attendance[]
   recorded      Attendance[]  @relation("RecordedBy")
   officeDuties  OfficeDuty[]
@@ -51,6 +59,11 @@ model User {
   budgetEntries      BudgetEntry[]       @relation("BudgetEntryRecorder")
   proposalsCreated   BudgetProposal[]    @relation("ProposalCreator")
   proposalSteps      ProposalStep[]      @relation("ProposalStepActor")
+  payments           Payment[]           @relation("PaymentStudent")
+  paymentsReceived   Payment[]           @relation("PaymentReceiver")
+  clearances         Clearance[]         @relation("ClearanceStudent")
+  clearancesIssued   Clearance[]         @relation("ClearanceIssuer")
+  clearancesRevoked  Clearance[]         @relation("ClearanceRevoker")
 
   @@map("users")
 }
@@ -164,6 +177,16 @@ model Event {
   finesIssuedAt DateTime?
   fineRule      FineRule? @relation("EventFineRule")
   fines         Fine[]
+
+  /// Cancellation (benchmark BC-7). One-way on purpose: a cancelled event is a
+  /// record of something called off, and re-instating it would quietly re-arm the
+  /// fines and reminders. Cancelled events are inert — no reminders, no fines,
+  /// no registration, no check-in.
+  status       String    @default("scheduled") // scheduled | cancelled
+  cancelledAt  DateTime?
+  cancelledBy  String?
+  cancelReason String?
+  canceller    User?     @relation("EventCanceller", fields: [cancelledBy], references: [id], onDelete: SetNull)
 
   /// Recurring series (plan §8.2): the master carries the rule, the later
   /// instances point back at it. Instances are real events so attendance and
@@ -315,12 +338,59 @@ model Fine {
   payer  User? @relation("FinePaidBy", fields: [paidBy], references: [id], onDelete: SetNull)
   waiver User? @relation("FineWaivedBy", fields: [waivedBy], references: [id], onDelete: SetNull)
   excuses Excuse[]
+  payment Payment?
 
   @@unique([userId, eventId])
   @@index([userId, status])
   @@index([eventId])
   @@index([status])
   @@map("fines")
+}
+
+/// A Treasurer's record of a settled fine (plan §8.5): one payment settles one
+/// fine in full. The reference is the OR number (cash) or the GCash reference.
+model Payment {
+  id             String   @id @default(uuid())
+  fineId         String   @unique
+  userId         String
+  amountCentavos Int
+  method         String // cash | gcash
+  reference      String
+  note           String?
+  receivedBy     String
+  receivedAt     DateTime @default(now())
+
+  fine     Fine @relation(fields: [fineId], references: [id], onDelete: Cascade)
+  student  User @relation("PaymentStudent", fields: [userId], references: [id], onDelete: Cascade)
+  receiver User @relation("PaymentReceiver", fields: [receivedBy], references: [id])
+
+  @@index([userId])
+  @@index([receivedAt])
+  @@map("payments")
+}
+
+/// A clearance certificate issued when a student owes nothing (plan §8.5). The
+/// code is what the public /verify page checks, and the live status is
+/// recomputed at verification time — a later fine makes an old certificate read
+/// "no longer cleared", which is the tamper check the plan asks for.
+model Clearance {
+  id              String    @id @default(uuid())
+  userId          String
+  code            String    @unique
+  coveredCentavos Int
+  coveredFines    Json?
+  issuedBy        String
+  issuedAt        DateTime  @default(now())
+  revokedAt       DateTime?
+  revokedBy       String?
+  note            String?
+
+  student User  @relation("ClearanceStudent", fields: [userId], references: [id], onDelete: Cascade)
+  issuer  User  @relation("ClearanceIssuer", fields: [issuedBy], references: [id])
+  revoker User? @relation("ClearanceRevoker", fields: [revokedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, issuedAt])
+  @@map("clearances")
 }
 
 /// An excuse filed against a fine (plan §8.5). Approving it waives the fine.

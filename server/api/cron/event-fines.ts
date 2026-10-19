@@ -26,7 +26,9 @@ export default defineApiHandler(async (event) => {
 
   const now = new Date()
   const candidates = await prisma.event.findMany({
-    where: { finesIssuedAt: null, date: { lte: now } },
+    // Cancelled events never generate fines — the whole point of BC-7: a
+    // rained-out assembly must not bill everyone who stayed home.
+    where: { finesIssuedAt: null, date: { lte: now }, status: 'scheduled' },
     orderBy: { date: 'asc' },
     take: 50,
     select: {

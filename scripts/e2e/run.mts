@@ -309,7 +309,7 @@ async function main(): Promise<void> {
     await waitForServer(baseUrl, 600000)
     console.log('[e2e] dev server ready')
 
-    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'scanner.e2e.mts', 'offline.e2e.mts', 'audience.e2e.mts', 'notifications.e2e.mts', 'announcements.e2e.mts', 'fines.e2e.mts', 'excuses.e2e.mts', 'finance.e2e.mts', 'analytics.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
+    const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'scanner.e2e.mts', 'offline.e2e.mts', 'audience.e2e.mts', 'notifications.e2e.mts', 'announcements.e2e.mts', 'fines.e2e.mts', 'excuses.e2e.mts', 'finance.e2e.mts', 'payments.e2e.mts', 'cancellation.e2e.mts', 'analytics.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts']
     const failures: string[] = []
     for (const suite of suites) {
       console.log(`\n[e2e] === ${suite} ===`)

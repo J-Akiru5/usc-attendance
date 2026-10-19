@@ -1,0 +1,33 @@
+name: Cron — event reminders
+
+# Hourly, so the 24 h and 1 h reminders stay honest. These schedules live here
+# rather than in vercel.json because the Vercel project is on Hobby, which
+# rejects sub-daily cron entries at deploy time (and allows only two daily
+# jobs). When the project moves to Pro, these can move back into vercel.json —
+# the endpoints and their idempotency keys do not change either way.
+#
+# Needs: repository secret CRON_SECRET, and optionally a repository variable
+# SITE_URL (defaults to the production domain).
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the reminder endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://usc.syntaxure.dev' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured for this repository yet — skipping"
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/event-reminders")
+          echo "HTTP $code"
+          cat /tmp/out.json || true
+          test "$code" = "200"
