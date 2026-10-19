@@ -133,6 +133,9 @@ async function main() {
   })
   const liveId = live._b?.id
   if (live._s === 201) made.eventIds.push(liveId)
+  // The reminder window needs recipients: an event that takes registrations
+  // reminds its registrants, so somebody has to register.
+  await api(`/api/events/${liveId}/registration`, { method: 'POST', token: student.token })
   r = await api('/api/cron/event-reminders', { headers: { Authorization: `Bearer ${secret}` } })
   const liveRows = (r._b?.windows ?? []).filter((w: { eventId: string }) => w.eventId === liveId)
   check('a scheduled event still gets its reminder window', r._s === 200 && liveRows.length === 1, JSON.stringify(liveRows))

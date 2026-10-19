@@ -19,6 +19,7 @@ import {
 import { auditDelegationUse, requireEventScope } from '../../utils/delegation'
 import { assertCheckInOpen } from '../../utils/retention'
 import { hasExplicitScanTime, resolveScanTime } from '../../utils/offline'
+import { assertEventActive } from '../../utils/cancellation'
 import { manilaDayRange } from '../../utils/time'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
@@ -119,6 +120,12 @@ export default defineApiHandler(async (event) => {
           assertCheckInOpen(event, scanTime)
           const here = authorizeScanLocation(event, lat, lng, accuracy)
           resolved = { lat: here.lat, lng: here.lng }
+        } else {
+          // Cancellation applies to everyone — staff keep their window and venue
+          // overrides, but a cancelled event is inert for them too (BC-7).
+          const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, title: true, status: true } })
+          if (!event) throw notFound('Event not found')
+          assertEventActive(event)
         }
       } else {
         authorizeManualCheckIn(user, userId)

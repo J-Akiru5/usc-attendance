@@ -50,8 +50,15 @@ async function main() {
   })
   made.eventIds.push(event.id)
 
+  // Two fines for the same student need two events: one fine per student per
+  // event is the schema's own rule (the unique index), not a limitation here.
+  const secondEvent = await prisma.event.create({
+    data: { title: `${tag} assembly two`, date: new Date(Date.now() - 172_800_000), lat: 10.72, lng: 122.56, createdBy: staff.id }
+  })
+  made.eventIds.push(secondEvent.id)
+
   const fineA = await prisma.fine.create({ data: { userId: student.id, eventId: event.id, kind: 'absent', amountCentavos: 5000 } })
-  const fineB = await prisma.fine.create({ data: { userId: student.id, eventId: event.id, kind: 'late', amountCentavos: 2500 } })
+  const fineB = await prisma.fine.create({ data: { userId: student.id, eventId: secondEvent.id, kind: 'late', amountCentavos: 2500 } })
   made.fineIds.push(fineA.id, fineB.id)
 
   console.log('\n--- recording a payment ---')
@@ -113,8 +120,13 @@ async function main() {
   check('a code typed with decoration is normalised', r._s === 200 && r._b?.status !== 'valid', `${r._s}`)
 
   console.log('\n--- tamper attempts fail ---')
+  // A third event: one fine per student per event is the schema's rule.
+  const thirdEvent = await prisma.event.create({
+    data: { title: `${tag} assembly three`, date: new Date(Date.now() - 172_800_000), lat: 10.72, lng: 122.56, createdBy: staff.id }
+  })
+  made.eventIds.push(thirdEvent.id)
   // A new fine after issuance: the certificate is real, the standing is not.
-  const later = await prisma.fine.create({ data: { userId: student.id, eventId: event.id, kind: 'absent', amountCentavos: 5000 } })
+  const later = await prisma.fine.create({ data: { userId: student.id, eventId: thirdEvent.id, kind: 'absent', amountCentavos: 5000 } })
   made.fineIds.push(later.id)
   r = await api(`/api/verify/${clearance?.code}`)
   check('the certificate now reads as no longer cleared', r._s === 200 && r._b?.status === 'no-longer-cleared', `${r._s} ${JSON.stringify(r._b?.status)}`)

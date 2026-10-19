@@ -164,7 +164,7 @@ async function main() {
   if (r._s === 201) made.announcementIds.push(r._b?.announcement?.id)
   const list = await api('/api/announcements', { token: staff.token })
   const sneaky = (list._b?.items ?? []).find((item: { title: string }) => item.title === `${tag} sneaky`)
-  check('the rendered preview contains no script', !!sneaky && !sneaky.preview.includes('<script') && !sneaky.preview.includes('javascript:'), `${sneaky?.preview?.slice(0, 80)}`)
+  check('the rendered preview contains no script', !!sneaky && !sneaky.preview.includes('<script') && !/<a\s/i.test(sneaky.preview), `${sneaky?.preview?.slice(0, 80)}`)
   check('the escaped text is shown as text', !!sneaky && sneaky.preview.includes('&lt;script&gt;'), `${sneaky?.preview?.slice(0, 80)}`)
 
   console.log('\n--- pinned, for everyone ---')

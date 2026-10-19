@@ -79,7 +79,16 @@ async function main() {
   r = await api(`/api/fines/${fine.id}/excuse`, { method: 'POST', token: other.token, body: { reason: 'Somebody else trying it.' } })
   check('nobody can excuse someone else\'s fine (403)', r._s === 403, `${r._s}`)
 
-  r = await api(`/api/fines/${fine.id}/excuse`, { method: 'POST', token: student.token, body: { reason: 'too short' } })
+  // A fine with no pending excuse, so the body's own validation is reached:
+  // the "already waiting" refusal (409) would otherwise mask a 400.
+  const quietEvent = await prisma.event.create({
+    data: { title: `${tag} quiet`, date: new Date(Date.now() - 172_800_000), lat: 10.72, lng: 122.56, createdBy: staff.id }
+  })
+  made.eventIds.push(quietEvent.id)
+  const spareFine = await prisma.fine.create({ data: { userId: student.id, eventId: quietEvent.id, kind: 'late', amountCentavos: 2500 } })
+  made.fineIds.push(spareFine.id)
+
+  r = await api(`/api/fines/${spareFine.id}/excuse`, { method: 'POST', token: student.token, body: { reason: 'too short' } })
   check('a too-short reason is refused (400)', r._s === 400, `${r._s}`)
 
   console.log('\n--- the queue and the evidence ---')
@@ -111,7 +120,7 @@ async function main() {
   const forbidden = await fetch(`${process.env.BASE_URL}/api/excuses/${withAttachment}/attachment`, { headers: { Authorization: `Bearer ${student.token}` } })
   check('another student cannot (403)', forbidden.status === 403, `${forbidden.status}`)
 
-  r = await api(`/api/fines/${fine.id}/excuse`, {
+  r = await api(`/api/fines/${spareFine.id}/excuse`, {
     method: 'POST',
     token: student.token,
     body: { reason: 'Trying with the wrong kind of file here.', attachment: { mime: 'application/x-msdownload', dataBase64: PNG_BASE64 } }

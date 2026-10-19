@@ -127,6 +127,10 @@ export default defineApiHandler(async (event) => {
     total,
     page: table.page,
     pageSize: table.pageSize,
-    ranked: false
+    ranked: false,
+    // The filters a visitor may use. Every response carries them, so the public
+    // page can offer the type filter without a second call (and the first branch
+    // above — an unknown type matching nothing — already did).
+    types
   }
 })
