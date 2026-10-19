@@ -79,6 +79,12 @@ export default defineApiHandler(async (event) => {
     select: { id: true, key: true, name: true }
   })
 
+  // A filter naming a type that does not exist can match nothing — never
+  // everything, which is what a dropped filter would show a visitor.
+  if (typeKey && !resolvedTypeId) {
+    return { documents: [], types, total: 0, page: table.page, pageSize: table.pageSize, ranked: false }
+  }
+
   if (table.q) {
     const { ids, total, ranked } = await searchDocumentIds({
       q: table.q,
