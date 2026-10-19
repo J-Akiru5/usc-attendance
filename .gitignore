@@ -32,3 +32,6 @@ logs/
 
 # Local signature store (SIGNATURE_STORAGE=filesystem)
 .signature-store/
+
+# Local document/attachment store (DOCUMENT_STORAGE, development and e2e)
+.local/

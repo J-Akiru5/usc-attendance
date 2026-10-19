@@ -20,7 +20,8 @@ export const CAPABILITIES = [
   'content.manage',
   'students.manage',
   'duties.manage',
-  'photos.manage'
+  'photos.manage',
+  'documents.publish'
 ] as const
 
 export type Capability = typeof CAPABILITIES[number]
@@ -64,6 +65,7 @@ export function capabilitiesFromFlags(user: LegacyFlags): Capability[] {
     caps.add('attendance.export')
     caps.add('duties.manage')
     caps.add('photos.manage')
+    caps.add('documents.publish')
   }
   if (user.canDelegate) {
     caps.add('delegation.grant')

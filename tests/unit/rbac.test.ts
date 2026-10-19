@@ -22,6 +22,8 @@ describe('capabilitiesFromFlags', () => {
     const caps = capabilitiesFromFlags({ role: 'staff', ...none })
     expect(caps).toContain('staff.access')
     expect(caps).toContain('attendance.record')
+    // P7: officers file and publish documents (plan §8.8).
+    expect(caps).toContain('documents.publish')
     expect(caps).not.toContain('admin.users')
     expect(caps).not.toContain('settings.manage')
     expect(caps).not.toContain('delegation.grant')
