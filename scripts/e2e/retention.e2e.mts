@@ -164,7 +164,7 @@ async function main() {
   check('scan AFTER the window closes is refused (403)', r._s === 403 && /closed/.test(r._b?.error ?? ''), `${r._s} ${JSON.stringify(r._b)}`)
   r = await api('/api/attendance', { token: studentB.token, method: 'POST', body: { type: 'event', eventId: evW.id, userId: studentB.id, method: 'self', ...AT } })
   check('self check-in outside the window is refused (403)', r._s === 403, `${r._s}`)
-  r = await api('/api/attendance', { token: staff.token, method: 'POST', body: { type: 'event', eventId: evW.id, userId: studentB.id, method: 'manual' } })
+  r = await api('/api/attendance', { token: staff.token, method: 'POST', body: { type: 'event', eventId: evW.id, userId: studentB.id, method: 'manual', manualReason: 'phone dead' } })
   check('staff manual override still works outside the window (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = await win(manager, { checkInOpensAt: new Date(Date.now() - 3600e3).toISOString(), checkInClosesAt: new Date(Date.now() + 3600e3).toISOString() })
   r = await scanFor(staff, studentA)

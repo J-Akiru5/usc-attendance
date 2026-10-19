@@ -117,15 +117,6 @@ export default defineApiHandler(async (event) => {
       return respond(event, 200, { ...existingByKey, replayed: true })
     }
 
-    // The manual fallback is the one place an officer picks a person by hand;
-    // the reason is what makes that choice reviewable (benchmark BC-5d).
-    let manualReason: string | null = null
-    if (method === 'manual') {
-      const reasonProblem = manualReasonProblem(rawReason)
-      if (reasonProblem) throw badRequest(reasonProblem)
-      manualReason = normalizeManualReason(rawReason)
-    }
-
     // Students are checked in by an officer scanning their QR - never by themselves.
     if (method === 'self' && user.role === 'student') {
       throw forbidden('Students are checked in by an officer. Show your QR code at the venue.')
@@ -186,6 +177,17 @@ export default defineApiHandler(async (event) => {
       } else {
         authorizeManualCheckIn(user, userId)
       }
+    }
+
+    // The manual fallback is the one place an officer picks a person by hand;
+    // the reason is what makes that choice reviewable (benchmark BC-5d). It is
+    // validated after authorization deliberately: an unauthorised caller gets
+    // 403, not a complaint about a field they were never allowed to send.
+    let manualReason: string | null = null
+    if (method === 'manual') {
+      const reasonProblem = manualReasonProblem(rawReason)
+      if (reasonProblem) throw badRequest(reasonProblem)
+      manualReason = normalizeManualReason(rawReason)
     }
 
     // Check for open (not-yet-checked-out) record

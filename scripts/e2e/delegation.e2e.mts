@@ -90,7 +90,7 @@ async function main() {
   check('re-grant with all scopes (201)', r._s === 201, `${r._s}`)
   const live = await prisma.eventDelegate.count({ where: { eventId: ev.id, userId: delegate.id, revokedAt: null } })
   check('only one live grant per officer per event', live === 1, `live=${live}`)
-  r = await api('/api/attendance', { method: 'POST', token: delegate.token, body: { type: 'event', eventId: ev.id, userId: s2.id, method: 'manual', ...AT } })
+  r = await api('/api/attendance', { method: 'POST', token: delegate.token, body: { type: 'event', eventId: ev.id, userId: s2.id, method: 'manual', manualReason: 'phone dead', ...AT } })
   check('manual_checkin works (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = await api('/api/attendance', { method: 'POST', token: delegate.token, body: { type: 'event', eventId: ev.id, userId: delegate.id, method: 'manual' } })
   check('cannot manually record yourself (403)', r._s === 403, `${r._s}`)

@@ -233,7 +233,7 @@ async function main() {
   r = await api('/api/privacy/requests', {
     token: alice.token,
     method: 'POST',
-    body: { field: 'name', proposedValue: 'Alice E2E Privacy-Corrected', note: 'Middle name was missing.' }
+    body: { field: 'name', proposedValue: 'Alice Eee Privacy-Corrected', note: 'Middle name was missing.' }
   })
   check('valid rectification request is filed (201, pending)', r._s === 201 && r._b?.status === 'pending', `${r._s} ${JSON.stringify(r._b)}`)
   const nameRequestId = r._b?.id as string
@@ -268,7 +268,7 @@ async function main() {
   check('staff acceptance succeeds (200, accepted)', r._s === 200 && r._b?.status === 'accepted', `${r._s} ${JSON.stringify(r._b)}`)
 
   const me = await api('/api/auth/me', { token: alice.token })
-  check('acceptance applied the corrected name', me._s === 200 && me._b?.name === 'Alice E2E Privacy-Corrected', `${me._s} ${me._b?.name}`)
+  check('acceptance applied the corrected name', me._s === 200 && me._b?.name === 'Alice Eee Privacy-Corrected', `${me._s} ${me._b?.name}`)
 
   const acceptedRows = await prisma.auditLog.findMany({
     where: { action: 'privacy_request_accepted', targetType: 'privacy_request', targetId: nameRequestId }
@@ -315,7 +315,7 @@ async function main() {
 
   r = await api('/api/privacy/export', { token: alice.token })
   check('the export carries the corrected name and the request history',
-    r._s === 200 && r._b?.subject?.name === 'Alice E2E Privacy-Corrected'
+    r._s === 200 && r._b?.subject?.name === 'Alice Eee Privacy-Corrected'
     && r._b?.privacyRequests?.some((x: { id: string, status: string }) => x.id === nameRequestId && x.status === 'accepted'),
     `${r._s} ${r._b?.subject?.name}`)
 
