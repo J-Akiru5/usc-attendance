@@ -779,16 +779,16 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-1 | Consent captured per purpose, not in bulk; minors' path; "Privacy & rights" page | **first half done** (consent recorded with its version, `feat/p4d-integrity-consent`); purposes/minors/rights page pending |
 | BC-2 | Data inventory + retention matrix, DPO named, breach runbook | **table landed** in §8.9; the retention jobs and the DPO depend on Q-New-2/Q-New-5 |
 | BC-3 | Fix the cron story (Hobby cannot take sub-daily schedules) | ✅ GitHub Actions + Hobby-safe `vercel.json`; needs the two repository settings (see §12.2 Q-New-6) |
-| BC-4 | Freeze the expected roster at window close so reports and fines reproduce | **built** (`feat/bc4-roster-snapshot`) — `event_expected` + snapshot-aware dashboard/fines + manual freeze route |
+| BC-4 | Freeze the expected roster at window close so reports and fines reproduce | **merged** (#67) - `event_expected`, snapshot-aware dashboard and fines, manual freeze route; the live roster-freeze suite passes |
 | BC-5 | Both scan timestamps, per-scan idempotency key, manual entries need a reason | pending — next integrity slice |
-| BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | **done** (2026-10-20, `feat/bc6-offline-durability`) |
+| BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | **merged** (#68); the golden path is enforced in CI by `.github/workflows/scanner-durability.yml` (#69) |
 | BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
 | BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
-| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | **classification + redaction + audited publish done** (`feat/bc9-document-redaction`): `public`/`officers`/`restricted`, redacted versions with a note, public reader serves only the copy, publish audited (loud when no copy); the aggregate transparency document remains a P6/publishing task |
-| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **done** (`feat/bc10-audit-integrity`): target, actor role, salted address hash and request id on every migrated write; the three sensitive reads audited; an append-only guard test; an audit-health endpoint. Deferred: the "every mutating route writes an audit row" coverage test, and the hash-chained log (BL-1) |
+| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | **merged** (#70): `public`/`officers`/`restricted`, redacted copies served instead of originals, public search rebuilt from the redacted text, publish audited; the aggregate transparency document remains a publishing task |
+| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **merged** (#73): target, actor role, salted address hash and request id; three sensitive reads audited; append-only guard; audit-health endpoint. Deferred: full mutating-route coverage, hash chaining (BL-1) |
 | BC-11 | Self-service privacy export + rectification queue | pending |
 | BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
-| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | ✅ **done** (2026-10-20, `feat/bc13-a11y`) — `tools/a11y` runs axe at desktop + mobile, fails serious/critical, asserts one `main`, the skip link and 24×24 targets; portal shell, event form, scanner, fines and queue labels/live regions fixed; `html5-qrcode` proven lazy by a build audit. Manual scripts for 2.4.11 / 2.5.7 / 3.3.7 / 3.3.8 documented. Authenticated CI needs `A11Y_EMAIL`/`A11Y_PASSWORD` |
+| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | **merged** (#71) - axe at desktop and mobile over 13 routes with serious/critical as failure; its first run caught `/register` with no `main` landmark (#72) |
 
 Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review itself until their phase starts — P6 is already being built with NP-2/NP-3 in mind by its own agent.
 
@@ -803,6 +803,7 @@ Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review its
 
 ### P8 Launch
 - [ ] WCAG AA pass, performance targets, DPA documentation, pilot event, training
+  - Verified 2026-10-20 on develop @ cc66328: public parity 28/28 (14 routes x 2 viewports, content and pixels, against the live site), live batch 25 suites / 718 checks with zero failures, offline-queue golden path green in CI, migrations 30/30 applied.
   - [x] **WCAG 2.2 AA** (BC-13, 2026-10-20, `feat/bc13-a11y`): axe gate in CI, skip link + one `main`, labels on the portal's own forms, 24×24 targets, live regions for the scanner/queue, scanner library kept out of the shared chunk, manual scripts for 2.4.11 / 2.5.7 / 3.3.7 / 3.3.8
   - [ ] Performance budgets, DPA documentation, pilot event, training
 
