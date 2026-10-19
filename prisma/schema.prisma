@@ -45,6 +45,8 @@ model User {
   fines              Fine[]              @relation("FineOwner")
   finesPaid          Fine[]              @relation("FinePaidBy")
   fineWaivers        Fine[]              @relation("FineWaivedBy")
+  excuses            Excuse[]            @relation("ExcuseOwner")
+  excusesReviewed    Excuse[]            @relation("ExcuseReviewer")
 
   @@map("users")
 }
@@ -304,12 +306,41 @@ model Fine {
   event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   payer  User? @relation("FinePaidBy", fields: [paidBy], references: [id], onDelete: SetNull)
   waiver User? @relation("FineWaivedBy", fields: [waivedBy], references: [id], onDelete: SetNull)
+  excuses Excuse[]
 
   @@unique([userId, eventId])
   @@index([userId, status])
   @@index([eventId])
   @@index([status])
   @@map("fines")
+}
+
+/// An excuse filed against a fine (plan §8.5). Approving it waives the fine.
+/// The attachment lives in object storage (or the DB in development) and the row
+/// keeps only its key, type and size.
+model Excuse {
+  id             String    @id @default(uuid())
+  fineId         String
+  userId         String
+  category       String    @default("other") // medical | academic | other
+  reason         String
+  status         String    @default("pending") // pending | approved | denied
+  attachmentKey  String?
+  attachmentMime String?
+  attachmentSize Int?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  createdAt      DateTime  @default(now())
+
+  fine     Fine  @relation(fields: [fineId], references: [id], onDelete: Cascade)
+  student  User  @relation("ExcuseOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("ExcuseReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([fineId])
+  @@map("excuses")
 }
 
 /// Colour-coded event categories (plan §8.2): General Assembly, Flag Ceremony,

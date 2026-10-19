@@ -635,7 +635,12 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - `GET /api/cron/event-fines` (CRON_SECRET): for every past event whose window has closed, resolve the **required audience** (the same resolver as the dashboard), take each person's first check-in and plan fines — nobody outside the audience is ever charged, and anyone on time owes nothing; the fined students are notified (`fine_issued`)
   - `GET/PUT /api/settings/fines` (settings managers: global rates, late threshold, per-category overrides), `GET/PUT/DELETE /api/events/:id/fine-rule` (per-event override), `GET /api/fines` (staff, or a `view_roster` delegate for one event) and `GET /api/fines/mine` (self); Student 360 carries `finances` (fines, unpaid total, cleared)
   - UI: `/manage/fines` (unpaid/settled/waived summary, the list, the rates editor for managers) and a fines/clearance card on the student dashboard
-- [ ] Excuse requests (approve, then waive)
+- [x] Excuse requests (approve, then waive) (2026-10-19, `feat/p4b-excuses`)
+  - additive `excuses` (one row per filing, `pending` → `approved`/`denied`), tied to a fine so the waiver always names the right record; approving sets `waived`/`waivedAt`/`waivedBy`/`waiveReason` on the fine in the same call
+  - `server/utils/excuses.ts` holds the rules (pure, unit-tested): a **paid** fine cannot be excused or waived, a **waived** one cannot be excused, and a second filing while one is pending is refused — plus the reason and category checks
+  - evidence attachments go to **object storage, never the database** (the same bucket as signatures under `excuses/`, filesystem in development) — PNG/JPEG/PDF up to 5 MB, and the attachment is readable only by its owner or by roster staff
+  - endpoints: `POST/GET /api/fines/:id/excuse` (self; the GET also serves staff), `GET /api/excuses?status=pending` (the review queue: staff, or a `view_roster` delegate scoped to one event), `POST /api/excuses/:id/review` (approve/deny with a note), `GET /api/excuses/:id/attachment`
+  - both outcomes notify the student (`excuse_approved` / `excuse_denied`) through the notification core; UI: `/fines` for the student (their fines, standing, and the filing form with evidence) and a review queue on `/manage/fines`
 - [ ] Payments + clearance + public verification
 
 ### Elections (deferred)

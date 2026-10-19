@@ -44,6 +44,43 @@ const statusVariants: Record<string, 'default' | 'success' | 'warning'> = {
   waived: 'default'
 }
 
+// Excuse review queue (plan §8.5).
+interface ExcuseRow {
+  id: string
+  category: string
+  reason: string
+  hasAttachment: boolean
+  student: { id: string, name: string, studentProfile: { studentNo: string } | null }
+  fine: { id: string, kind: string, amountCentavos: number, event: { id: string, title: string } }
+}
+const excuses = ref<ExcuseRow[]>([])
+
+async function loadExcuses() {
+  try {
+    const data = await api.get<{ excuses: ExcuseRow[] }>('/excuses?status=pending')
+    excuses.value = data.excuses ?? []
+  } catch {
+    excuses.value = []
+  }
+}
+
+async function reviewExcuse(row: ExcuseRow, decision: 'approve' | 'deny') {
+  busy.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    const result = await api.post<{ fineStatus: string }>(`/excuses/${row.id}/review`, { decision })
+    notice.value = decision === 'approve'
+      ? `Approved — the ${peso(row.fine.amountCentavos)} fine for ${row.student.name} is now ${result.fineStatus}.`
+      : `Denied — ${row.student.name}'s fine stays unpaid.`
+    await Promise.all([load(), loadExcuses()])
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Could not record the decision'
+  } finally {
+    busy.value = false
+  }
+}
+
 const visible = computed(() => statusFilter.value ? fines.value.filter(f => f.status === statusFilter.value) : fines.value)
 
 async function load() {
@@ -99,7 +136,7 @@ function formatDate(value: string) {
 }
 
 onMounted(async () => {
-  await Promise.all([load(), loadRule()])
+  await Promise.all([load(), loadRule(), loadExcuses()])
 })
 </script>
 
@@ -198,6 +235,57 @@ onMounted(async () => {
         >
           Save rates
         </button>
+      </CardContent>
+    </Card>
+
+    <!-- Excuse review queue (plan §8.5) -->
+    <Card v-if="excuses.length > 0">
+      <CardContent class="p-4 space-y-3">
+        <div class="font-semibold text-navy font-serif">
+          Excuses waiting for review
+        </div>
+        <ul class="divide-y divide-line text-sm">
+          <li v-for="row in excuses" :key="row.id" class="py-2 space-y-1">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="min-w-0">
+                <NuxtLink :to="`/manage/students/${row.student.id}`" class="font-medium text-navy hover:underline">
+                  {{ row.student.name }}
+                </NuxtLink>
+                <span v-if="row.student.studentProfile" class="ml-2 font-mono text-xs text-slate">{{ row.student.studentProfile.studentNo }}</span>
+                <span class="ml-2 text-xs text-slate">{{ row.fine.event.title }} · {{ row.fine.kind }} · {{ peso(row.fine.amountCentavos) }}</span>
+              </span>
+              <span class="flex items-center gap-2">
+                <a
+                  v-if="row.hasAttachment"
+                  :href="`/api/excuses/${row.id}/attachment`"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-xs font-semibold text-navy hover:underline"
+                >Attachment</a>
+                <button
+                  class="rounded-lg bg-navy px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                  :disabled="busy"
+                  @click="reviewExcuse(row, 'approve')"
+                >
+                  Approve
+                </button>
+                <button
+                  class="rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-navy disabled:opacity-50"
+                  :disabled="busy"
+                  @click="reviewExcuse(row, 'deny')"
+                >
+                  Deny
+                </button>
+              </span>
+            </div>
+            <div class="text-xs text-slate">
+              <Badge variant="default">
+                {{ row.category }}
+              </Badge>
+              <span class="ml-2">{{ row.reason }}</span>
+            </div>
+          </li>
+        </ul>
       </CardContent>
     </Card>
 
