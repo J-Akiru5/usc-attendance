@@ -127,10 +127,10 @@ onMounted(load)
       </p>
     </div>
 
-    <div v-if="error" class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+    <div v-if="error" role="alert" class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
       {{ error }}
     </div>
-    <div v-if="notice" class="rounded-xl border-l-4 border-success bg-success/10 px-4 py-3 text-sm text-navy">
+    <div v-if="notice" role="status" class="rounded-xl border-l-4 border-success bg-success/10 px-4 py-3 text-sm text-navy">
       {{ notice }}
     </div>
 
@@ -171,7 +171,7 @@ onMounted(load)
           <span v-if="clearance.issuer"> by {{ clearance.issuer.name }}</span>.
           Show this code, or the link below, to anyone who needs to check it.
         </p>
-        <NuxtLink :to="`/verify/${clearance.code}`" class="text-xs font-semibold text-navy hover:underline">
+        <NuxtLink :to="`/verify/${clearance.code}`" class="text-xs font-semibold text-navy underline hover:underline">
           Open the public verification page
         </NuxtLink>
         <p v-if="summary && !summary.cleared" class="text-xs text-danger">
@@ -224,7 +224,8 @@ onMounted(load)
         <div v-if="fine.status === 'unpaid'">
           <button
             v-if="filingFor !== fine.id"
-            class="text-xs font-semibold text-navy hover:underline"
+            type="button"
+            class="inline-flex min-h-6 items-center text-xs font-semibold text-navy underline hover:underline"
             @click="filingFor = fine.id"
           >
             File an excuse
@@ -233,8 +234,8 @@ onMounted(load)
           <div v-else class="space-y-3 rounded-lg border border-line bg-paper p-3">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="space-y-1">
-                <Label>Reason</Label>
-                <select v-model="excuse.category" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="excuse-category">Reason</Label>
+                <select id="excuse-category" v-model="excuse.category" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="medical">
                     Medical
                   </option>
@@ -247,18 +248,20 @@ onMounted(load)
                 </select>
               </div>
               <div class="space-y-1">
-                <Label>Evidence (optional, PNG / JPEG / PDF, up to 5 MB)</Label>
+                <Label for="excuse-evidence">Evidence (optional, PNG / JPEG / PDF, up to 5 MB)</Label>
                 <input
+                  id="excuse-evidence"
                   type="file"
                   accept="image/png,image/jpeg,application/pdf"
-                  class="text-xs"
+                  class="min-h-6 text-xs"
                   @change="onFile"
                 >
               </div>
             </div>
             <div class="space-y-1">
-              <Label>What happened?</Label>
+              <Label for="excuse-reason">What happened?</Label>
               <textarea
+                id="excuse-reason"
                 v-model="excuse.reason"
                 rows="3"
                 class="w-full rounded-lg border border-line px-3 py-2 text-sm"
@@ -267,13 +270,14 @@ onMounted(load)
             </div>
             <div class="flex items-center gap-2">
               <button
-                class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                type="button"
+                class="min-h-6 rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 :disabled="busy || excuse.reason.trim().length < 10"
                 @click="submitExcuse(fine)"
               >
                 {{ busy ? 'Sending…' : 'Send for review' }}
               </button>
-              <button class="text-xs text-slate hover:underline" @click="filingFor = null">
+              <button type="button" class="inline-flex min-h-6 items-center text-xs text-slate hover:underline" @click="filingFor = null">
                 Cancel
               </button>
             </div>

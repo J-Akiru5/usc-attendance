@@ -358,8 +358,10 @@ flowchart LR
 ### 8.8 Documents & resolutions archive (Phase 7)
 
 - Types: minutes, resolutions, memos, constitution/by-laws, reports; auto-numbering (e.g., *Resolution No. 2026-014*).
-- Versions, attachments, tags, visibility (public / officers), full-text search, link documents to events/elections/finance records.
-- *Acceptance:* search finds a phrase inside an uploaded document's text; public visitors only see public documents.
+- Versions, attachments, tags, classification (`public` / `officers` / `restricted`), full-text search, link documents to events/elections/finance records.
+- **BC-9 — nothing is public unless explicitly published.** A filing is `officers` by default; `restricted` is staff-only and never appears in the public archive at all. Moving a filing to `public` is its own audited action: it records the document, the actor and whether a redacted copy was in force. Publishing without a redacted copy needs an explicit confirmation and writes a louder audit entry.
+- **Redacted copies are first-class versions.** `POST /api/documents/:id/redacted-copy` appends a version marked `isRedacted`, records who prepared it, when, and a required note. The public reader serves that version and its own attachments — never the original — and the public search corpus is rebuilt from it, so a redacted phrase cannot be found (or confirmed) by search. A public document with a redacted copy whose pointer no longer resolves serves nothing rather than falling back to the original.
+- *Acceptance:* search finds a phrase inside an uploaded document's text; public visitors only see public documents; a public document with a redacted copy serves the redacted text and never the original phrase; a restricted document returns nothing publicly; publishing is audited.
 
 ---
 
@@ -410,7 +412,7 @@ A phase/feature is done only when:
 - [ ] Unit tests for pure logic + live e2e checks for each endpoint's allow/deny paths (pattern: `scripts/e2e/*.e2e.mts`, throwaway data, full cleanup).
 - [ ] Playwright test for the main UI flow on mobile (375 px) and desktop.
 - [ ] `nuxi typecheck` and production build pass; Vercel preview Ready.
-- [ ] Accessible (keyboard, labels, contrast WCAG AA), works on low-end Android Chrome.
+- [ ] **WCAG 2.2 AA** — keyboard, labels, contrast, the five 2.2 additions (2.4.11 Focus Not Obscured, 2.5.7 Dragging, 2.5.8 Target Size 24×24, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication) — enforced by `tools/a11y` in CI; the manual scripts in its README are run before a release. The frozen public site stays out of scope (see BC-13). Works on low-end Android Chrome.
 - [ ] Times shown in Asia/Manila; all lists filterable + exportable.
 - [ ] Docs updated (this plan's tracker + module notes).
 
@@ -457,12 +459,9 @@ A phase/feature is done only when:
   action that is audited, and a redacted copy where the public record needs one.
 - **The platform must never be the mechanism that blocks enrolment, examinations or credentials** (RA 11984's direction;
   BC-8). Clearance shows standing; it is not a gate, and nothing in the UI or the PDF may imply otherwise.
-- **Audit integrity (BC-10):** `audit_logs` carries `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId`, is
-  append-only in code (asserted by a unit test and by the live suite), and records **reads** of sensitive records
-  (Student 360, excuse attachments, scanner lookup) as well as writes. `ipHash` is SHA-256 of the client address and
-  `AUDIT_IP_SALT`; the raw address is never stored or logged, and a missing salt degrades to no hash rather than a
-  reversible one. `GET /api/settings/audit-health` counts actions over 24 h/7 d and flags an action that ran on each of
-  the previous three days but has not run today ("silent gap").
+- **Audit integrity (BC-10):** `audit_logs` gains `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId`, becomes
+  append-only in code (asserted by a test), and records **reads** of sensitive records (Student 360, excuse attachments,
+  student lookup) as well as writes.
 - **Secrets:** never in code or logs; Vercel env vars; rotate `QR_SECRET`, `CRON_SECRET` if leaked.
 - **Weak passwords:** the `admin@usc.edu.ph` account currently uses a development password — **must** be changed before students are invited (tracked in §14).
 
@@ -689,6 +688,7 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - the queue sends the moment each scan happened (`scannedAt`), and the server judges it **as of that moment**: a QR token that has since expired is still accepted when the scan fell inside its life (signature + `exp` checked against the scan time, and a scan cannot predate its own token), delegate grants and the check-in window are evaluated at the scan time too, and the record is stamped with the scan moment rather than the sync time
   - `server/utils/offline.ts` holds those rules (bounds: nothing further than 48 h in the past, 5 min of clock skew into the future, 15 s of skew against the token's issue time) with unit tests; `app/utils/scan-queue.ts` holds the pure flush planner; out-of-band records carry both moments in the delegation audit trail
   - `app/lib/api.ts` now throws a typed `ApiError` with its status (`0` = never reached the server), so the queue can tell "no signal, retry later" from "the server said no" — previously everything looked like a plain `Error`
+  - BC-6 durability (2026-10-20, `feat/bc6-offline-durability`): the scanner asks for `navigator.storage.persist()` before the first queued scan (and records the answer in IndexedDB), shows `estimate()` free space when it is low, and states plainly when persistence was refused; a persistent "N unsynced" banner sits in the dashboard layout and taps through to the queue; a `beforeunload` guard and a route-leave confirmation protect pending work; the "Not recorded" list needs a stored acknowledgement before its count stops showing; the queue refuses new scans at 500. `app/utils/scan-queue.ts` holds those decisions with unit tests, and `tools/scanner-durability` is the golden-path Playwright reload test
 - [x] Required audience: all / college / year level / section (2026-10-18, `feat/p3b-audience`)
   - additive `audienceType` plus its target on events; **the college and section references are RESTRICT, not "set null"** — a deleted college must never silently turn "this college must attend" into "everybody must attend", so archive-instead-of-delete now covers event audiences too (the reference routes answer 409 instead of tripping the key)
   - `server/utils/audience.ts` defines the concept **once** — `matchesAudience` (pure, unit-tested), `parseAudience` (validates and clears stale targets when the type changes), `resolveAudience` / `resolveAudiences` (the student list, resolved from live data, batched per distinct spec) — so analytics, the door and P4's absence fines can never disagree about who was required
@@ -753,18 +753,24 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - additive `status` (`scheduled` | `cancelled`) + `cancelledAt`/`cancelledBy`/`cancelReason`; cancellation is **one-way on purpose** (re-instating an event would quietly re-arm the fines and reminders)
   - a cancelled event is inert everywhere: `assertEventActive` is called from `assertCheckInOpen` (so every check-in path refuses), the registration route refuses (409), and both the reminder and the fine crons filter cancelled events out entirely — without this a rained-out assembly would have billed everyone who stayed home
   - `POST /api/events/:id/cancel` (staff, audited) tells the registrants (or the required audience) exactly once, through the notification core with a per-event dedupe key; the event page shows a Cancelled badge with the reason and who called it off, and carries the cancel action
-- [x] Audit-log integrity (2026-10-20, `feat/bc10-audit-integrity`) — benchmark BC-10
-  - additive `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId` on `audit_logs`, with indexes on `(targetType, targetId)` and `requestId`; the migration is additive and old rows keep their meaning
+- [x] Freeze the expected roster at window close (2026-10-20, `feat/bc4-roster-snapshot`) — benchmark BC-4
+  - additive `event_expected`: one row per expected person per event, carrying the event's `source` (`all` / `college` / `yearLevel` / `section`), the placement that explained them (`collegeId` / `yearLevel` / `sectionId`, copied rather than referenced) and `snapshotAt`; unique `(eventId, userId)`
+  - `server/utils/expected.ts` is the pure decision (is it due? does an existing snapshot win? what is the diff?) with unit tests; `server/utils/expected-data.ts` holds the reads and the one transactional write
+  - the fine cron freezes the live audience on the first due run and **reuses** the stored rows on every later run; a student who transfers college after the event keeps the charge, and a transfer in does not acquire one
+  - `/api/analytics/overview` and `/events` count expected from the snapshot when one exists (live otherwise) and return `frozenAt`, so the dashboard can say "frozen at ‹time›"; `registrationRequired` events keep their registrants as "expected" and report `frozenAt: null`
+  - `GET/POST /api/events/:id/snapshot` (staff) freezes early or re-freezes deliberately; an identical re-freeze writes nothing, and every real change is audited as `event_expected_frozen`
+  - **acceptance** lives in `scripts/e2e/roster-freeze.e2e.mts`: the freeze at window close, fine/analytics reuse after a transfer, the "frozen at" response, and an idempotent second freeze
+- [x] Audit-log integrity (2026-10-20, `feat/bc10-audit-integrity`) - benchmark BC-10
+  - additive `targetType`/`targetId`/`actorRole`/`ipHash`/`requestId` on `audit_logs`, with indexes on `(targetType, targetId)` and `requestId`; old rows keep their meaning
   - `server/utils/audit.ts`: `auditWrite` fills the target, the actor's role, a per-request id and a **salted SHA-256** of the client address; `auditRead` refuses to write a row that cannot name its target. The raw address is never persisted or logged, and without `AUDIT_IP_SALT` no hash is stored at all
-  - reads audited: `student_record_viewed` (Student 360), `excuse_attachment_viewed`, `student_lookup_performed` — metadata only (surface, counts, owner flag), never a name, student number or query
-  - append-only in code: a unit test scans every file under `server/` for `auditLog.update`/`delete`/`upsert` and raw `UPDATE`/`DELETE` on `audit_logs`; the live suite repeats the scan and proves an existing row is unchanged after later requests
-  - `GET /api/settings/audit-health` (settings managers): counts by action for 24 h and 7 d, plus silent gaps (zero today after three non-zero days) and a truncation flag at the row cap
-  - migrated to the helper (target populated): fines (payment, service served, excuse filed/reviewed, rules), clearance issue/revoke, announcements (create/update/delete/send, manual and cron), registrations, events (series create/update, delete, cancel, fine rule), documents (filed/updated/versioned), finance (budget opened, entries + overrides, proposals + steps), students updated, delegation grant/revoke/use, attendance signing, fines generated
-  - still on the legacy shape, deliberately: reference-data CRUD, semesters, auth/register, settings retention/transparency, document types/attachments, budget lines, purge — low-value for evidence or already safe; see the BC-10 row below
-- [ ] Freeze the expected roster at window close (benchmark BC-4)
+  - reads audited: Student 360, excuse attachments and the scanner lookup - metadata only, never a name, student number or query
+  - append-only in code: a unit test scans every file under `server/` for `auditLog.update`/`delete`/`upsert` and raw `UPDATE`/`DELETE` on `audit_logs`; the live suite proves an existing row is unchanged after later requests
+  - `GET /api/settings/audit-health` (settings managers): counts by action for 24 h and 7 d, plus silent gaps (zero today after three non-zero days)
+  - migrated to the helper (target populated): fines, clearance, announcements, registrations, events, documents, finance, students, delegation, attendance signing, fines generated
+  - still on the legacy shape, deliberately: reference-data CRUD, semesters, auth/register, settings retention/transparency, document types/attachments, budget lines, purge - see the BC-10 row below
 - [ ] Record both scan moments and a per-scan idempotency key (benchmark BC-5)
 - [ ] Owner decisions from the benchmark review: fine authorisation (RA 4206/5546), who the personal-information controller is, whether clearance gates anything — see `docs/BENCHMARK-REVIEW.md` §7 and §12.2's Q-New rows
-- [ ] Apply the **D-01…D-08 code deltas** from §12.3 (sanction map, platform-aware scanner, late threshold 15, payment capability, trimmed `/verify` response, announcement email default) — and hand `docs/COUNCIL-DECISIONS.md` to the council for C-1…C-6
+- [x] Apply the **D-01…D-08 code deltas** from §12.3 (2026-10-20) — all six merged: the sanction map (#64), platform-aware scanner, late threshold 15, the payment capability, the trimmed `/verify` response (#63), and the announcement email default (#62). D-02 and D-04 needed no code. One design gap the batch exposed while verifying them: the audience resolver only included `role: 'student'`, so an officer who is also a student never reached the monetary path D-01 created — it now follows the `studentProfile`, in all three resolvers. — and hand `docs/COUNCIL-DECISIONS.md` to the council for C-1…C-6
 
 #### Benchmark amendment queue (from `docs/BENCHMARK-REVIEW.md` §4)
 
@@ -773,16 +779,16 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
 | BC-1 | Consent captured per purpose, not in bulk; minors' path; "Privacy & rights" page | **first half done** (consent recorded with its version, `feat/p4d-integrity-consent`); purposes/minors/rights page pending |
 | BC-2 | Data inventory + retention matrix, DPO named, breach runbook | **table landed** in §8.9; the retention jobs and the DPO depend on Q-New-2/Q-New-5 |
 | BC-3 | Fix the cron story (Hobby cannot take sub-daily schedules) | ✅ GitHub Actions + Hobby-safe `vercel.json`; needs the two repository settings (see §12.2 Q-New-6) |
-| BC-4 | Freeze the expected roster at window close so reports and fines reproduce | pending — next integrity slice |
+| BC-4 | Freeze the expected roster at window close so reports and fines reproduce | **built** (`feat/bc4-roster-snapshot`) — `event_expected` + snapshot-aware dashboard/fines + manual freeze route |
 | BC-5 | Both scan timestamps, per-scan idempotency key, manual entries need a reason | pending — next integrity slice |
-| BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | pending |
+| BC-6 | Offline queue durability (`storage.persist()`, unsynced banner, hard cap, golden-path reload test) | **done** (2026-10-20, `feat/bc6-offline-durability`) |
 | BC-7 | Authority + sanction type, dispute window before collection, no charges for cancelled events, per-semester cap | **cancellation done** (`feat/p4e-event-cancellation`); authority fields, dispute window, voiding after the fact and the cap pending (Q-New-1 gates the money part) |
 | BC-8 | The platform never gates enrolment/exams/credentials; verification page shows standing, not amounts | pending (small) |
-| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | partially by construction (P7's `public`/`officers` + audited writes); redaction + the aggregate rule pending |
-| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **done** (`feat/bc10-audit-integrity`); deferred: the "every mutating route writes an audit row" coverage test, and the hash-chained log (BL-1) |
+| BC-9 | Document classification, redacted public copies, audited publish, transparency as a published aggregate | **classification + redaction + audited publish done** (`feat/bc9-document-redaction`): `public`/`officers`/`restricted`, redacted versions with a note, public reader serves only the copy, publish audited (loud when no copy); the aggregate transparency document remains a P6/publishing task |
+| BC-10 | Audit-log integrity: target/actor/ip/request id, append-only, reads logged, audit-health check | **done** (`feat/bc10-audit-integrity`): target, actor role, salted address hash and request id on every migrated write; the three sensitive reads audited; an append-only guard test; an audit-health endpoint. Deferred: the "every mutating route writes an audit row" coverage test, and the hash-chained log (BL-1) |
 | BC-11 | Self-service privacy export + rectification queue | pending |
 | BC-12 | Email-eligible audience shown against the daily quota; announcements default email-off | pending (small) |
-| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | pending (the P8 hardening slice) |
+| BC-13 | WCAG 2.2 AA criteria named + automated axe pass in CI | ✅ **done** (2026-10-20, `feat/bc13-a11y`) — `tools/a11y` runs axe at desktop + mobile, fails serious/critical, asserts one `main`, the skip link and 24×24 targets; portal shell, event form, scanner, fines and queue labels/live regions fixed; `html5-qrcode` proven lazy by a build audit. Manual scripts for 2.4.11 / 2.5.7 / 3.3.7 / 3.3.8 documented. Authenticated CI needs `A11Y_EMAIL`/`A11Y_PASSWORD` |
 
 Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review itself until their phase starts — P6 is already being built with NP-2/NP-3 in mind by its own agent.
 
@@ -797,6 +803,8 @@ Next-phase (NP-1…NP-13) and backlog (BL-1…BL-8) items stay in the review its
 
 ### P8 Launch
 - [ ] WCAG AA pass, performance targets, DPA documentation, pilot event, training
+  - [x] **WCAG 2.2 AA** (BC-13, 2026-10-20, `feat/bc13-a11y`): axe gate in CI, skip link + one `main`, labels on the portal's own forms, 24×24 targets, live regions for the scanner/queue, scanner library kept out of the shared chunk, manual scripts for 2.4.11 / 2.5.7 / 3.3.7 / 3.3.8
+  - [ ] Performance budgets, DPA documentation, pilot event, training
 
 ---
 

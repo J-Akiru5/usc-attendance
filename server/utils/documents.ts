@@ -12,6 +12,19 @@ export const DOCUMENT_VISIBILITIES = ['public', 'officers'] as const
 export type DocumentVisibility = typeof DOCUMENT_VISIBILITIES[number]
 
 /**
+ * BC-9 (plan §8.8, §11.2). The audience a filing is allowed to reach. This is
+ * the authoritative field; `visibility` is a legacy mirror kept for the pages
+ * and queries that predate classification.
+ *
+ *   public      may be read without a session — through a redacted copy when
+ *               one is in force, and never otherwise once one is
+ *   officers    council staff only
+ *   restricted  staff only, and never listed in the public archive at all
+ */
+export const DOCUMENT_CLASSIFICATIONS = ['public', 'officers', 'restricted'] as const
+export type DocumentClassification = typeof DOCUMENT_CLASSIFICATIONS[number]
+
+/**
  * The types the migration seeds. The table is the source of truth (the council
  * can add a type or re-word a prefix); this list documents the five from the
  * plan and is what the tests number against.
@@ -30,6 +43,7 @@ export const MAX_PREFIX_LENGTH = 40
 export const MAX_TITLE_LENGTH = 200
 export const MAX_BODY_CHARS = 60_000
 export const MAX_CHANGE_NOTE = 500
+export const MAX_REDACTION_NOTE = 500
 export const MAX_FINANCE_REF = 120
 export const MAX_TAGS = 12
 export const MAX_TAG_LENGTH = 32
@@ -142,6 +156,99 @@ export function validateDocumentContent(
   }
 
   return { title, body: text, tags, visibility: visibility as DocumentVisibility }
+}
+
+/** The legacy audience for a classification — the mirror older queries read. */
+export function visibilityForClassification(classification: string): DocumentVisibility {
+  return classification === 'public' ? 'public' : 'officers'
+}
+
+/** What a legacy `visibility` value means under classification. Never `restricted`. */
+export function classificationFromVisibility(visibility: unknown): DocumentClassification {
+  return str(visibility) === 'public' ? 'public' : 'officers'
+}
+
+export function validateClassification(value: unknown, fallback: DocumentClassification = 'officers'): DocumentClassification {
+  if (value === undefined || value === null || value === '') return fallback
+  const classification = str(value)
+  if (!(DOCUMENT_CLASSIFICATIONS as readonly string[]).includes(classification)) {
+    throw badRequest(`classification must be one of ${DOCUMENT_CLASSIFICATIONS.join(', ')}`)
+  }
+  return classification as DocumentClassification
+}
+
+/**
+ * The classification a create request asks for: the explicit field when it is
+ * there, otherwise what the old `visibility` field meant. A request that says
+ * neither files an officers-only document.
+ */
+export function requestedClassification(body: Record<string, unknown>): DocumentClassification {
+  if (body.classification !== undefined) return validateClassification(body.classification)
+  return classificationFromVisibility(body.visibility)
+}
+
+/** A redaction note is required: "what was removed" is part of the public record. */
+export function validateRedactionNote(value: unknown): string {
+  const note = str(value).trim()
+  if (!note) throw badRequest('A redaction note is required — say what was removed, or why the text is already safe')
+  if (note.length > MAX_REDACTION_NOTE) {
+    throw badRequest(`The redaction note is too long (${MAX_REDACTION_NOTE} characters maximum)`)
+  }
+  return note
+}
+
+export interface RedactedCopyContent {
+  /** `replacement` carried new text (or a new file); `confirmed` re-uses the current text. */
+  mode: 'replacement' | 'confirmed'
+  title: string
+  body: string
+  tags: string[]
+  confirmedExistingTextSafe: boolean
+}
+
+/**
+ * What a redacted-copy request supplies. The officer either gives the redacted
+ * words (or the redacted attachment) or confirms the current words are already
+ * safe — never neither, and never both at once, because a confirmation that
+ * silently overrides supplied text is how a name gets published.
+ */
+export function validateRedactedCopy(
+  body: Record<string, unknown>,
+  current: { title: string, body: string, tags: string[] },
+  hasAttachment = false
+): RedactedCopyContent {
+  const confirms = body.confirmExistingTextSafe === true
+  const suppliedText = body.body === undefined ? '' : str(body.body)
+  const replaces = hasAttachment || (body.body !== undefined && suppliedText.trim().length > 0)
+
+  if (replaces && confirms) {
+    throw badRequest('Choose one: supply the redacted copy, or confirm the current text is already safe')
+  }
+  if (!replaces && !confirms) {
+    throw badRequest('Supply the redacted text (or file), or confirm the current text contains no unauthorised name')
+  }
+
+  if (!replaces) {
+    return {
+      mode: 'confirmed',
+      title: current.title,
+      body: current.body,
+      tags: [...current.tags],
+      confirmedExistingTextSafe: true
+    }
+  }
+
+  const title = (body.title === undefined ? current.title : str(body.title)).trim()
+  if (title.length < 3 || title.length > MAX_TITLE_LENGTH) {
+    throw badRequest(`A title is needed (3–${MAX_TITLE_LENGTH} characters)`)
+  }
+  const text = body.body === undefined ? '' : suppliedText
+  if (text.length > MAX_BODY_CHARS) {
+    throw badRequest(`The text is too long (${MAX_BODY_CHARS} characters maximum)`)
+  }
+  const tags = body.tags === undefined ? [...current.tags] : normalizeTags(body.tags)
+
+  return { mode: 'replacement', title, body: text, tags, confirmedExistingTextSafe: false }
 }
 
 /** The change note that goes with a new version ("typo in §3", "names corrected"). */
@@ -330,13 +437,209 @@ export function hasContentChange(current: DocumentContentInput, next: DocumentCo
   return contentFingerprint(current) !== contentFingerprint(next)
 }
 
-/** A public document anyone may read: it says so, and it is not archived. */
-export function documentIsPubliclyReadable(doc: { visibility: string, archived?: boolean }): boolean {
-  return doc.visibility === 'public' && doc.archived !== true
+/**
+ * A public document anyone may read: it says so, and it is not archived.
+ *
+ * BC-9: `classification` wins when present; the legacy `visibility` is only a
+ * fallback for rows that predate it. `restricted` is never publicly readable.
+ */
+export function documentIsPubliclyReadable(doc: { visibility?: string, classification?: string, archived?: boolean }): boolean {
+  const classification = doc.classification ?? doc.visibility
+  return classification === 'public' && doc.archived !== true
 }
 
-/** Search is offered at the three places a reader looks: everything, public, officers. */
-export const DOCUMENT_SCOPES = ['all', 'public', 'officers'] as const
+export type PublicDocumentRefusal = 'archived' | 'not_published' | 'no_public_copy' | 'version_not_public'
+
+export interface PublicDocumentRuleInput {
+  classification: string
+  archived?: boolean | null
+  /** True when `documents.redactedVersionId` points at a copy. */
+  hasRedactedCopy: boolean
+  currentVersion: number
+  /** The version number behind `redactedVersionId`, when it is still there. */
+  redactedVersion?: number | null
+  /** A version a reader explicitly asked for (`?version=`). */
+  requestedVersion?: number | null
+}
+
+export interface PublicDocumentDecision {
+  readable: boolean
+  source: 'original' | 'redacted' | 'none'
+  version: number | null
+  reason: PublicDocumentRefusal | null
+}
+
+function isVersionNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+}
+
+/**
+ * What a visitor may be served, decided from the four facts that matter and
+ * nothing else. Fails closed: a public document whose redacted copy cannot be
+ * identified serves nothing rather than falling back to the original, and a
+ * request for any version other than the published one is refused.
+ */
+export function resolvePublicDocumentSource(input: PublicDocumentRuleInput): PublicDocumentDecision {
+  if (input.archived === true) {
+    return { readable: false, source: 'none', version: null, reason: 'archived' }
+  }
+  if (input.classification !== 'public') {
+    return { readable: false, source: 'none', version: null, reason: 'not_published' }
+  }
+
+  const source: 'original' | 'redacted' = input.hasRedactedCopy ? 'redacted' : 'original'
+  const version = input.hasRedactedCopy ? input.redactedVersion : input.currentVersion
+
+  if (!isVersionNumber(version)) {
+    return { readable: false, source: 'none', version: null, reason: 'no_public_copy' }
+  }
+  if (input.requestedVersion !== undefined && input.requestedVersion !== null && input.requestedVersion !== version) {
+    return { readable: false, source: 'none', version: null, reason: 'version_not_public' }
+  }
+
+  return { readable: true, source, version, reason: null }
+}
+
+export interface PublicDocumentInput {
+  classification: string
+  archived?: boolean | null
+  currentVersion: number
+  title: string
+  body: string
+  tags: string[]
+  /** Present only when the pointer resolved to a real version. */
+  redactedVersion?: { version: number, title: string, body: string, tags: string[] } | null
+  /** Defaults to whether `redactedVersion` resolved; pass the pointer's truth explicitly. */
+  hasRedactedCopy?: boolean
+  requestedVersion?: number | null
+}
+
+export interface PublicDocumentReadable {
+  public: true
+  source: 'original' | 'redacted'
+  version: number
+  title: string
+  body: string
+  tags: string[]
+}
+
+export interface PublicDocumentRefused {
+  public: false
+  reason: PublicDocumentRefusal
+  version: null
+}
+
+export type PublicDocumentContent = PublicDocumentReadable | PublicDocumentRefused
+
+/**
+ * The exact content a visitor may see. This is the one function both public
+ * routes use, so the list summary and the detail body can never disagree — and,
+ * when a redacted copy exists, the original `body` is never returned at all.
+ */
+export function publicDocumentContent(input: PublicDocumentInput): PublicDocumentContent {
+  const hasRedactedCopy = input.hasRedactedCopy ?? input.redactedVersion != null
+  const decision = resolvePublicDocumentSource({
+    classification: input.classification,
+    archived: input.archived,
+    hasRedactedCopy,
+    currentVersion: input.currentVersion,
+    redactedVersion: input.redactedVersion?.version ?? null,
+    requestedVersion: input.requestedVersion
+  })
+
+  if (!decision.readable) return { public: false, reason: decision.reason ?? 'no_public_copy', version: null }
+
+  if (decision.source === 'redacted') {
+    const copy = input.redactedVersion
+    if (!copy) return { public: false, reason: 'no_public_copy', version: null }
+    return {
+      public: true,
+      source: 'redacted',
+      version: copy.version,
+      title: copy.title,
+      body: copy.body,
+      tags: [...copy.tags]
+    }
+  }
+
+  return {
+    public: true,
+    source: 'original',
+    version: decision.version!,
+    title: input.title,
+    body: input.body,
+    tags: [...input.tags]
+  }
+}
+
+/**
+ * Publishing a filing that has no redacted copy is a decision someone has to
+ * own explicitly. Publishing one that already has a redacted copy is not:
+ * the safe copy is what the public will see.
+ */
+export function publishRequiresConfirmation(input: {
+  from: string
+  to: string
+  hasRedactedCopy: boolean
+}): boolean {
+  return input.to === 'public' && input.from !== 'public' && !input.hasRedactedCopy
+}
+
+export type PublishAuditAction = 'document_published' | 'document_published_unredacted'
+
+export interface PublishAudit {
+  action: PublishAuditAction
+  redactedCopyInForce: boolean
+  /** A loud detail for the case a reviewer should see first. */
+  warning: string | null
+}
+
+/**
+ * The audit shape of a publish. `null` means the request is not a publish (it is
+ * already public, or it is moving somewhere other than public). Publishing
+ * without a redacted copy gets its own action and an explicit warning, so the
+ * audit log answers "was this safe?" without joining another table.
+ */
+export function publishAudit(input: {
+  from: string
+  to: string
+  hasRedactedCopy: boolean
+}): PublishAudit | null {
+  if (input.to !== 'public' || input.from === 'public') return null
+  if (input.hasRedactedCopy) {
+    return { action: 'document_published', redactedCopyInForce: true, warning: null }
+  }
+  return {
+    action: 'document_published_unredacted',
+    redactedCopyInForce: false,
+    warning: 'Published without a redacted copy — the published text must contain no unauthorised student name.'
+  }
+}
+
+/**
+ * Whether a visitor may download one attachment. A document that is not public
+ * has no public files; a public document with a redacted copy exposes only the
+ * files that came with that copy, never the originals.
+ */
+export function attachmentIsPubliclyReadable(input: {
+  classification: string
+  archived?: boolean | null
+  redactedVersionId?: string | null
+  attachmentVersionId?: string | null
+}): boolean {
+  if (input.archived === true) return false
+  if (input.classification !== 'public') return false
+  if (input.redactedVersionId) return input.attachmentVersionId === input.redactedVersionId
+  return true
+}
+
+/** The browse filter for the visitor's archive: classification, not the mirror. */
+export function publicDocumentWhere(filters: Omit<DocumentListFilters, 'scope'>): Prisma.DocumentWhereInput {
+  return { ...documentListWhere({ ...filters, scope: 'all' }), classification: 'public' }
+}
+
+/** Search is offered at the places a reader looks: everything, public, officers, restricted. */
+export const DOCUMENT_SCOPES = ['all', 'public', 'officers', 'restricted'] as const
 export type DocumentScope = typeof DOCUMENT_SCOPES[number]
 
 export const ARCHIVE_FILTERS = ['active', 'archived', 'all'] as const
@@ -344,7 +647,7 @@ export type ArchiveFilter = typeof ARCHIVE_FILTERS[number]
 
 export function parseDocumentScope(value: unknown): DocumentScope {
   const scope = str(value)
-  return scope === 'public' || scope === 'officers' ? scope : 'all'
+  return scope === 'public' || scope === 'officers' || scope === 'restricted' ? scope : 'all'
 }
 
 /** `?archived=`: the default view hides archived filings. */
@@ -372,8 +675,7 @@ export interface DocumentListFilters {
  */
 export function documentListWhere(filters: DocumentListFilters): Prisma.DocumentWhereInput {
   const where: Prisma.DocumentWhereInput = {}
-  if (filters.scope === 'public') where.visibility = 'public'
-  if (filters.scope === 'officers') where.visibility = 'officers'
+  if (filters.scope !== 'all') where.classification = filters.scope
   if (filters.archived === 'active') where.archived = false
   if (filters.archived === 'archived') where.archived = true
   if (filters.typeId) where.typeId = filters.typeId
@@ -387,4 +689,17 @@ export function documentListWhere(filters: DocumentListFilters): Prisma.Document
 export function documentSummary(body: string, length = 180): string {
   const flat = str(body).replace(/\s+/g, ' ').trim()
   return flat.length > length ? `${flat.slice(0, length - 1)}…` : flat
+}
+
+/**
+ * A redacted copy is stale when the original record has moved on since it was
+ * prepared. The copy stays the public one (never fall back to the original) but
+ * the staff side should say so and ask for a fresh one.
+ */
+export function redactedCopyIsStale(input: {
+  redactedVersion: number | null | undefined
+  currentVersion: number
+}): boolean {
+  if (!isVersionNumber(input.redactedVersion)) return false
+  return input.currentVersion > input.redactedVersion
 }

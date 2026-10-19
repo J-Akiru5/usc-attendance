@@ -124,14 +124,14 @@ function roleBadgeVariant(role: string) {
                 <div class="text-xs text-slate mt-0.5 truncate">
                   {{ user.position }}
                 </div>
-                <div class="text-xs text-slate/60 mt-0.5 truncate">
+                <div class="text-xs text-slate mt-0.5 truncate">
                   {{ user.email }}
                 </div>
               </div>
 
               <!-- Settings manager toggle: may set signature retention, semesters and check-in windows -->
               <div class="flex items-center gap-2 shrink-0">
-                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.canConfigure ? 'text-gold-dark' : 'text-slate/50'">
+                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.canConfigure ? 'text-gold-dark' : 'text-slate'">
                   Settings
                 </span>
                 <button
@@ -150,7 +150,7 @@ function roleBadgeVariant(role: string) {
 
               <!-- Delegate toggle: lets the President/Secretary grant temporary event access -->
               <div class="flex items-center gap-2 shrink-0">
-                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.canDelegate ? 'text-gold-dark' : 'text-slate/50'">
+                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.canDelegate ? 'text-gold-dark' : 'text-slate'">
                   Delegate
                 </span>
                 <button
@@ -169,7 +169,7 @@ function roleBadgeVariant(role: string) {
 
               <!-- Toggle switch (super_admin always has access — disabled) -->
               <div class="flex items-center gap-2 shrink-0">
-                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.role === 'super_admin' || user.canManageContent ? 'text-gold-dark' : 'text-slate/50'">
+                <span class="text-[10px] font-bold uppercase tracking-wider" :class="user.role === 'super_admin' || user.canManageContent ? 'text-gold-dark' : 'text-slate'">
                   Content
                 </span>
                 <button

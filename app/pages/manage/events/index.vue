@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useEventStore } from '@/stores/events'
 import { useAuthStore } from '@/stores/auth'
 import Button from '@/components/ui/Button.vue'
@@ -18,7 +17,6 @@ definePageMeta({ layout: 'dashboard', requiresAuth: true, roles: ['super_admin',
 
 const events = useEventStore()
 const auth = useAuthStore()
-const router = useRouter()
 const showCreate = ref(false)
 
 const form = ref({
@@ -223,20 +221,40 @@ function formatTime(dateStr: string) {
         <form class="space-y-4" @submit.prevent="handleCreate">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2 md:col-span-2">
-              <Label>Event Title</Label>
-              <Input v-model="form.title" placeholder="General Assembly — July Session" required />
+              <Label for="event-title">Event Title</Label>
+              <Input
+                id="event-title"
+                v-model="form.title"
+                placeholder="General Assembly — July Session"
+                required
+              />
             </div>
             <div class="space-y-2">
-              <Label>Date</Label>
-              <Input v-model="form.date" type="date" required />
+              <Label for="event-date">Date</Label>
+              <Input
+                id="event-date"
+                v-model="form.date"
+                type="date"
+                required
+              />
             </div>
             <div class="space-y-2">
-              <Label>Time</Label>
-              <Input v-model="form.time" type="time" required />
+              <Label for="event-time">Time</Label>
+              <Input
+                id="event-time"
+                v-model="form.time"
+                type="time"
+                required
+              />
             </div>
             <div class="space-y-2">
-              <Label>Radius (meters)</Label>
-              <Input v-model="form.radiusMeters" type="number" placeholder="50" />
+              <Label for="event-radius">Radius (meters)</Label>
+              <Input
+                id="event-radius"
+                v-model="form.radiusMeters"
+                type="number"
+                placeholder="50"
+              />
             </div>
           </div>
 
@@ -252,8 +270,8 @@ function formatTime(dateStr: string) {
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="space-y-2">
-              <Label>Category</Label>
-              <select v-model="form.categoryId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+              <Label for="event-category">Category</Label>
+              <select id="event-category" v-model="form.categoryId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                 <option value="">
                   Uncategorised
                 </option>
@@ -263,8 +281,13 @@ function formatTime(dateStr: string) {
               </select>
             </div>
             <div class="space-y-2">
-              <Label>Capacity (optional)</Label>
-              <Input v-model="form.capacity" type="number" placeholder="Unlimited" />
+              <Label for="event-capacity">Capacity (optional)</Label>
+              <Input
+                id="event-capacity"
+                v-model="form.capacity"
+                type="number"
+                placeholder="Unlimited"
+              />
             </div>
             <label class="flex items-end gap-2 pb-2 text-sm text-slate">
               <input v-model="form.registrationRequired" type="checkbox">
@@ -275,8 +298,8 @@ function formatTime(dateStr: string) {
           <div class="rounded-lg border border-line bg-paper-panel/50 p-4 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="space-y-2">
-                <Label>Repeats</Label>
-                <select v-model="form.repeat" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="event-repeat">Repeats</Label>
+                <select id="event-repeat" v-model="form.repeat" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="none">
                     Does not repeat
                   </option>
@@ -292,15 +315,20 @@ function formatTime(dateStr: string) {
                 </select>
               </div>
               <div v-if="form.repeat !== 'none'" class="space-y-2">
-                <Label>Interval</Label>
+                <Label for="event-interval">Interval</Label>
                 <div class="flex items-center gap-2">
-                  <Input v-model="form.repeatInterval" type="number" class="w-24" />
+                  <Input
+                    id="event-interval"
+                    v-model="form.repeatInterval"
+                    type="number"
+                    class="w-24"
+                  />
                   <span class="text-sm text-slate">{{ intervalUnit }}</span>
                 </div>
               </div>
               <div v-if="form.repeat !== 'none'" class="space-y-2">
-                <Label>Ends</Label>
-                <select v-model="form.repeatEnds" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="event-ends">Ends</Label>
+                <select id="event-ends" v-model="form.repeatEnds" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="count">
                     After a number of occurrences
                   </option>
@@ -318,8 +346,10 @@ function formatTime(dateStr: string) {
                   v-for="(_, index) in DAY_LABELS"
                   :key="index"
                   type="button"
-                  class="rounded-lg border px-2.5 py-1 text-xs font-semibold"
+                  class="min-h-6 rounded-lg border px-2.5 py-1 text-xs font-semibold"
                   :class="form.repeatDays.includes(index) ? 'border-navy bg-navy text-white' : 'border-line text-slate hover:bg-paper'"
+                  :aria-pressed="form.repeatDays.includes(index)"
+                  :aria-label="DAY_LABELS[index]"
                   @click="toggleRepeatDay(index)"
                 >
                   {{ dayLabel(index) }}
@@ -328,8 +358,9 @@ function formatTime(dateStr: string) {
             </div>
 
             <div v-if="form.repeat !== 'none' && form.repeatEnds === 'count'" class="space-y-2">
-              <Label>Occurrences (2–200)</Label>
+              <Label for="event-count">Occurrences (2–200)</Label>
               <Input
+                id="event-count"
                 v-model="form.repeatCount"
                 type="number"
                 min="2"
@@ -337,8 +368,8 @@ function formatTime(dateStr: string) {
               />
             </div>
             <div v-if="form.repeat !== 'none' && form.repeatEnds === 'date'" class="space-y-2">
-              <Label>Until</Label>
-              <Input v-model="form.repeatUntil" type="date" />
+              <Label for="event-until">Until</Label>
+              <Input id="event-until" v-model="form.repeatUntil" type="date" />
             </div>
 
             <p v-if="form.repeat !== 'none'" class="text-xs text-slate">
@@ -346,15 +377,15 @@ function formatTime(dateStr: string) {
             </p>
           </div>
 
-          <div v-if="seriesNotice" class="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-navy">
+          <div v-if="seriesNotice" role="status" class="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-navy">
             {{ seriesNotice }}
           </div>
 
           <div class="rounded-lg border border-line bg-paper-panel/50 p-4 space-y-3">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-2">
-                <Label>Who must attend</Label>
-                <select v-model="form.audienceType" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="event-audience-type">Who must attend</Label>
+                <select id="event-audience-type" v-model="form.audienceType" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="all">
                     All students
                   </option>
@@ -370,8 +401,8 @@ function formatTime(dateStr: string) {
                 </select>
               </div>
               <div v-if="form.audienceType === 'college'" class="space-y-2">
-                <Label>College</Label>
-                <select v-model="form.audienceCollegeId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="event-audience-college">College</Label>
+                <select id="event-audience-college" v-model="form.audienceCollegeId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="">
                     Pick a college…
                   </option>
@@ -381,8 +412,8 @@ function formatTime(dateStr: string) {
                 </select>
               </div>
               <div v-if="form.audienceType === 'yearLevel'" class="space-y-2">
-                <Label>Year level</Label>
-                <select v-model="form.audienceYearLevel" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="event-audience-year">Year level</Label>
+                <select id="event-audience-year" v-model="form.audienceYearLevel" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="">
                     Pick a year…
                   </option>
@@ -392,8 +423,8 @@ function formatTime(dateStr: string) {
                 </select>
               </div>
               <div v-if="form.audienceType === 'section'" class="space-y-2">
-                <Label>Section</Label>
-                <select v-model="form.audienceSectionId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <Label for="event-audience-section">Section</Label>
+                <select id="event-audience-section" v-model="form.audienceSectionId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
                   <option value="">
                     Pick a section…
                   </option>
@@ -425,38 +456,40 @@ function formatTime(dateStr: string) {
       No events yet. Create one to get started.
     </div>
     <div v-else class="space-y-3">
-      <Card
+      <NuxtLink
         v-for="event in events.events"
         :key="event.id"
-        class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push(`/manage/events/${event.id}`)"
+        :to="`/manage/events/${event.id}`"
+        class="block rounded-xl"
       >
-        <CardContent class="p-4 flex items-center justify-between">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-navy">{{ event.title }}</span>
-              <span
-                v-if="(event as { category?: { name: string, color: string } | null }).category"
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-                :style="{ backgroundColor: (event as { category?: { name: string, color: string } | null }).category?.color }"
-              >
-                {{ (event as { category?: { name: string, color: string } | null }).category?.name }}
-              </span>
+        <Card class="cursor-pointer hover:shadow-md transition-shadow">
+          <CardContent class="p-4 flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-navy">{{ event.title }}</span>
+                <span
+                  v-if="(event as { category?: { name: string, color: string } | null }).category"
+                  class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                  :style="{ backgroundColor: (event as { category?: { name: string, color: string } | null }).category?.color }"
+                >
+                  {{ (event as { category?: { name: string, color: string } | null }).category?.name }}
+                </span>
+              </div>
+              <div class="text-sm text-slate">
+                {{ formatDate(event.date) }} · {{ formatTime(event.date) }}
+              </div>
+              <div class="text-xs text-slate mt-1">
+                Radius: {{ event.radiusMeters }}m
+              </div>
             </div>
-            <div class="text-sm text-slate">
-              {{ formatDate(event.date) }} · {{ formatTime(event.date) }}
+            <div class="text-right">
+              <Badge variant="default">
+                {{ (event as any)._count?.attendance ?? 0 }} checked in
+              </Badge>
             </div>
-            <div class="text-xs text-slate mt-1">
-              Radius: {{ event.radiusMeters }}m
-            </div>
-          </div>
-          <div class="text-right">
-            <Badge variant="default">
-              {{ (event as any)._count?.attendance ?? 0 }} checked in
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </NuxtLink>
     </div>
   </div>
 </template>

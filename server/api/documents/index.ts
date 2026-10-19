@@ -13,8 +13,12 @@ import {
   parseArchivedFilter,
   parseDocumentScope,
   parseYear,
+  publishAudit,
+  publishRequiresConfirmation,
+  requestedClassification,
   validateDocumentContent,
-  validateFinanceRef
+  validateFinanceRef,
+  visibilityForClassification
 } from '../../utils/documents'
 import { nextDocumentSequence, searchDocumentIds } from '../../utils/document-archive'
 import { auditContext, auditWrite } from '../../utils/audit'
@@ -45,6 +49,9 @@ const listSelect = {
   sequence: true,
   tags: true,
   visibility: true,
+  classification: true,
+  redactedVersionId: true,
+  redactionNote: true,
   currentVersion: true,
   archived: true,
   eventId: true,
@@ -146,7 +153,17 @@ export default defineApiHandler(async (event) => {
 
     const year = parseYear(body.year, Number(manilaYmd().slice(0, 4)))
     const content = validateDocumentContent(body)
+    const classification = requestedClassification(body)
+    const visibility = visibilityForClassification(classification)
     const financeRef = validateFinanceRef(body.financeRef)
+
+    // BC-9: a new filing that goes straight to the public archive is a publish.
+    // Without a redacted copy (impossible on create) someone must confirm the
+    // text carries no unauthorised student name, and the audit says so.
+    if (publishRequiresConfirmation({ from: 'officers', to: classification, hasRedactedCopy: false })
+      && body.confirmUnredactedPublish !== true) {
+      throw badRequest('Publishing without a redacted copy needs confirmation — set confirmUnredactedPublish to true once you have checked the text for student names')
+    }
 
     // Everything that can be wrong is checked *before* the number is drawn: a
     // wasted number is a gap in the series, so avoid one where we can.
@@ -169,7 +186,8 @@ export default defineApiHandler(async (event) => {
           title: content.title,
           body: content.body,
           tags: content.tags,
-          visibility: content.visibility,
+          visibility,
+          classification,
           currentVersion: 1,
           eventId,
           financeRef,
@@ -183,14 +201,15 @@ export default defineApiHandler(async (event) => {
           title: content.title,
           body: content.body,
           tags: content.tags,
-          visibility: content.visibility,
+          visibility,
           createdBy: user.id
         }
       })
       // The generated tsvector follows searchText, so the first version is
-      // searchable the moment this transaction commits.
+      // searchable the moment this transaction commits. With no redacted copy
+      // yet, the visitor's corpus is the same text.
       const searchText = documentSearchText({ title: content.title, body: content.body, tags: content.tags })
-      await tx.document.update({ where: { id: document.id }, data: { searchText } })
+      await tx.document.update({ where: { id: document.id }, data: { searchText, publicSearchText: searchText } })
       return document.id
     })
 
@@ -201,9 +220,31 @@ export default defineApiHandler(async (event) => {
       action: 'document_filed',
       targetType: 'document',
       targetId: created.id,
-      details: { number: created.number, type: type.key, year, visibility: content.visibility },
+      details: { number: created.number, type: type.key, year, classification },
       ...auditContext(event)
     })
+
+    const publication = publishAudit({ from: 'officers', to: classification, hasRedactedCopy: false })
+    if (publication) {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: publication.action,
+          details: JSON.stringify({
+            documentId: created.id,
+            number: created.number,
+            actor: user.id,
+            actorName: user.name,
+            from: 'officers',
+            to: classification,
+            redactedCopyInForce: publication.redactedCopyInForce,
+            confirmedUnredacted: body.confirmUnredactedPublish === true,
+            warning: publication.warning
+          }),
+          performedBy: user.id
+        }
+      })
+    }
 
     return respond(event, 201, { document: withSummary(created) })
   }

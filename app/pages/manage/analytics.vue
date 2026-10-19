@@ -13,6 +13,8 @@ interface Overview {
   expected: number
   attended: number
   rate: number
+  frozenAt?: string | null
+  frozenEvents?: number
   signatures: { signed: number, rate: number }
   methods: Array<{ method: string, count: number }>
   noShows: number
@@ -25,6 +27,7 @@ interface EventRow {
   expected: number
   attended: number
   rate: number
+  frozenAt: string | null
   signatures: { signed: number, rate: number }
 }
 interface GroupRow { key: string, label: string, expected: number, attended: number, rate: number }
@@ -49,6 +52,7 @@ const percent = (value: number) => `${Math.round(value * 100)}%`
 const methodLabels: Record<string, string> = { qr: 'QR scan', manual: 'Manual', barcode: 'ID barcode', self: 'Self check-in' }
 
 const timingMax = computed(() => Math.max(1, ...(timing.value?.buckets ?? []).map(b => b.count)))
+const frozenCount = computed(() => events.value.filter(row => row.frozenAt).length)
 
 async function load() {
   loading.value = true
@@ -90,6 +94,18 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+/** When the roster was frozen (BC-4), in the same Manila clock as the reports. */
+function formatFrozenAt(value: string) {
+  return new Date(value).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })
+}
+
 onMounted(async () => {
   try {
     semesters.value = await api.get<Semester[]>('/reference/semesters')
@@ -116,7 +132,7 @@ onMounted(async () => {
           <h1 class="text-2xl md:text-3xl font-bold font-serif">
             Analytics
           </h1>
-          <p class="text-white/50 text-sm mt-1">
+          <p class="text-white/75 text-sm mt-1">
             Rates, trends and who never shows up — the same numbers the exports carry.
           </p>
         </div>
@@ -156,6 +172,9 @@ onMounted(async () => {
             </div>
             <div class="text-xs text-slate mt-1">
               {{ overview.attended }} of {{ overview.expected }} expected
+            </div>
+            <div v-if="overview.frozenEvents" class="text-[10px] text-slate mt-1">
+              {{ overview.frozenEvents }} of {{ overview.events }} events frozen
             </div>
           </CardContent>
         </Card>
@@ -274,13 +293,24 @@ onMounted(async () => {
       <!-- Per event -->
       <Card>
         <CardContent class="p-6 space-y-3">
-          <div class="font-semibold text-navy font-serif">
-            Per event
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="font-semibold text-navy font-serif">
+              Per event
+            </div>
+            <div v-if="frozenCount > 0" class="text-xs text-slate">
+              “Frozen” is the expected roster recorded when the window closed.
+            </div>
           </div>
           <div v-if="events.length === 0" class="text-sm text-slate">
             No events in this window.
           </div>
-          <div v-else class="overflow-x-auto">
+          <div
+            v-else
+            class="overflow-x-auto"
+            tabindex="0"
+            role="region"
+            aria-label="Group breakdown table"
+          >
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-xs uppercase tracking-wide text-slate border-b border-line">
@@ -307,7 +337,7 @@ onMounted(async () => {
               <tbody class="divide-y divide-line">
                 <tr v-for="row in events" :key="row.id" class="hover:bg-paper">
                   <td class="py-2 pr-3">
-                    <NuxtLink :to="`/manage/events/${row.id}`" class="font-medium text-navy hover:underline">
+                    <NuxtLink :to="`/manage/events/${row.id}`" class="font-medium text-navy underline hover:underline">
                       {{ row.title }}
                     </NuxtLink>
                     <Badge v-if="row.category" variant="default" class="ml-2">
@@ -322,6 +352,9 @@ onMounted(async () => {
                   </td>
                   <td class="py-2 pr-3 text-right font-mono">
                     {{ row.expected }}
+                    <div v-if="row.frozenAt" class="font-sans text-[10px] font-normal text-slate">
+                      frozen {{ formatFrozenAt(row.frozenAt) }}
+                    </div>
                   </td>
                   <td class="py-2 pr-3 text-right font-mono">
                     {{ percent(row.rate) }}
@@ -348,7 +381,7 @@ onMounted(async () => {
             </div>
             <ul v-else class="divide-y divide-line text-sm">
               <li v-for="student in top" :key="student.id" class="flex items-center justify-between gap-2 py-2">
-                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy hover:underline">
+                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy underline hover:underline">
                   {{ student.name }}
                 </NuxtLink>
                 <span class="shrink-0 font-mono text-xs text-slate">{{ student.attended }}</span>
@@ -366,7 +399,7 @@ onMounted(async () => {
             </div>
             <ul v-else class="divide-y divide-line text-sm">
               <li v-for="student in bottom" :key="student.id" class="flex items-center justify-between gap-2 py-2">
-                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy hover:underline">
+                <NuxtLink :to="`/manage/students/${student.id}`" class="min-w-0 truncate text-navy underline hover:underline">
                   {{ student.name }}
                 </NuxtLink>
                 <span class="shrink-0 font-mono text-xs text-slate">{{ student.attended }}</span>

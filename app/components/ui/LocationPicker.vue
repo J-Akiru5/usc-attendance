@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, useId } from 'vue'
 import type * as LeafletNS from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -46,6 +46,9 @@ const emit = defineEmits<{
 }>()
 
 const mapContainer = ref<HTMLDivElement | null>(null)
+const uid = useId()
+const latFieldId = `location-lat-${uid}`
+const lngFieldId = `location-lng-${uid}`
 const detecting = ref(false)
 const locBtnText = ref('Use My Location')
 const localLat = ref('')
@@ -323,8 +326,9 @@ onBeforeUnmount(() => {
 
       <div class="grid grid-cols-2 gap-2">
         <div class="space-y-1">
-          <label class="block text-[10px] font-bold text-navy uppercase tracking-wider">Latitude</label>
+          <label :for="latFieldId" class="block text-[10px] font-bold text-navy uppercase tracking-wider">Latitude</label>
           <input
+            :id="latFieldId"
             v-model="localLat"
             type="number"
             step="any"
@@ -334,8 +338,9 @@ onBeforeUnmount(() => {
           >
         </div>
         <div class="space-y-1">
-          <label class="block text-[10px] font-bold text-navy uppercase tracking-wider">Longitude</label>
+          <label :for="lngFieldId" class="block text-[10px] font-bold text-navy uppercase tracking-wider">Longitude</label>
           <input
+            :id="lngFieldId"
             v-model="localLng"
             type="number"
             step="any"
@@ -369,10 +374,10 @@ onBeforeUnmount(() => {
         />
       </svg>
       <span>{{ modelLat }}, {{ modelLng }}</span>
-      <span class="text-slate/50">·</span>
+      <span class="text-slate/50" aria-hidden="true">·</span>
       <span class="text-gold-dark font-semibold">Radius: {{ radiusMeters }}m</span>
     </div>
-    <div v-else class="text-[11px] text-slate/60 font-mono">
+    <div v-else class="text-[11px] text-slate font-mono">
       {{ readonly ? 'No location set' : 'Click on the map, enter coordinates, or use location detection' }}
     </div>
   </div>

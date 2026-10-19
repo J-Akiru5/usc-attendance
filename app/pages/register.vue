@@ -116,7 +116,7 @@ const label = 'block text-[10px] font-bold text-navy uppercase tracking-wider mb
         </p>
       </div>
 
-      <div v-if="done" class="space-y-4">
+      <div v-if="done" role="status" class="space-y-4">
         <div class="rounded-lg border border-gold bg-gold/10 px-4 py-3 text-sm text-navy">
           {{ done }}
         </div>
@@ -127,7 +127,7 @@ const label = 'block text-[10px] font-bold text-navy uppercase tracking-wider mb
       </div>
 
       <form v-else class="space-y-4" @submit.prevent="submit">
-        <div v-if="error" class="rounded-lg border border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div v-if="error" role="alert" class="rounded-lg border border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
           {{ error }}
         </div>
 

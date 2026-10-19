@@ -2,8 +2,10 @@ import { getHeader, getMethod } from 'h3'
 import { timingSafeEqual } from 'crypto'
 import { prisma } from '../../utils/prisma'
 import { defineApiHandler, HttpError, respond } from '../../utils/http'
-import { fineDeadline, formatPeso, planFines, resolveRule, type FineRule } from '../../utils/fines'
-import { resolveAudience, specFromEvent } from '../../utils/audience'
+import { formatPeso, planFines, resolveRule, type FineRule } from '../../utils/fines'
+import { activeStudentPlacements, specFromEvent } from '../../utils/audience'
+import { existingSnapshots, writeSnapshot } from '../../utils/expected-data'
+import { frozenAudience, planSnapshot, snapshotDue } from '../../utils/expected'
 import { notifier, notifyMany } from '../../utils/notify'
 import { auditWrite } from '../../utils/audit'
 
@@ -13,6 +15,11 @@ import { auditWrite } from '../../utils/audit'
  * been generated yet, work out who was required, who turned up, and who owes
  * what. Idempotent by `events.finesIssuedAt` *and* by the unique (user, event)
  * index, so a retry can never double-charge anyone.
+ *
+ * Benchmark BC-4: the required roster is frozen at this moment — the first time
+ * the event is due — and every later run of this cron (or a report) reads the
+ * frozen rows. A student who transfers college after the event therefore does
+ * not stop owing for it, and one who transfers in does not start.
  */
 export default defineApiHandler(async (event) => {
   if (getMethod(event) !== 'GET') return respond(event, 405, { error: 'Method not allowed' })
@@ -36,6 +43,7 @@ export default defineApiHandler(async (event) => {
       id: true,
       title: true,
       date: true,
+      status: true,
       checkInClosesAt: true,
       checkInOpensAt: true,
       categoryId: true,
@@ -59,12 +67,15 @@ export default defineApiHandler(async (event) => {
         }
       : null
 
-  const results: Array<{ eventId: string, title: string, audience: number, absent: number, late: number, totalCentavos: number, skipped: boolean }> = []
+  const results: Array<{ eventId: string, title: string, audience: number, absent: number, late: number, totalCentavos: number, skipped: boolean, roster: 'snapshot' | 'live' | 'empty' }> = []
+  const snapshots = await existingSnapshots(prisma, candidates.map(row => row.id))
+  // One read of the student body, reused for every event that is not frozen yet.
+  const members = await activeStudentPlacements(prisma)
 
   for (const row of candidates) {
     // Not due until the window closes (or six hours after the start).
-    if (fineDeadline(row).getTime() > now.getTime()) {
-      results.push({ eventId: row.id, title: row.title, audience: 0, absent: 0, late: 0, totalCentavos: 0, skipped: true })
+    if (!snapshotDue(row, now)) {
+      results.push({ eventId: row.id, title: row.title, audience: 0, absent: 0, late: 0, totalCentavos: 0, skipped: true, roster: 'empty' })
       continue
     }
 
@@ -74,7 +85,40 @@ export default defineApiHandler(async (event) => {
     ])
     const rule = resolveRule(asRule(globalRow), asRule(categoryRow), asRule(eventRow))
 
-    const audience = await resolveAudience(prisma, specFromEvent(row))
+    // BC-4: a snapshot that already exists is the audience — never recompute it.
+    // Otherwise freeze the live audience now, before any fine is decided.
+    const frozen = snapshots.get(row.id) ?? []
+    let audience: string[]
+    let roster: 'snapshot' | 'live' | 'empty'
+
+    if (frozen.length > 0) {
+      audience = frozenAudience(frozen) ?? []
+      roster = 'snapshot'
+    } else {
+      const plan = planSnapshot({ eventId: row.id, spec: specFromEvent(row), members, existing: frozen, now })
+      const written = await writeSnapshot(prisma, plan)
+      audience = plan.audienceIds
+      roster = audience.length > 0 ? 'live' : 'empty'
+
+      if (written) {
+        await prisma.auditLog.create({
+          data: {
+            action: 'event_expected_frozen',
+            details: JSON.stringify({
+              eventId: row.id,
+              trigger: 'window_close',
+              source: plan.source,
+              count: plan.audienceIds.length,
+              created: plan.created.length,
+              removed: plan.removed.length,
+              changed: plan.changed.length,
+              snapshotAt: plan.snapshotAt.toISOString()
+            })
+          }
+        })
+      }
+    }
+
     const attendance = await prisma.attendance.findMany({
       where: { eventId: row.id },
       select: { userId: true, createdAt: true },
@@ -148,7 +192,8 @@ export default defineApiHandler(async (event) => {
       absent: items.filter(i => i.kind === 'absent').length,
       late: items.filter(i => i.kind === 'late').length,
       totalCentavos: items.reduce((sum, item) => sum + item.amountCentavos, 0),
-      skipped: false
+      skipped: false,
+      roster
     })
   }
 

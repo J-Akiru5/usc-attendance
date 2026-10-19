@@ -1,0 +1,63 @@
+# Policy for the USC Attendance rebuild
+
+version: 1
+
+integration:
+  target_branch: develop
+  remote: origin
+  protected_branches: [main, staging]
+  require_source_on_remote: true
+  allow_agents: [integrator, lead]
+
+claims:
+  lease_minutes: 30
+
+verification:
+  profiles:
+    # Documentation-only changes.
+    docs:
+      resource_class: light
+      commands:
+        - git status --short
+
+    # The standing local gate. Deliberately excludes the production build (heavy)
+    # and the live e2e batch (heavy, needs the dev server and the shared dev DB);
+    # those are run by the integrator as `full` once per integration.
+    code:
+      resource_class: moderate
+      commands:
+        - npx eslint .
+        - npm run typecheck
+        - npm run typecheck:legacy
+        - npx vitest run
+
+    # The integration profile for anything that changes runtime code.
+    full:
+      resource_class: heavy
+      commands:
+        - npx eslint .
+        - npm run typecheck
+        - npm run typecheck:legacy
+        - npx vitest run
+        - npm run build
+
+database:
+  tool: db_migrate
+  # Deliberately unset: this repository's dev database is the shared Supabase
+  # project and its target cannot be verified mechanically here, so migrations
+  # are applied by the integrator with `prisma migrate deploy` against an
+  # inspected `.env` rather than through `agentctl db push`.
+  dev_project_ref: null
+  production_project_refs: []
+  env_file: .env
+  migrate_command: null
+  verify_command: null
+  lease_minutes: 30
+  resource_class: light
+
+resources:
+  classes: [light, moderate, heavy]
+  exclusive: [full, build]
+
+cleanup:
+  require_apply_flag: true

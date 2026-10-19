@@ -103,6 +103,8 @@ npm run typecheck:legacy  # tsc over prisma/ scripts/ tests/ (pre-Nuxt code)
 npm test                  # Vitest — unit tests in tests/
 npm run test:e2e          # live e2e — boots nuxt dev + runs scripts/e2e/*.e2e.mts (113 checks)
 npm run build             # production build (.output; .vercel/output on Vercel)
+# WCAG 2.2 AA portal gate — see tools/a11y/README.md
+cd tools/a11y && npm ci && npx playwright install chromium && npm test
 ```
 
 ## Roles
@@ -134,6 +136,9 @@ npm run build             # production build (.output; .vercel/output on Vercel)
 │   └── seed_auth.ts        # Supabase Auth + Postgres sync seeder
 ├── scripts/
 │   └── e2e/                # live e2e checks — npm run test:e2e (throwaway data, full cleanup)
+├── tools/
+│   ├── public-parity/      # frozen public site — 28/28 pixel + outline gate
+│   └── a11y/               # portal WCAG 2.2 AA axe gate + scanner bundle audit
 └── public/                 # Static assets (logo, favicon, officers, data)
 ```
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useEventStore } from '@/stores/events'
 import { useDutyStore } from '@/stores/duties'
@@ -16,7 +15,6 @@ definePageMeta({ layout: 'dashboard', requiresAuth: true })
 const auth = useAuthStore()
 const events = useEventStore()
 const dutyStore = useDutyStore()
-const router = useRouter()
 const todayEvents = ref<USCEvent[]>([])
 
 // Pinned announcements (plan §8.4): the council's notices, seen by everyone.
@@ -155,7 +153,7 @@ function formatTime(dateStr: string) {
       <h1 class="text-2xl md:text-3xl font-bold font-serif">
         {{ getGreeting() }},<br>{{ auth.user?.name }}
       </h1>
-      <p class="text-white/60 text-sm mt-1">
+      <p class="text-white/75 text-sm mt-1">
         {{ auth.user?.position }}
       </p>
     </div>
@@ -257,6 +255,7 @@ function formatTime(dateStr: string) {
                 {{ registrationLabel(event) }}
               </Badge>
               <button
+                type="button"
                 class="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-navy hover:bg-paper disabled:opacity-50"
                 :disabled="registrationBusy === event.id"
                 @click="toggleRegistration(event)"
@@ -264,14 +263,13 @@ function formatTime(dateStr: string) {
                 {{ myRegistrations[event.id] ? 'Cancel' : 'Register' }}
               </button>
             </div>
-            <Badge
+            <NuxtLink
               v-else
-              variant="success"
-              class="cursor-pointer"
-              @click="router.push({ path: '/qr', query: { eventId: event.id } })"
+              :to="{ path: '/qr', query: { eventId: event.id } }"
+              class="inline-flex min-h-6 items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success"
             >
               Show my QR
-            </Badge>
+            </NuxtLink>
           </CardContent>
         </Card>
       </div>
@@ -279,86 +277,91 @@ function formatTime(dateStr: string) {
 
     <!-- Quick Actions -->
     <div v-if="!auth.isStudent" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <Card
+      <NuxtLink
         v-if="auth.isClient || auth.isStaff"
-        class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push('/check-in')"
+        to="/check-in"
+        class="block rounded-xl"
       >
-        <CardContent class="p-4 text-center">
-          <div class="text-2xl mb-1">
-            📍
-          </div>
-          <div class="font-semibold text-navy text-sm">
-            Check In
-          </div>
-          <div class="text-[10px] text-slate mt-0.5">
-            Location or QR
-          </div>
-        </CardContent>
-      </Card>
+        <Card class="h-full cursor-pointer hover:shadow-md transition-shadow">
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl mb-1" aria-hidden="true">
+              📍
+            </div>
+            <div class="font-semibold text-navy text-sm">
+              Check In
+            </div>
+            <div class="text-[10px] text-slate mt-0.5">
+              Location or QR
+            </div>
+          </CardContent>
+        </Card>
+      </NuxtLink>
 
-      <Card
+      <NuxtLink
         v-if="auth.isStaff"
-        class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push('/manage/events')"
+        to="/manage/events"
+        class="block rounded-xl"
       >
-        <CardContent class="p-4 text-center">
-          <div class="text-2xl mb-1">
-            📅
-          </div>
-          <div class="font-semibold text-navy text-sm">
-            Events
-          </div>
-          <div class="text-[10px] text-slate mt-0.5">
-            Manage events
-          </div>
-        </CardContent>
-      </Card>
+        <Card class="h-full cursor-pointer hover:shadow-md transition-shadow">
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl mb-1" aria-hidden="true">
+              📅
+            </div>
+            <div class="font-semibold text-navy text-sm">
+              Events
+            </div>
+            <div class="text-[10px] text-slate mt-0.5">
+              Manage events
+            </div>
+          </CardContent>
+        </Card>
+      </NuxtLink>
 
-      <Card
-        class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push('/duty')"
-      >
-        <CardContent class="p-4 text-center">
-          <div class="text-2xl mb-1">
-            🏠
-          </div>
-          <div class="font-semibold text-navy text-sm">
-            Office Duty
-          </div>
-          <div class="text-[10px] text-slate mt-0.5">
-            Daily check-in
-          </div>
-        </CardContent>
-      </Card>
+      <NuxtLink to="/duty" class="block rounded-xl">
+        <Card class="h-full cursor-pointer hover:shadow-md transition-shadow">
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl mb-1" aria-hidden="true">
+              🏠
+            </div>
+            <div class="font-semibold text-navy text-sm">
+              Office Duty
+            </div>
+            <div class="text-[10px] text-slate mt-0.5">
+              Daily check-in
+            </div>
+          </CardContent>
+        </Card>
+      </NuxtLink>
 
-      <Card
+      <NuxtLink
         v-if="auth.isStaff"
-        class="cursor-pointer hover:shadow-md transition-shadow"
-        @click="router.push('/scan')"
+        to="/scan"
+        class="block rounded-xl"
       >
-        <CardContent class="p-4 text-center">
-          <div class="text-2xl mb-1">
-            📷
-          </div>
-          <div class="font-semibold text-navy text-sm">
-            Scan QR
-          </div>
-          <div class="text-[10px] text-slate mt-0.5">
-            Scan officer QR
-          </div>
-        </CardContent>
-      </Card>
+        <Card class="h-full cursor-pointer hover:shadow-md transition-shadow">
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl mb-1" aria-hidden="true">
+              📷
+            </div>
+            <div class="font-semibold text-navy text-sm">
+              Scan QR
+            </div>
+            <div class="text-[10px] text-slate mt-0.5">
+              Scan officer QR
+            </div>
+          </CardContent>
+        </Card>
+      </NuxtLink>
     </div>
 
     <!-- Duty Status (if has duty today) -->
-    <div
+    <NuxtLink
       v-if="!auth.isStudent && dutyStore.hasDutyToday(auth.user?.id || '')"
-      class="bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
-      @click="router.push('/duty')"
+      to="/duty"
+      class="block bg-paper-panel rounded-xl border border-gold/30 p-4 cursor-pointer hover:shadow-md transition-shadow"
     >
       <div class="flex items-center gap-3">
-        <div class="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_0_4px_rgba(201,162,75,0.15)]" />
+        <div class="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_0_4px_rgba(201,162,75,0.15)]" aria-hidden="true" />
         <div class="flex-1">
           <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">
             Office Duty Today
@@ -371,7 +374,7 @@ function formatTime(dateStr: string) {
           {{ dutyStore.isCheckedInForDuty(auth.user?.id || '') ? 'Checked in' : 'Tap to check in' }}
         </Badge>
       </div>
-    </div>
+    </NuxtLink>
 
     <MyEventAccess v-if="!auth.isStudent" />
 
@@ -384,29 +387,31 @@ function formatTime(dateStr: string) {
         No events scheduled for today
       </div>
       <div v-else class="space-y-3">
-        <Card
+        <NuxtLink
           v-for="event in todayEvents"
           :key="event.id"
-          class="cursor-pointer hover:shadow-md transition-shadow"
-          @click="auth.isStaff ? router.push(`/manage/events/${event.id}`) : router.push(`/check-in/${event.id}`)"
+          :to="auth.isStaff ? `/manage/events/${event.id}` : `/check-in/${event.id}`"
+          class="block rounded-xl"
         >
-          <CardContent class="p-4 flex items-center justify-between">
-            <div>
-              <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">
-                Today's session
+          <Card class="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent class="p-4 flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gold-dark font-bold uppercase tracking-wider">
+                  Today's session
+                </div>
+                <div class="font-bold text-navy">
+                  {{ event.title }}
+                </div>
+                <div class="text-xs text-slate">
+                  Starts {{ formatTime(event.date) }}
+                </div>
               </div>
-              <div class="font-bold text-navy">
-                {{ event.title }}
-              </div>
-              <div class="text-xs text-slate">
-                Starts {{ formatTime(event.date) }}
-              </div>
-            </div>
-            <Badge variant="success">
-              Active
-            </Badge>
-          </CardContent>
-        </Card>
+              <Badge variant="success">
+                Active
+              </Badge>
+            </CardContent>
+          </Card>
+        </NuxtLink>
       </div>
     </div>
   </div>

@@ -1,0 +1,118 @@
+name: a11y
+
+# Portal accessibility gate — WCAG 2.2 AA (plan §10, BC-13).
+#
+# The scan itself is targeted at under three minutes: 26 axe passes at two
+# viewports plus the shell/target-size assertions. The build in front of it is
+# the same Nuxt build CI already needs, so it is cached by npm.
+#
+# Repository settings this needs:
+#   variable A11Y_BASE_URL                - a stable preview with the seeded
+#            Supabase project + dev DB. Enables the ten signed-in routes and
+#            skips the local build. Unset = local build, signed-out + bundle
+#            audit only.
+#   secret   A11Y_EMAIL / A11Y_PASSWORD   - the seeded staff account on that
+#            preview. Without them the three signed-out screens are still
+#            gated and the signed-in routes are skipped with a notice.
+#   variable A11Y_REQUIRE_AUTH=1          - set once the preview and secrets
+#            exist, so a missing account fails instead of shrinking coverage.
+#
+# The frozen public site is NOT scanned here. It is guarded by
+# tools/public-parity (28/28) under docs/PUBLIC-SITE-FREEZE.md.
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'tools/a11y/**'
+      - 'nuxt.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/a11y.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'app/**'
+      - 'tools/a11y/**'
+      - 'nuxt.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/a11y.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: a11y-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  axe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # A stable preview with the seeded Supabase project makes the signed-in
+      # routes runnable. Leave the repository variable unset to build locally,
+      # which gates the signed-out screens and audits the scanner bundle.
+      A11Y_BASE_URL: ${{ vars.A11Y_BASE_URL }}
+      # A placeholder Supabase project is enough for the signed-out screens and
+      # the scanner bundle audit. Authenticated routes need the preview above
+      # (or real Supabase/DB settings) plus the two secrets below.
+      NUXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NUXT_PUBLIC_SUPABASE_KEY: ci-placeholder-key
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/usc
+      A11Y_EMAIL: ${{ secrets.A11Y_EMAIL }}
+      A11Y_PASSWORD: ${{ secrets.A11Y_PASSWORD }}
+      A11Y_REQUIRE_AUTH: ${{ vars.A11Y_REQUIRE_AUTH || '0' }}
+      CI: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        if: vars.A11Y_BASE_URL == ''
+        run: npm ci
+
+      - name: Build the portal
+        if: vars.A11Y_BASE_URL == ''
+        run: npm run build
+
+      - name: Audit the scanner bundle
+        if: vars.A11Y_BASE_URL == ''
+        run: node tools/a11y/check-scanner-bundle.mjs | tee scanner-bundle.log
+
+      - name: Install the a11y runner
+        working-directory: tools/a11y
+        run: npm ci
+
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tools/a11y/package-lock.json') }}
+
+      - name: Install Chromium
+        working-directory: tools/a11y
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the WCAG 2.2 AA gate
+        working-directory: tools/a11y
+        run: npm test
+
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-report
+          path: |
+            tools/a11y/report
+            tools/a11y/test-results
+            scanner-bundle.log
+          if-no-files-found: ignore
+          retention-days: 14

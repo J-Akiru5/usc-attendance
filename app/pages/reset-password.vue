@@ -186,7 +186,7 @@ async function onReset(_event: FormSubmitEvent<ResetSchema>) {
 
       <p class="text-center text-sm text-muted">
         Remembered it?
-        <NuxtLink to="/login" class="text-primary font-medium hover:underline">
+        <NuxtLink to="/login" class="text-primary font-medium underline hover:underline">
           Sign in
         </NuxtLink>
       </p>

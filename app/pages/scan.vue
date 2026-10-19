@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { api, isOfflineError } from '@/lib/api'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useScanQueue } from '@/composables/useScanQueue'
 import { classifyScan, findExactStudent } from '@/utils/scan'
+import { startStudentScanner, type ScannerHandle } from '@/utils/scanner-engine'
+import { canQueueScan, storageAdvice, unacknowledgedRefusals } from '@/utils/scan-queue'
 import type { QueuedScan } from '@/utils/scan-queue'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
@@ -18,23 +20,67 @@ interface LookupStudent { id: string, name: string, studentNo: string | null, ye
 const route = useRoute()
 const router = useRouter()
 const geo = useGeolocation()
-const { pending, refused, syncing, lastSyncedAt, online, enqueue, forget, clearRefused, flush, refresh, startWatching } = useScanQueue()
+const {
+  pending,
+  refused,
+  acknowledgedIds,
+  storage,
+  syncing,
+  lastSyncedAt,
+  online,
+  enqueue,
+  forget,
+  acknowledgeRefused,
+  flush,
+  refresh,
+  refreshStorage,
+  startWatching
+} = useScanQueue()
 
 const events = ref<EventOption[]>([])
 const eventId = ref(typeof route.query.eventId === 'string' ? route.query.eventId : '')
 const selectedEvent = computed(() => events.value.find(e => e.id === eventId.value) ?? null)
 
+// BC-6 decisions (pure, unit-tested in `app/utils/scan-queue.ts`).
+const capacity = computed(() => canQueueScan(pending.value.length))
+const unacknowledged = computed(() => unacknowledgedRefusals(refused.value, acknowledgedIds.value))
+const storageState = computed(() => {
+  const reading = storage.value
+  // `persisted: false` is only "refused" once persist() actually answered.
+  const persisted = reading?.persisted === true ? true : reading?.requested ? false : null
+  return storageAdvice({ persisted, quota: reading?.quota ?? null, usage: reading?.usage ?? null })
+})
+const showStorageNotice = computed(() => !!storage.value?.requested || storageState.value.lowSpace)
+
 const scanning = ref(false)
 const result = ref<{ kind: 'ok' | 'warn' | 'error', message: string } | null>(null)
 const candidates = ref<LookupStudent[]>([])
 const scannerRef = ref<HTMLDivElement | null>(null)
-let html5QrScanner: import('html5-qrcode').Html5Qrcode | null = null
+let scanner: ScannerHandle | null = null
 
 // A camera fires the same code many times a second; one scan per two seconds is
 // plenty and keeps a queue from forming.
 const cooldownUntil = ref(0)
 const SCAN_COOLDOWN_MS = 2000
 let stopWatching: (() => void) | undefined
+
+// One polite live-region sentence for the queue, instead of making every list
+// row a live region (WCAG 4.1.3 Status Messages).
+const syncAnnouncement = computed(() => {
+  if (syncing.value) {
+    return pending.value.length > 0
+      ? `Syncing ${pending.value.length} queued check-in${pending.value.length === 1 ? '' : 's'}.`
+      : 'Syncing queued check-ins.'
+  }
+  if (pending.value.length > 0) {
+    return `${pending.value.length} check-in${pending.value.length === 1 ? '' : 's'} waiting to sync.`
+  }
+  if (refused.value.length > 0) {
+    return `${refused.value.length} scan${refused.value.length === 1 ? '' : 's'} not recorded.`
+  }
+  if (lastSyncedAt.value) return 'All queued check-ins are synced.'
+  return ''
+})
 
 async function position(): Promise<{ lat: number | null, lng: number | null, accuracy: number | null }> {
   try {
@@ -90,7 +136,23 @@ async function syncNow() {
 }
 
 async function queueOffline(scan: Omit<QueuedScan, 'id' | 'scannedAt'>) {
-  await enqueue({ ...scan, id: crypto.randomUUID(), scannedAt: new Date().toISOString() })
+  // Refuse loudly at the hard cap rather than growing an unrecoverable queue.
+  const room = canQueueScan(pending.value.length)
+  if (!room.allowed) {
+    say('error', room.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
+    return
+  }
+
+  // Before the first queued scan, ask the browser to protect this origin's
+  // storage and record the answer. Later scans only refresh the estimate.
+  if (!storage.value?.requested) await refreshStorage(true)
+  else await refreshStorage(false)
+
+  const stored = await enqueue({ ...scan, id: crypto.randomUUID(), scannedAt: new Date().toISOString() })
+  if (!stored.allowed) {
+    say('error', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
+    return
+  }
   say('warn', 'No signal — saved on this phone and sent automatically when the connection is back.')
 }
 
@@ -244,10 +306,23 @@ async function recordFromList(student: LookupStudent) {
   }
 }
 
+// --- Refuse to abandon queued work silently (BC-6) --------------------------
+function pendingWarning(): string | null {
+  if (pending.value.length === 0) return null
+  const count = pending.value.length
+  return `You still have ${count} unsynced scan${count === 1 ? '' : 's'} on this phone. They stay queued and sync when the connection is back.`
+}
+
+onBeforeRouteLeave(() => {
+  const warning = pendingWarning()
+  return warning ? window.confirm(warning) : true
+})
+
 onMounted(async () => {
   geo.startWatching()
 
   await refresh()
+  await refreshStorage()
   stopWatching = startWatching(() => {
     void flush(sendQueued)
   })
@@ -264,46 +339,10 @@ onMounted(async () => {
   }
 
   try {
-    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
-
-    // D-03: iOS officers do QR-only duty. Reading 1D barcodes on iOS Safari leans
-    // on a polyfill we cannot verify from here, so the supported split is QR
-    // everywhere and ID barcodes on Chromium — with the number search below as
-    // the fallback on any phone.
-    const isAppleMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    const formats = [
-      Html5QrcodeSupportedFormats.QR_CODE,
-      ...(isAppleMobile
-        ? []
-        : [
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.CODE_93,
-            Html5QrcodeSupportedFormats.CODABAR,
-            Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E
-          ])
-    ]
-
     if (scannerRef.value) {
-      html5QrScanner = new Html5Qrcode('qr-scanner', {
-        verbose: false,
-        formatsToSupport: formats
+      scanner = await startStudentScanner('qr-scanner', (decodedText: string) => {
+        handleScan(decodedText)
       })
-      await html5QrScanner.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText: string) => {
-          handleScan(decodedText)
-        },
-        () => {} // ignore errors
-      )
     }
   } catch {
     say('error', 'Camera access required for scanning')
@@ -312,9 +351,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopWatching?.()
-  if (html5QrScanner) {
-    html5QrScanner.stop().catch(() => {})
-    html5QrScanner.clear()
+  if (scanner) {
+    void scanner.stop()
+    scanner = null
   }
 })
 </script>
@@ -330,17 +369,29 @@ onUnmounted(() => {
       <h1 class="text-2xl font-bold">
         Scan a student QR or ID
       </h1>
-      <p class="text-white/50 text-sm mt-1">
+      <p class="text-white/75 text-sm mt-1">
         A student's QR code, or the barcode / number on their ID. Location must be on — you have to be at the venue.
         On iPhone, scan QR codes and use the number search below for the rest.
       </p>
     </div>
 
+    <!-- BC-6: storage the browser may evict, stated plainly rather than hidden -->
+    <div
+      v-if="showStorageNotice && storageState.message"
+      data-testid="scan-storage-notice"
+      class="rounded-xl border-l-4 px-4 py-3 text-sm"
+      :class="storageState.lowSpace
+        ? 'border-danger bg-danger/10 text-danger'
+        : 'border-gold bg-gold/10 text-navy'"
+    >
+      {{ storageState.message }}
+    </div>
+
     <!-- Which event -->
     <Card>
       <CardContent class="p-4 space-y-2">
-        <label class="text-xs font-bold uppercase tracking-wide text-slate">Event</label>
-        <select v-model="eventId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+        <label for="scan-event" class="block text-xs font-bold uppercase tracking-wide text-slate">Event</label>
+        <select id="scan-event" v-model="eventId" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
           <option value="">
             Pick the event…
           </option>
@@ -360,7 +411,13 @@ onUnmounted(() => {
     <!-- Camera viewport -->
     <Card>
       <CardContent class="p-4">
-        <div id="qr-scanner" ref="scannerRef" class="w-full rounded-xl overflow-hidden" />
+        <div
+          id="qr-scanner"
+          ref="scannerRef"
+          class="w-full rounded-xl overflow-hidden"
+          role="group"
+          aria-label="Camera preview"
+        />
         <div v-if="!scannerRef" class="text-center py-12 text-slate text-sm">
           Initializing camera...
         </div>
@@ -368,7 +425,12 @@ onUnmounted(() => {
     </Card>
 
     <!-- Status -->
-    <div v-if="scanning" class="text-center">
+    <div
+      v-if="scanning"
+      role="status"
+      aria-live="polite"
+      class="text-center"
+    >
       <Badge variant="default" class="text-base px-4 py-1 animate-pulse">
         Processing scan...
       </Badge>
@@ -377,6 +439,9 @@ onUnmounted(() => {
     <!-- Result -->
     <div
       v-if="result"
+      :role="result.kind === 'error' ? 'alert' : 'status'"
+      :aria-live="result.kind === 'error' ? 'assertive' : 'polite'"
+      aria-atomic="true"
       :class="[
         'rounded-xl border-l-4 px-4 py-3 text-sm font-medium',
         result.kind === 'ok'
@@ -398,7 +463,8 @@ onUnmounted(() => {
         <button
           v-for="student in candidates"
           :key="student.id"
-          class="w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper disabled:opacity-50"
+          type="button"
+          class="min-h-11 w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper disabled:opacity-50"
           :disabled="scanning"
           @click="record(student.id, 'manual', student.name)"
         >
@@ -410,12 +476,23 @@ onUnmounted(() => {
     </Card>
 
     <!-- Offline queue (plan §8.2) -->
-    <div v-if="!online" class="rounded-xl border-l-4 border-gold bg-gold/10 px-4 py-3 text-sm text-navy">
+    <div v-if="!online" role="status" class="rounded-xl border-l-4 border-gold bg-gold/10 px-4 py-3 text-sm text-navy">
       No signal — scans are saved on this phone and sent automatically when the connection is back.
     </div>
 
-    <Card v-if="pending.length > 0 || refused.length > 0">
+    <p class="sr-only" role="status" aria-live="polite">
+      {{ syncAnnouncement }}
+    </p>
+
+    <Card v-if="pending.length > 0 || refused.length > 0" id="queue" :aria-busy="syncing">
       <CardContent class="p-4 space-y-3">
+        <div
+          v-if="capacity.atCap"
+          data-testid="scan-queue-full"
+          class="rounded-lg border-l-4 border-danger bg-danger/10 px-3 py-2 text-xs font-semibold text-danger"
+        >
+          {{ capacity.message }}
+        </div>
         <div class="flex items-center justify-between">
           <div class="text-xs font-bold uppercase tracking-wide text-slate">
             Waiting to sync
@@ -425,7 +502,8 @@ onUnmounted(() => {
               {{ pending.length }}
             </Badge>
             <button
-              class="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              type="button"
+              class="min-h-6 rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
               :disabled="syncing || pending.length === 0"
               @click="syncNow"
             >
@@ -440,15 +518,25 @@ onUnmounted(() => {
             <span class="shrink-0 text-xs text-slate">
               {{ new Date(scan.scannedAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' }) }}
             </span>
-            <button class="shrink-0 text-xs text-danger hover:underline" @click="forget(scan.id)">
+            <button
+              type="button"
+              class="inline-flex min-h-6 shrink-0 items-center text-xs text-danger hover:underline"
+              :aria-label="`Discard the queued check-in for ${scan.label}`"
+              @click="forget(scan.id)"
+            >
               discard
             </button>
           </li>
         </ul>
 
-        <div v-if="refused.length > 0" class="space-y-2">
-          <div class="text-xs font-bold uppercase tracking-wide text-danger">
-            Not recorded ({{ refused.length }})
+        <div v-if="refused.length > 0" class="space-y-2" data-testid="scan-refused-list">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-xs font-bold uppercase tracking-wide text-danger">
+              Not recorded ({{ refused.length }})
+            </div>
+            <span v-if="unacknowledged.length === 0" class="text-xs font-semibold text-slate">
+              Acknowledged
+            </span>
           </div>
           <ul class="divide-y divide-line text-sm">
             <li v-for="row in refused" :key="row.scan.id" class="py-1.5">
@@ -460,8 +548,16 @@ onUnmounted(() => {
               </div>
             </li>
           </ul>
-          <button class="text-xs font-semibold text-slate hover:underline" @click="clearRefused">
-            clear this list
+          <p class="text-xs text-slate">
+            Confirm you have seen these before you leave the scanner - the banner keeps showing them until you do.
+          </p>
+          <button
+            v-if="unacknowledged.length > 0"
+            type="button"
+            class="min-h-6 rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger/90"
+            @click="acknowledgeRefused"
+          >
+            Acknowledge {{ unacknowledged.length }}
           </button>
         </div>
 
@@ -474,31 +570,39 @@ onUnmounted(() => {
     <!-- Manual fallback: a phone died, or the barcode will not read -->
     <Card>
       <CardContent class="p-4 space-y-3">
-        <div class="text-xs font-bold uppercase tracking-wide text-slate">
+        <label for="scan-search" class="block text-xs font-bold uppercase tracking-wide text-slate">
           Search by number or name
-        </div>
+        </label>
         <form class="flex gap-2" @submit.prevent="handleManualSearch">
           <input
+            id="scan-search"
             v-model="manualQuery"
+            name="student-search"
             class="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm"
             placeholder="2024-00123 or a name"
           >
           <button
             type="submit"
-            class="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            class="min-h-10 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
             :disabled="manualBusy"
           >
             {{ manualBusy ? '…' : 'Find' }}
           </button>
         </form>
-        <p v-if="manualMessage" class="text-xs text-slate">
+        <p
+          v-if="manualMessage"
+          role="status"
+          aria-live="polite"
+          class="text-xs text-slate"
+        >
           {{ manualMessage }}
         </p>
         <div v-if="manualResults.length > 0" class="space-y-2">
           <button
             v-for="student in manualResults"
             :key="student.id"
-            class="w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper disabled:opacity-50"
+            type="button"
+            class="min-h-11 w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper disabled:opacity-50"
             :disabled="manualBusy"
             @click="recordFromList(student)"
           >
@@ -513,7 +617,8 @@ onUnmounted(() => {
     <!-- Back -->
     <div class="text-center">
       <button
-        class="text-xs text-navy font-bold hover:underline"
+        type="button"
+        class="inline-flex min-h-6 items-center text-xs text-navy font-bold hover:underline"
         @click="router.push('/manage/events')"
       >
         Back to events
@@ -523,7 +628,7 @@ onUnmounted(() => {
     <!-- Bottom stamp -->
     <div class="bg-gold rounded-lg px-5 py-3 flex items-center justify-between text-xs font-bold">
       <span class="text-navy-deep">ISUFST · Dingle Campus</span>
-      <span class="text-yellow-900">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
+      <span class="text-navy-deep">{{ new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) }}</span>
     </div>
   </div>
 </template>
