@@ -1,12 +1,13 @@
 import { getMethod } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate } from '../../utils/auth'
-import { badRequest, defineApiHandler, forbidden, isUniqueViolation, notFound, readJsonBody, respond } from '../../utils/http'
+import { badRequest, defineApiHandler, forbidden, HttpError, isUniqueViolation, notFound, readJsonBody, respond } from '../../utils/http'
 import { authorizeScanLocation } from '../../utils/attendance-rules'
 import { auditDelegationUse, requireEventScope } from '../../utils/delegation'
 import { assertCheckInOpen } from '../../utils/retention'
 import { verifyQrToken } from '../../utils/qr'
 import { hasExplicitScanTime, resolveScanTime, TOKEN_CLOCK_SKEW_SECONDS } from '../../utils/offline'
+import { decideDeviceTime, idempotencyKeyProblem, normalizeIdempotencyKey } from '../../utils/attendance'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
 
@@ -19,17 +20,43 @@ export default defineApiHandler(async (event) => {
   }
 
   const user = await authenticate(event)
-  const { token, lat, lng, accuracy, scannedAt: rawScannedAt } = await readJsonBody(event) ?? {}
+  const { token, lat, lng, accuracy, scannedAt: rawScannedAt, idempotencyKey: rawKey } = await readJsonBody(event) ?? {}
 
   if (!token || typeof token !== 'string') {
     throw badRequest('token is required')
   }
 
+  // The scanner gives every queued scan one stable key; a retry after a lost
+  // response returns the first record instead of a second check-in (BC-5).
+  const keyProblem = idempotencyKeyProblem(rawKey)
+  if (keyProblem) throw badRequest(keyProblem)
+  const idempotencyKey = normalizeIdempotencyKey(rawKey)
+
+  if (idempotencyKey) {
+    const existing = await prisma.attendance.findUnique({
+      where: { idempotencyKey },
+      include: { user: { select: { id: true, name: true, position: true, role: true } } }
+    })
+    if (existing) {
+      // Same officer, same scan: success. Any other officer gets the same
+      // conflict answer as an unknown reuse, so the key is not a lookup handle.
+      if (existing.recordedBy !== user.id || existing.method !== 'qr' || existing.type !== 'event') {
+        throw new HttpError(409, 'That scan key has already been used for a different check-in.')
+      }
+      return respond(event, 200, { ...existing, replayed: true })
+    }
+  }
+
   // A queued offline scan carries the moment it happened; everything below is
   // then judged as of that moment (token lifetime, grants, the window) so a scan
   // taken while the token was alive still counts when it syncs later (§8.2).
-  const scanTime = resolveScanTime(rawScannedAt)
-  const stamped = hasExplicitScanTime(rawScannedAt)
+  // A phone whose clock is ahead is clamped to server time, and the raw claim is
+  // kept in `scannedAt` as evidence.
+  const now = new Date()
+  const deviceAt = hasExplicitScanTime(rawScannedAt) ? resolveScanTime(rawScannedAt, now) : null
+  const timing = decideDeviceTime(deviceAt, now)
+  if (!timing.accepted) throw badRequest('scannedAt cannot be in the future')
+  const scanTime = timing.effectiveAt
   const scanSeconds = Math.floor(scanTime.getTime() / 1000)
 
   const payload = verifyQrToken(token, scanSeconds)
@@ -65,7 +92,9 @@ export default defineApiHandler(async (event) => {
         lat: scannedAt.lat,
         lng: scannedAt.lng,
         recordedBy: user.id,
-        ...(stamped && { createdAt: scanTime })
+        scannedAt: timing.scannedAt,
+        idempotencyKey,
+        ...(timing.usedDeviceTime && { createdAt: scanTime })
       },
       include: {
         user: { select: { id: true, name: true, position: true, role: true } }
@@ -76,12 +105,25 @@ export default defineApiHandler(async (event) => {
       await auditDelegationUse(prisma, user, payload.e, 'scan', {
         attendanceId: record.id,
         targetUserId: payload.u,
-        ...(stamped && { scannedAt: scanTime.toISOString(), syncedAt: new Date().toISOString() })
+        ...(timing.usedDeviceTime && { scannedAt: scanTime.toISOString(), syncedAt: new Date().toISOString() })
       })
     }
 
     return respond(event, 201, record)
   } catch (dbErr: unknown) {
+    // A raced retry of the same key returns the winner, not a refusal.
+    if (isUniqueViolation(dbErr) && idempotencyKey) {
+      const raced = await prisma.attendance.findUnique({
+        where: { idempotencyKey },
+        include: { user: { select: { id: true, name: true, position: true, role: true } } }
+      })
+      if (raced) {
+        if (raced.recordedBy !== user.id || raced.method !== 'qr' || raced.type !== 'event') {
+          throw new HttpError(409, 'That scan key has already been used for a different check-in.')
+        }
+        return respond(event, 200, { ...raced, replayed: true })
+      }
+    }
     if (isUniqueViolation(dbErr)) {
       throw forbidden(ALREADY_CHECKED_IN)
     }

@@ -6,7 +6,7 @@ import { useGeolocation } from '@/composables/useGeolocation'
 import { useScanQueue } from '@/composables/useScanQueue'
 import { classifyScan, findExactStudent } from '@/utils/scan'
 import { startStudentScanner, type ScannerHandle } from '@/utils/scanner-engine'
-import { canQueueScan, storageAdvice, unacknowledgedRefusals } from '@/utils/scan-queue'
+import { canQueueScan, scanIdempotencyKey, storageAdvice, unacknowledgedRefusals } from '@/utils/scan-queue'
 import type { QueuedScan } from '@/utils/scan-queue'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
@@ -55,6 +55,8 @@ const showStorageNotice = computed(() => !!storage.value?.requested || storageSt
 const scanning = ref(false)
 const result = ref<{ kind: 'ok' | 'warn' | 'error', message: string } | null>(null)
 const candidates = ref<LookupStudent[]>([])
+/** Why an officer is recording by hand; required for `method: 'manual'`. */
+const manualReason = ref('')
 const scannerRef = ref<HTMLDivElement | null>(null)
 let scanner: ScannerHandle | null = null
 
@@ -105,15 +107,19 @@ function say(kind: 'ok' | 'warn' | 'error', message: string) {
 /**
  * Sends a queued scan — the offline queue's half of the contract: the moment it
  * was taken travels with it, and the server judges it as of that moment (§8.2).
+ * The stable key makes a retry a replay rather than a second check-in (BC-5).
  */
 async function sendQueued(scan: QueuedScan) {
+  const idempotencyKey = scanIdempotencyKey(scan)
+
   if (scan.kind === 'qr' && scan.token) {
     await api.post('/attendance/qr', {
       token: scan.token,
       lat: scan.lat,
       lng: scan.lng,
       accuracy: scan.accuracy,
-      scannedAt: scan.scannedAt
+      scannedAt: scan.scannedAt,
+      idempotencyKey
     })
     return
   }
@@ -126,7 +132,9 @@ async function sendQueued(scan: QueuedScan) {
     lat: scan.lat,
     lng: scan.lng,
     accuracy: scan.accuracy,
-    scannedAt: scan.scannedAt
+    scannedAt: scan.scannedAt,
+    idempotencyKey,
+    ...(scan.manualReason ? { manualReason: scan.manualReason } : {})
   })
 }
 
@@ -135,7 +143,7 @@ async function syncNow() {
   if (pending.value.length === 0 && refused.value.length === 0) say('ok', 'Everything is synced.')
 }
 
-async function queueOffline(scan: Omit<QueuedScan, 'id' | 'scannedAt'>) {
+async function queueOffline(scan: Omit<QueuedScan, 'id'>) {
   // Refuse loudly at the hard cap rather than growing an unrecoverable queue.
   const room = canQueueScan(pending.value.length)
   if (!room.allowed) {
@@ -148,7 +156,7 @@ async function queueOffline(scan: Omit<QueuedScan, 'id' | 'scannedAt'>) {
   if (!storage.value?.requested) await refreshStorage(true)
   else await refreshStorage(false)
 
-  const stored = await enqueue({ ...scan, id: crypto.randomUUID(), scannedAt: new Date().toISOString() })
+  const stored = await enqueue({ ...scan, id: crypto.randomUUID() })
   if (!stored.allowed) {
     say('error', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
     return
@@ -158,7 +166,20 @@ async function queueOffline(scan: Omit<QueuedScan, 'id' | 'scannedAt'>) {
 
 /** Sign in a student by their ID — QR token or the number off an ID barcode. */
 async function record(userId: string, method: 'manual' | 'barcode', name: string) {
+  const reason = method === 'manual' ? manualReason.value.trim() : ''
+  if (method === 'manual' && !reason) {
+    throw new Error('Add a short reason before recording a manual check-in.')
+  }
+
   const pos = await position()
+  // One key per scan, generated before the first attempt: if the response is
+  // lost and the scan is queued, the retry presents the same key, so the server
+  // returns the first record instead of refusing a duplicate (BC-5).
+  const idempotencyKey = crypto.randomUUID()
+  // The scan moment travels only with a queued scan: a live check-in is stamped
+  // by the server, so a phone with a badly wrong clock cannot backdate one.
+  const scannedAt = new Date().toISOString()
+
   try {
     const row = await api.post<{ user?: { name?: string } }>('/attendance', {
       type: 'event',
@@ -167,9 +188,12 @@ async function record(userId: string, method: 'manual' | 'barcode', name: string
       method,
       lat: pos.lat,
       lng: pos.lng,
-      accuracy: pos.accuracy
+      accuracy: pos.accuracy,
+      idempotencyKey,
+      ...(reason && { manualReason: reason })
     })
     candidates.value = []
+    if (method === 'manual') manualReason.value = ''
     say('ok', `${method === 'barcode' ? 'ID scanned — check-in recorded' : 'Check-in recorded'} for ${row.user?.name ?? name}`)
   } catch (error) {
     if (!isOfflineError(error)) throw error
@@ -179,6 +203,9 @@ async function record(userId: string, method: 'manual' | 'barcode', name: string
       eventId: eventId.value,
       label: name,
       userId,
+      idempotencyKey,
+      scannedAt,
+      ...(reason && { manualReason: reason }),
       ...pos
     })
   }
@@ -192,12 +219,17 @@ async function lookup(q: string) {
 
 async function scanQr(token: string) {
   const pos = await position()
+  const idempotencyKey = crypto.randomUUID()
+  // Only a queued scan carries the device moment; a live one is stamped by the
+  // server (see `record`).
+  const scannedAt = new Date().toISOString()
   try {
     const response = await api.post<{ user?: { name?: string } }>('/attendance/qr', {
       token: token.trim(),
       lat: pos.lat,
       lng: pos.lng,
-      accuracy: pos.accuracy
+      accuracy: pos.accuracy,
+      idempotencyKey
     })
     say('ok', `Check-in recorded for ${response.user?.name ?? 'the student'}`)
   } catch (error) {
@@ -207,6 +239,8 @@ async function scanQr(token: string) {
       eventId: eventId.value,
       label: 'QR code',
       token: token.trim(),
+      idempotencyKey,
+      scannedAt,
       ...pos
     })
   }
@@ -263,6 +297,10 @@ const manualMessage = ref('')
 async function handleManualSearch() {
   if (!eventId.value) {
     manualMessage.value = 'Pick the event first.'
+    return
+  }
+  if (!manualReason.value.trim()) {
+    manualMessage.value = 'Add a short reason before recording a manual check-in.'
     return
   }
   const q = manualQuery.value.trim()
@@ -466,7 +504,7 @@ onUnmounted(() => {
           type="button"
           class="min-h-11 w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper disabled:opacity-50"
           :disabled="scanning"
-          @click="record(student.id, 'manual', student.name)"
+          @click="record(student.id, 'barcode', student.name)"
         >
           <span class="font-semibold text-navy">{{ student.name }}</span>
           <span class="ml-2 font-mono text-xs text-slate">{{ student.studentNo || 'no number' }}</span>
@@ -570,6 +608,23 @@ onUnmounted(() => {
     <!-- Manual fallback: a phone died, or the barcode will not read -->
     <Card>
       <CardContent class="p-4 space-y-3">
+        <div class="space-y-1">
+          <label for="scan-reason" class="block text-xs font-bold uppercase tracking-wide text-slate">
+            Reason for manual entry
+          </label>
+          <input
+            id="scan-reason"
+            v-model="manualReason"
+            name="manual-reason"
+            maxlength="200"
+            autocomplete="off"
+            class="w-full rounded-lg border border-line px-3 py-2 text-sm"
+            placeholder="e.g. phone dead, ID would not scan"
+          >
+          <p class="text-xs text-slate">
+            Required — it is stored with the check-in and written to the audit log.
+          </p>
+        </div>
         <label for="scan-search" class="block text-xs font-bold uppercase tracking-wide text-slate">
           Search by number or name
         </label>
