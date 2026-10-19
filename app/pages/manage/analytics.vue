@@ -13,6 +13,8 @@ interface Overview {
   expected: number
   attended: number
   rate: number
+  frozenAt?: string | null
+  frozenEvents?: number
   signatures: { signed: number, rate: number }
   methods: Array<{ method: string, count: number }>
   noShows: number
@@ -25,6 +27,7 @@ interface EventRow {
   expected: number
   attended: number
   rate: number
+  frozenAt: string | null
   signatures: { signed: number, rate: number }
 }
 interface GroupRow { key: string, label: string, expected: number, attended: number, rate: number }
@@ -49,6 +52,7 @@ const percent = (value: number) => `${Math.round(value * 100)}%`
 const methodLabels: Record<string, string> = { qr: 'QR scan', manual: 'Manual', barcode: 'ID barcode', self: 'Self check-in' }
 
 const timingMax = computed(() => Math.max(1, ...(timing.value?.buckets ?? []).map(b => b.count)))
+const frozenCount = computed(() => events.value.filter(row => row.frozenAt).length)
 
 async function load() {
   loading.value = true
@@ -88,6 +92,18 @@ async function reloadGroups() {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+/** When the roster was frozen (BC-4), in the same Manila clock as the reports. */
+function formatFrozenAt(value: string) {
+  return new Date(value).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })
 }
 
 onMounted(async () => {
@@ -156,6 +172,9 @@ onMounted(async () => {
             </div>
             <div class="text-xs text-slate mt-1">
               {{ overview.attended }} of {{ overview.expected }} expected
+            </div>
+            <div v-if="overview.frozenEvents" class="text-[10px] text-slate mt-1">
+              {{ overview.frozenEvents }} of {{ overview.events }} events frozen
             </div>
           </CardContent>
         </Card>
@@ -274,8 +293,13 @@ onMounted(async () => {
       <!-- Per event -->
       <Card>
         <CardContent class="p-6 space-y-3">
-          <div class="font-semibold text-navy font-serif">
-            Per event
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="font-semibold text-navy font-serif">
+              Per event
+            </div>
+            <div v-if="frozenCount > 0" class="text-xs text-slate">
+              “Frozen” is the expected roster recorded when the window closed.
+            </div>
           </div>
           <div v-if="events.length === 0" class="text-sm text-slate">
             No events in this window.
@@ -328,6 +352,9 @@ onMounted(async () => {
                   </td>
                   <td class="py-2 pr-3 text-right font-mono">
                     {{ row.expected }}
+                    <div v-if="row.frozenAt" class="font-sans text-[10px] font-normal text-slate">
+                      frozen {{ formatFrozenAt(row.frozenAt) }}
+                    </div>
                   </td>
                   <td class="py-2 pr-3 text-right font-mono">
                     {{ percent(row.rate) }}

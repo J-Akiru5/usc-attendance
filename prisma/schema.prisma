@@ -50,6 +50,7 @@ model User {
   createdNotifications Notification[]    @relation("NotificationCreator")
   notificationPreference NotificationPreference? @relation("NotificationPreference")
   announcements      Announcement[]      @relation("AnnouncementCreator")
+  expectedRosters    EventExpected[]     @relation("ExpectedStudent")
   fines              Fine[]              @relation("FineOwner")
   finesPaid          Fine[]              @relation("FinePaidBy")
   fineWaivers        Fine[]              @relation("FineWaivedBy")
@@ -182,6 +183,10 @@ model Event {
   fineRule      FineRule? @relation("EventFineRule")
   fines         Fine[]
 
+  /// The expected roster frozen when the window closed (benchmark BC-4), one
+  /// row per person. Reports and fines read this, never a live resolve.
+  expected      EventExpected[]
+
   /// Cancellation (benchmark BC-7). One-way on purpose: a cancelled event is a
   /// record of something called off, and re-instating it would quietly re-arm the
   /// fines and reminders. Cancelled events are inert — no reminders, no fines,
@@ -231,6 +236,36 @@ model EventRegistration {
   @@index([eventId, status])
   @@index([userId])
   @@map("event_registrations")
+}
+
+/// The expected roster, frozen when an event's check-in window closes (benchmark
+/// BC-4, plan §8.2/§8.3/§8.5): one row per expected person per event, with the
+/// placement that explained them at that moment. Reports, Student 360 and the
+/// fine generator read this instead of resolving live, so a later transfer
+/// cannot change who was charged or make an old export unreproducible.
+///
+/// `source` is the event's audience type at snapshot time. The placement columns
+/// are copied text rather than foreign keys on purpose: they are a record of
+/// history, not a current reference. The event/user links cascade because a
+/// deleted event or person must not leave orphan expectations.
+model EventExpected {
+  id         String   @id @default(uuid())
+  eventId    String
+  userId     String
+  source     String   // all | college | yearLevel | section
+  collegeId  String?
+  yearLevel  Int?
+  sectionId  String?
+  snapshotAt DateTime
+  createdAt  DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation("ExpectedStudent", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_expected")
 }
 
 /// In-app notifications (plan §8.4). `dedupeKey` makes the reminder cron safe to
@@ -959,27 +994,45 @@ model Document {
   title          String
   body           String   @db.Text
   tags           String[]
+  /// Legacy mirror kept in step with `classification` so older queries, exports
+  /// and the live app keep working. Never authoritative: `classification` is.
   visibility     String   @default("officers") // public | officers
+  /// BC-9: public | officers | restricted. Only `public` may be served without a
+  /// session, and only through `redactedVersion` when one is set.
+  classification String   @default("officers")
   currentVersion Int      @default(1)
   archived       Boolean  @default(false)
   searchText     String   @default("") @db.Text
   /// tsvector generated from `searchText` by the migration (see the add_documents
   /// migration); queried with $queryRaw, never written through Prisma.
   searchVector   Unsupported("tsvector")?
+  /// The corpus a visitor may search: the redacted copy's text when one is in
+  /// force, otherwise the same text the officers search. Maintained on every
+  /// content change, so a public search can never match a redacted phrase.
+  publicSearchText String @default("") @db.Text
+  /// tsvector generated from `publicSearchText` by the document_classification
+  /// migration; queried with $queryRaw, never written through Prisma.
+  publicSearchVector Unsupported("tsvector")?
+  /// The version prepared for publication (a derivative, never the original).
+  redactedVersionId String?
+  /// What was removed, or why the existing text was already safe.
+  redactionNote  String?
   eventId        String?
   financeRef     String?
   createdBy      String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
 
-  type        DocumentType         @relation(fields: [typeId], references: [id])
-  event       Event?               @relation("DocumentEvent", fields: [eventId], references: [id], onDelete: SetNull)
-  creator     User                 @relation("DocumentCreator", fields: [createdBy], references: [id])
-  versions    DocumentVersion[]
-  attachments DocumentAttachment[]
+  type            DocumentType         @relation(fields: [typeId], references: [id])
+  event           Event?               @relation("DocumentEvent", fields: [eventId], references: [id], onDelete: SetNull)
+  creator         User                 @relation("DocumentCreator", fields: [createdBy], references: [id])
+  versions        DocumentVersion[]
+  attachments     DocumentAttachment[]
+  redactedVersion DocumentVersion?     @relation("DocumentRedactedVersion", fields: [redactedVersionId], references: [id], onDelete: SetNull)
 
   @@index([typeId, year])
   @@index([visibility, archived, createdAt])
+  @@index([classification, archived, createdAt])
   @@map("documents")
 }
 
@@ -995,12 +1048,17 @@ model DocumentVersion {
   tags       String[]
   visibility String
   changeNote String?
+  /// BC-9: a derivative prepared for publication, not a new state of the
+  /// record. It stays in the immutable history next to the version it redacts.
+  isRedacted Boolean  @default(false)
   createdBy  String
   createdAt  DateTime @default(now())
 
   document    Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
   creator     User                 @relation("DocumentVersionCreator", fields: [createdBy], references: [id])
   attachments DocumentAttachment[]
+  /// Documents whose public copy is this version (at most one per document).
+  redactedFor Document[]           @relation("DocumentRedactedVersion")
 
   @@unique([documentId, version])
   @@index([documentId, version])
