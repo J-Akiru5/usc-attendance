@@ -102,7 +102,7 @@ const label = 'block text-[10px] font-bold text-navy uppercase tracking-wider mb
 </script>
 
 <template>
-  <div class="min-h-screen bg-paper flex items-center justify-center p-4">
+  <main class="min-h-screen bg-paper flex items-center justify-center p-4">
     <div class="w-full max-w-md rounded-2xl border border-line bg-white p-6 sm:p-8 shadow-sm">
       <div class="mb-6">
         <div class="text-xs tracking-widest uppercase text-gold-dark font-mono mb-1">
@@ -257,5 +257,5 @@ const label = 'block text-[10px] font-bold text-navy uppercase tracking-wider mb
         </p>
       </form>
     </div>
-  </div>
+  </main>
 </template>
