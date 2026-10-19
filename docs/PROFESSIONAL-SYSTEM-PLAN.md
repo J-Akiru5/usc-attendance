@@ -619,7 +619,14 @@ npx tsx scripts/e2e/delegation.e2e.mts   # live e2e (also export / students / re
   - endpoints: own inbox with an unread count, self-scoped mark-read (the suite proves another person's notification cannot be touched), preferences; UI: a header bell with the badge and `/notifications` with the inbox and the channel switches
   - reminders and preferences are done; **announcements** (compose / schedule / pin / delivery log) remain in §8.4, and push waits for the PWA service worker + VAPID keys
 - [ ] Official report templates
-- [ ] Announcements (in-app, email, push) + reminders + preferences
+- [x] Announcements (in-app, email) + reminders + preferences (2026-10-19, `feat/p3d-announcements`)
+  - compose with a deliberately small format — paragraphs, `**bold**`, `*italic*`, `[links](https://…)`, `-` lists — rendered by `server/utils/announce.ts`, which **escapes every character of user text before turning tokens into tags**, so nothing a person types can become a tag and only http(s) links survive (unit-tested against `<script>`, `javascript:` and `data:` attempts)
+  - target with the same audience columns as events (all / college / year / section); send now, save as a draft, or schedule it for its time; pin to the dashboard
+  - delivery rides the notification core: each recipient's row carries `announcement:<id>`, which is the delivery log *and* what makes both the manual send and `/api/cron/announcements` idempotent (a re-run reports duplicates, never re-sends); email follows each person's own choice, so unsubscribing is honoured while the inbox still gets it
+  - a sent announcement is a record: it cannot be reworded or deleted (409), only pinned/unpinned; a draft can be edited or deleted, and a pinned draft stays private
+  - UI: `/manage/announcements` (composer with preview, audience picker, schedule, list with status + how many people it reached) and a pinned card on the dashboard
+  - **§8.4 acceptance proven live**: a scheduled announcement to one college reaches only that college, and an unsubscribed student is not mailed but still hears it in the app; the college it targets cannot be deleted (409)
+  - **web push remains deferred** — it needs the PWA service worker and VAPID keys (a console decision); the `push` preference is stored so the choice is not lost
 
 ### P4 Fines & clearance
 - [ ] Fine rules (defaults ₱50 absent / ₱25 late, editable) + auto-generation + excuses
