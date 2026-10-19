@@ -78,3 +78,23 @@
 - `.font-serif` renders Inter on the public site because the previous build emitted an unquoted family name that
   browsers drop; restoring real serif type is likewise a public-site change needing approval.
 - The uptime monitor (UptimeRobot or similar) should point at `https://usc.syntaxure.dev/api/health`.
+
+## Verified before cutover (2026-10-20, develop @ `cc66328`)
+
+These are the gates that were actually run and observed, not planned:
+
+- **Public parity 28/28.** `tools/public-parity` compared the live site against a production build of
+  this tree: 14 routes x 2 viewports, content outline and pixels (0.05% tolerance). Nothing on the
+  frozen public site moved.
+- **Live batch 25 suites / 718 checks**, zero failures, zero retries, against the dev database after
+  all 30 migrations were applied.
+- **Offline-queue golden path green in CI.** It builds the app and serves `.output`; a dev server
+  never became reachable inside the CI readiness budget, so the gate does not use one.
+- **Accessibility gate green.** axe at desktop and mobile over 13 portal routes, serious and critical
+  violations failing the build. Its first run found `/register` with no `main` landmark.
+- **AgentOps evidence** #2 (T-0001) and #3 (T-0003) on tree `d321acd5c73b`: eslint, typecheck,
+  legacy typecheck and vitest, all PASS.
+
+Still outstanding at cutover, by decision rather than omission: `SITE_URL` and the Vercel
+`CRON_SECRET`, the Supabase console settings, the council answers C-1 to C-6, and the university
+letterhead for the PDF twin.
