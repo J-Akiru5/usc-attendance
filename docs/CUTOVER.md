@@ -98,3 +98,5 @@ These are the gates that were actually run and observed, not planned:
 Still outstanding at cutover, by decision rather than omission: `SITE_URL` and the Vercel
 `CRON_SECRET`, the Supabase console settings, the council answers C-1 to C-6, and the university
 letterhead for the PDF twin.
+
+> **Set from the CLI on 2026-10-20** (production environment, values verified by pulling them back): `CRON_SECRET` (64 hex, identical to the repository secret and the local `.env`), `SITE_URL=https://usc.syntaxure.dev`, and `AUDIT_IP_SALT` (48 hex - it was missing entirely, so audit rows were storing no address hash). Environment changes take effect on the next production deployment, which is the cutover. The Supabase Auth URL configuration below is **not** done: the USC project is not in this account's Supabase CLI project list, so it needs the dashboard. The repository variable `SITE_URL` is deliberately still unset - setting it is what starts the three scheduled cron workflows, so it belongs to the cutover step.
