@@ -100,7 +100,8 @@ export default defineApiHandler(async (event) => {
       },
       include: {
         user: { select: { id: true, name: true, position: true, role: true } }
-      }
+      },
+      omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true }
     })
 
     if (viaDelegation) {
@@ -117,7 +118,8 @@ export default defineApiHandler(async (event) => {
     if (isUniqueViolation(dbErr) && idempotencyKey) {
       const raced = await prisma.attendance.findUnique({
         where: { idempotencyKey },
-        include: { user: { select: { id: true, name: true, position: true, role: true } } }
+        include: { user: { select: { id: true, name: true, position: true, role: true } } },
+        omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true }
       })
       if (raced) {
         if (raced.recordedBy !== user.id || raced.method !== 'qr' || raced.type !== 'event') {

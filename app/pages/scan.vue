@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, shallowRef, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
-import { api, isOfflineError } from '@/lib/api'
+import { api, ApiError, getSupabaseClient, isOfflineError } from '@/lib/api'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useScanQueue } from '@/composables/useScanQueue'
 import { useAuthStore } from '@/stores/auth'
@@ -71,6 +71,17 @@ const result = ref<{ kind: 'ok' | 'warn' | 'error', message: string } | null>(nu
 const candidates = ref<LookupStudent[]>([])
 /** Why an officer is recording by hand; required for `method: 'manual'`. */
 const manualReason = ref('')
+/**
+ * T-0009: the student-ID photo captured for the manual fallback. It is optional
+ * (a dead camera must not block the check-in), kept as a Blob so it can travel
+ * with an offline scan, and previewed through a local object URL only.
+ */
+const manualPhoto = shallowRef<{ blob: Blob, previewUrl: string, capturedAt: string } | null>(null)
+const manualPhotoError = ref('')
+const photoInput = ref<HTMLInputElement | null>(null)
+/** Queued manual scans that synced after their photo upload was refused. */
+const photoMissing = ref(0)
+const MAX_PHOTO_BYTES = 1_572_864
 const scannerRef = ref<HTMLDivElement | null>(null)
 let scanner: ScannerHandle | null = null
 
@@ -121,6 +132,158 @@ function say(kind: 'ok' | 'warn' | 'error', message: string) {
   result.value = { kind, message }
 }
 
+// --- T-0009: student-ID photo capture ---------------------------------------
+function clearManualPhoto() {
+  if (manualPhoto.value) URL.revokeObjectURL(manualPhoto.value.previewUrl)
+  manualPhoto.value = null
+  manualPhotoError.value = ''
+  if (photoInput.value) photoInput.value.value = ''
+}
+
+interface DecodedPhoto {
+  source: CanvasImageSource
+  width: number
+  height: number
+  release: () => void
+}
+
+/** ImageBitmap where it exists, an <img> otherwise — both are client-only. */
+async function decodePhoto(file: File): Promise<DecodedPhoto> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file)
+      return { source: bitmap, width: bitmap.width, height: bitmap.height, release: () => bitmap.close() }
+    } catch {
+      // Fall through to the <img> decoder; some browsers refuse HEIC here.
+    }
+  }
+  const url = URL.createObjectURL(file)
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image()
+      element.onload = () => resolve(element)
+      element.onerror = () => reject(new Error('That file is not a readable image — take the photo again.'))
+      element.src = url
+    })
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      release: () => URL.revokeObjectURL(url)
+    }
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    throw error
+  }
+}
+
+function canvasJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('This browser could not prepare the photo — try another photo.'))
+    }, 'image/jpeg', quality)
+  })
+}
+
+/**
+ * Re-encodes the picture through a canvas. That strips EXIF (including a
+ * phone's location) and keeps the file under the server's 1.5 MB cap. The
+ * server enforces both independently; this is courtesy, not trust.
+ */
+async function preparePhoto(file: File): Promise<Blob> {
+  const looksLikeImage = file.type.startsWith('image/') || /\.(?:jpe?g|png|webp|heic|heif)$/i.test(file.name)
+  if (!looksLikeImage) {
+    throw new Error('Choose a photo of the student ID (JPEG, PNG or WebP).')
+  }
+  const decoded = await decodePhoto(file)
+  try {
+    const scale = Math.min(1, 1600 / Math.max(decoded.width, decoded.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(decoded.width * scale))
+    canvas.height = Math.max(1, Math.round(decoded.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('This browser could not prepare the photo.')
+    // JPEG has no transparency; white keeps a PNG ID from turning black.
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(decoded.source, 0, 0, canvas.width, canvas.height)
+
+    let quality = 0.82
+    let blob = await canvasJpeg(canvas, quality)
+    while (blob.size > MAX_PHOTO_BYTES && quality > 0.4) {
+      quality -= 0.1
+      blob = await canvasJpeg(canvas, quality)
+    }
+    if (blob.size > MAX_PHOTO_BYTES) {
+      throw new Error('That photo is still larger than 1.5 MB — take a closer, simpler photo.')
+    }
+    return blob
+  } finally {
+    decoded.release()
+  }
+}
+
+async function handlePhotoSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (manualPhoto.value) {
+    URL.revokeObjectURL(manualPhoto.value.previewUrl)
+    manualPhoto.value = null
+  }
+  manualPhotoError.value = ''
+  try {
+    const blob = await preparePhoto(file)
+    manualPhoto.value = {
+      blob,
+      previewUrl: URL.createObjectURL(blob),
+      capturedAt: new Date().toISOString()
+    }
+  } catch (error) {
+    manualPhotoError.value = error instanceof Error ? error.message : 'Could not read that photo.'
+    input.value = ''
+  }
+}
+
+/**
+ * Uploads the photo before the check-in and returns the server's opaque
+ * reference. There is deliberately no public URL on either side.
+ */
+async function uploadAttendancePhoto(
+  blob: Blob,
+  meta: { eventId: string, userId: string, idempotencyKey: string, capturedAt: string }
+): Promise<string> {
+  const client = getSupabaseClient()
+  const session = client ? (await client.auth.getSession()).data.session : null
+  const form = new FormData()
+  form.append('photo', blob, 'student-id.jpg')
+  form.append('eventId', meta.eventId)
+  form.append('userId', meta.userId)
+  form.append('idempotencyKey', meta.idempotencyKey)
+  form.append('capturedAt', meta.capturedAt)
+
+  let response: Response
+  try {
+    response = await fetch('/api/attendance/photo', {
+      method: 'POST',
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      body: form
+    })
+  } catch {
+    throw new ApiError('You appear to be offline. This will be recorded when the connection is back.', 0)
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: response.statusText })) as { error?: string }
+    throw new ApiError(body.error || `Photo upload failed (${response.status})`, response.status)
+  }
+  const body = await response.json() as { photoRef?: string }
+  if (!body.photoRef) throw new ApiError('The server did not return a photo reference.', 500)
+  return body.photoRef
+}
+
 /**
  * Sends a queued scan — the offline queue's half of the contract: the moment it
  * was taken travels with it, and the server judges it as of that moment (§8.2).
@@ -141,6 +304,24 @@ async function sendQueued(scan: QueuedScan) {
     return
   }
 
+  // T-0009: upload the queued photo first. A lost connection keeps the whole
+  // scan (Blob included) queued; a refusal must not lose the check-in, so the
+  // attendance goes ahead and the server records the evidence as absent.
+  let photoRef: string | undefined
+  if (scan.kind === 'manual' && scan.photo && scan.userId) {
+    try {
+      photoRef = await uploadAttendancePhoto(scan.photo, {
+        eventId: scan.eventId,
+        userId: scan.userId,
+        idempotencyKey,
+        capturedAt: scan.photoCapturedAt ?? scan.scannedAt
+      })
+    } catch (error) {
+      if (isOfflineError(error)) throw error
+      photoMissing.value += 1
+    }
+  }
+
   await api.post('/attendance', {
     type: 'event',
     eventId: scan.eventId,
@@ -151,7 +332,8 @@ async function sendQueued(scan: QueuedScan) {
     accuracy: scan.accuracy,
     scannedAt: scan.scannedAt,
     idempotencyKey,
-    ...(scan.manualReason ? { manualReason: scan.manualReason } : {})
+    ...(scan.manualReason ? { manualReason: scan.manualReason } : {}),
+    ...(photoRef ? { photoRef } : {})
   })
 }
 
@@ -172,21 +354,21 @@ async function syncNow() {
   if (pending.value.length === 0 && refused.value.length === 0) say('ok', 'Everything is synced.')
 }
 
-async function queueOffline(scan: Omit<QueuedScan, 'id'>) {
+async function queueOffline(scan: Omit<QueuedScan, 'id'>): Promise<boolean> {
   if (!officerId.value) {
     say('error', 'Your session is not ready — nothing was saved. Reload the page and sign in again.')
-    return
+    return false
   }
   if (locked.value) {
     say('error', lockMessage.value)
-    return
+    return false
   }
 
   // Refuse loudly at the hard cap rather than growing an unrecoverable queue.
   const room = canQueueScan(pending.value.length)
   if (!room.allowed) {
     say('error', room.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
-    return
+    return false
   }
 
   // Before the first queued scan, ask the browser to protect this origin's
@@ -197,9 +379,10 @@ async function queueOffline(scan: Omit<QueuedScan, 'id'>) {
   const stored = await enqueue({ ...scan, id: crypto.randomUUID() }, officerId.value)
   if (!stored.allowed) {
     say('error', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
-    return
+    return false
   }
   say('warn', 'No signal — saved on this phone and sent automatically when the connection is back.')
+  return true
 }
 
 /** Sign in a student by their ID — QR token or the number off an ID barcode. */
@@ -220,6 +403,46 @@ async function record(userId: string, method: 'manual' | 'barcode', name: string
   // The scan moment travels only with a queued scan: a live check-in is stamped
   // by the server, so a phone with a badly wrong clock cannot backdate one.
   const scannedAt = new Date().toISOString()
+  const capturedPhoto = method === 'manual' ? manualPhoto.value : null
+
+  // Upload the photo first (T-0009). A dead connection queues the pair; any
+  // other refusal is reported but never stops the check-in itself.
+  let photoRef: string | undefined
+  let photoProblem = ''
+  if (capturedPhoto) {
+    try {
+      photoRef = await uploadAttendancePhoto(capturedPhoto.blob, {
+        eventId: eventId.value,
+        userId,
+        idempotencyKey,
+        capturedAt: capturedPhoto.capturedAt
+      })
+    } catch (error) {
+      if (isOfflineError(error)) {
+        candidates.value = []
+        const queued = await queueOffline({
+          kind: 'manual',
+          eventId: eventId.value,
+          label: name,
+          userId,
+          idempotencyKey,
+          scannedAt,
+          manualReason: reason,
+          photo: capturedPhoto.blob,
+          photoCapturedAt: capturedPhoto.capturedAt,
+          ...pos
+        })
+        // The pair is on the phone now; do not leave this student's ID on
+        // screen for the next check-in.
+        if (queued) {
+          manualReason.value = ''
+          clearManualPhoto()
+        }
+        return
+      }
+      photoProblem = error instanceof Error ? error.message : 'The ID photo could not be uploaded.'
+    }
+  }
 
   try {
     const row = await api.post<{ user?: { name?: string } }>('/attendance', {
@@ -231,15 +454,26 @@ async function record(userId: string, method: 'manual' | 'barcode', name: string
       lng: pos.lng,
       accuracy: pos.accuracy,
       idempotencyKey,
-      ...(reason && { manualReason: reason })
+      ...(reason && { manualReason: reason }),
+      ...(photoRef && { photoRef })
     })
     candidates.value = []
     if (method === 'manual') manualReason.value = ''
-    say('ok', `${method === 'barcode' ? 'ID scanned — check-in recorded' : 'Check-in recorded'} for ${row.user?.name ?? name}`)
+    // The captured photo belongs to the check-in just recorded (or was not
+    // used by a barcode scan); never leave it on screen for the next student.
+    clearManualPhoto()
+    const who = row.user?.name ?? name
+    if (method === 'manual' && !capturedPhoto) {
+      say('warn', `Check-in recorded for ${who}. No ID photo was captured — the entry records that evidence as missing.`)
+    } else if (photoProblem) {
+      say('warn', `Check-in recorded for ${who}. The ID photo was not attached: ${photoProblem}`)
+    } else {
+      say('ok', `${method === 'barcode' ? 'ID scanned — check-in recorded' : 'Check-in recorded'} for ${who}`)
+    }
   } catch (error) {
     if (!isOfflineError(error)) throw error
     candidates.value = []
-    await queueOffline({
+    const queued = await queueOffline({
       kind: method === 'barcode' ? 'barcode' : 'manual',
       eventId: eventId.value,
       label: name,
@@ -247,8 +481,13 @@ async function record(userId: string, method: 'manual' | 'barcode', name: string
       idempotencyKey,
       scannedAt,
       ...(reason && { manualReason: reason }),
+      ...(capturedPhoto && { photo: capturedPhoto.blob, photoCapturedAt: capturedPhoto.capturedAt }),
       ...pos
     })
+    if (queued) {
+      manualReason.value = ''
+      clearManualPhoto()
+    }
   }
 }
 
@@ -450,6 +689,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopWatching?.()
+  if (manualPhoto.value) URL.revokeObjectURL(manualPhoto.value.previewUrl)
   if (scanner) {
     void scanner.stop()
     scanner = null
@@ -686,6 +926,10 @@ onUnmounted(() => {
           </button>
         </div>
 
+        <p v-if="photoMissing > 0" role="status" class="text-xs text-danger">
+          {{ photoMissing }} manual check-in{{ photoMissing === 1 ? '' : 's' }} synced without ID photo evidence — the
+          photo upload was refused. The attendance itself was recorded and marked as missing that evidence.
+        </p>
         <p v-if="lastSyncedAt" class="text-xs text-slate">
           Last synced {{ new Date(lastSyncedAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' }) }}.
         </p>
@@ -695,6 +939,57 @@ onUnmounted(() => {
     <!-- Manual fallback: a phone died, or the barcode will not read -->
     <Card>
       <CardContent class="p-4 space-y-3">
+        <div class="space-y-2">
+          <span class="block text-xs font-bold uppercase tracking-wide text-slate">
+            Photo of the student ID
+          </span>
+          <input
+            ref="photoInput"
+            type="file"
+            accept="image/*"
+            class="sr-only"
+            data-testid="manual-photo-input"
+            @change="handlePhotoSelected"
+          >
+          <div v-if="manualPhoto" class="space-y-2">
+            <img
+              :src="manualPhoto.previewUrl"
+              alt="Preview of the captured student ID photo"
+              class="max-h-48 w-full rounded-lg border border-line bg-paper object-contain"
+            >
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="min-h-11 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-navy hover:bg-paper"
+                @click="photoInput?.click()"
+              >
+                Retake photo
+              </button>
+              <button
+                type="button"
+                class="min-h-11 rounded-lg border border-danger/40 px-3 py-2 text-sm font-semibold text-danger hover:bg-danger/10"
+                @click="clearManualPhoto"
+              >
+                Remove photo
+              </button>
+            </div>
+          </div>
+          <button
+            v-else
+            type="button"
+            class="min-h-11 w-full rounded-lg border border-dashed border-line px-3 py-2 text-sm font-semibold text-navy hover:bg-paper"
+            @click="photoInput?.click()"
+          >
+            Take or choose a photo of the ID
+          </button>
+          <p v-if="manualPhotoError" role="alert" class="text-xs text-danger">
+            {{ manualPhotoError }}
+          </p>
+          <p class="text-xs text-slate">
+            Recommended. The photo is stored privately, visible only to roster staff, and deleted on the retention
+            schedule. Without it the check-in is still recorded and marked as missing that evidence.
+          </p>
+        </div>
         <div class="space-y-1">
           <label for="scan-reason" class="block text-xs font-bold uppercase tracking-wide text-slate">
             Reason for manual entry

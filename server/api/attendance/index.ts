@@ -31,6 +31,14 @@ import {
   normalizeIdempotencyKey,
   normalizeManualReason
 } from '../../utils/attendance'
+import {
+  attendancePhotoExpiresAt,
+  attendancePhotoMethodProblem,
+  attendancePhotoRefBindingProblem,
+  attendancePhotoSecret,
+  readAttendancePhotoRef,
+  type AttendancePhotoRef
+} from '../../utils/attendance-photo'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
 
@@ -51,6 +59,7 @@ export default defineApiHandler(async (event) => {
 
     const records = await prisma.attendance.findMany({
       where: { eventId },
+      omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true },
       include: {
         user: { select: { id: true, name: true, position: true, role: true } },
         recorder: { select: { id: true, name: true, position: true } },
@@ -69,7 +78,8 @@ export default defineApiHandler(async (event) => {
 
     const {
       type, eventId, dutyDate, userId, method, lat, lng, accuracy,
-      scannedAt: rawScannedAt, idempotencyKey: rawKey, manualReason: rawReason
+      scannedAt: rawScannedAt, idempotencyKey: rawKey, manualReason: rawReason,
+      photoRef: rawPhotoRef
     } = await readJsonBody(event) ?? {}
 
     if (!userId || !method) {
@@ -111,6 +121,7 @@ export default defineApiHandler(async (event) => {
     const existingByKey = idempotencyKey
       ? await prisma.attendance.findUnique({
           where: { idempotencyKey },
+          omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true },
           include: { user: { select: { id: true, name: true, position: true, role: true } } }
         })
       : null
@@ -195,6 +206,37 @@ export default defineApiHandler(async (event) => {
       manualReason = normalizeManualReason(rawReason)
     }
 
+    // T-0009: an ID photo is evidence for the manual fallback only. QR, self
+    // and barcode check-ins must not carry one, and the reference must name the
+    // same student and event as this request — it is not a lookup handle.
+    let photo: AttendancePhotoRef | null = null
+    const normalizedPhotoRef = typeof rawPhotoRef === 'string' ? rawPhotoRef.trim() : rawPhotoRef
+    const hasPhotoRef = typeof normalizedPhotoRef === 'string'
+      ? normalizedPhotoRef.length > 0
+      : normalizedPhotoRef !== undefined && normalizedPhotoRef !== null
+    const photoMethodProblem = attendancePhotoMethodProblem({
+      method,
+      type: attendanceType,
+      hasRef: hasPhotoRef
+    })
+    if (photoMethodProblem) throw badRequest(photoMethodProblem)
+    if (hasPhotoRef) {
+      photo = readAttendancePhotoRef(normalizedPhotoRef, attendancePhotoSecret(), now)
+      if (!photo) {
+        throw badRequest('That ID photo reference is not valid or has expired — capture the ID again.')
+      }
+      const bindingProblem = attendancePhotoRefBindingProblem(photo, {
+        userId: String(userId),
+        eventId: target.eventId
+      })
+      if (bindingProblem) throw badRequest(bindingProblem)
+      const claimedPhoto = await prisma.attendance.findFirst({
+        where: { photoKey: photo.key },
+        select: { id: true }
+      })
+      if (claimedPhoto) throw badRequest('That ID photo has already been attached to another check-in.')
+    }
+
     // Check for open (not-yet-checked-out) record
     if (attendanceType === 'event') {
       const existing = await prisma.attendance.findFirst({
@@ -230,6 +272,9 @@ export default defineApiHandler(async (event) => {
       scannedAt: timing.scannedAt,
       idempotencyKey,
       manualReason,
+      photoKey: photo?.key ?? null,
+      photoCapturedAt: photo?.capturedAt ?? null,
+      photoExpiresAt: photo ? attendancePhotoExpiresAt(photo.capturedAt) : null,
       // A queued scan keeps its own (past) moment; a device claiming the future
       // does not move the row — the server clock is the authority (BC-5).
       ...(timing.usedDeviceTime && { createdAt: scanTime })
@@ -239,6 +284,7 @@ export default defineApiHandler(async (event) => {
       const record = await prisma.$transaction(async (tx) => {
         const created = await tx.attendance.create({
           data: scan,
+          omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true },
           include: {
             user: { select: { id: true, name: true, position: true, role: true } }
           }
@@ -258,7 +304,12 @@ export default defineApiHandler(async (event) => {
               method,
               type: attendanceType,
               eventId: created.eventId,
-              scannedAt: timing.scannedAt?.toISOString() ?? null
+              scannedAt: timing.scannedAt?.toISOString() ?? null,
+              // The server records the evidence state even when it is absent,
+              // so a reviewer can tell "no photo" from "a photo was never
+              // expected" without reading storage.
+              photo: photo ? 'present' : 'absent',
+              photoCapturedAt: photo?.capturedAt.toISOString() ?? null
             },
             ...auditContext(event)
           })
@@ -284,6 +335,7 @@ export default defineApiHandler(async (event) => {
         if (idempotencyKey) {
           const raced = await prisma.attendance.findUnique({
             where: { idempotencyKey },
+            omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true },
             include: { user: { select: { id: true, name: true, position: true, role: true } } }
           })
           const racedOutcome = idempotencyOutcome(raced, { officerId: user.id, ...target })

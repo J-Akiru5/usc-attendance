@@ -32,6 +32,15 @@ export interface QueuedScan {
   idempotencyKey?: string
   /** Why an officer recorded a manual entry by hand. Required for `manual`. */
   manualReason?: string
+  /**
+   * T-0009: the photo of the student ID captured for a manual entry. The Blob
+   * is kept in IndexedDB with the scan, so a reload before syncing does not
+   * lose the evidence; it is uploaded first and the check-in carries only the
+   * server's opaque reference.
+   */
+  photo?: Blob
+  /** When the photo was captured, not when it was uploaded. */
+  photoCapturedAt?: string
 }
 
 export interface RefusedScan {

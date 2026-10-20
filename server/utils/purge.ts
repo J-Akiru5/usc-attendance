@@ -1,6 +1,7 @@
 import type { prisma } from './prisma'
 import { expiredSemesters } from './retention'
 import { signatureStore, type SignatureObjectStore } from './signature-storage'
+import { attendancePhotoStore, runAttendancePhotoPurge, type AttendancePhotoStore } from './attendance-photo'
 
 type Db = typeof prisma
 
@@ -12,13 +13,37 @@ export async function getSettings(db: Db) {
  * Delete the signature IMAGE (not the attendance row, hash or reference) for every
  * signature that belongs to a semester that has aged out under the retention setting.
  * Images that live in object storage are deleted there first (plan §11.1).
+ *
+ * T-0009 extends the same daily job to ID photos: an expired photo is deleted
+ * from private storage first, then its three columns are cleared. The
+ * attendance row, reason and audit history stay untouched. Photos are purged
+ * before signatures so identity evidence is not held back by a signature
+ * storage outage.
  */
 export async function runSignaturePurge(
   db: Db,
   performedBy: string | null,
   now: Date = new Date(),
-  store: SignatureObjectStore | null = signatureStore()
-): Promise<{ purged: number, semesters: string[] }> {
+  store: SignatureObjectStore | null = signatureStore(),
+  photos: AttendancePhotoStore | null = attendancePhotoStore()
+): Promise<{
+  purged: number
+  semesters: string[]
+  photosPurged: number
+  photosSkipped: number
+}> {
+  const photoPurge = await runAttendancePhotoPurge(db, photos, now)
+  if (photoPurge.purged > 0 || photoPurge.skipped > 0) {
+    await db.auditLog.create({
+      data: {
+        userId: null,
+        action: 'attendance_photos_purged',
+        details: JSON.stringify({ purged: photoPurge.purged, skipped: photoPurge.skipped }),
+        performedBy
+      }
+    })
+  }
+
   const settings = await getSettings(db)
   const semesters = await db.semester.findMany()
   const due = expiredSemesters(semesters, settings.signatureRetentionSemesters, settings.purgeGraceDays, now)
@@ -47,9 +72,20 @@ export async function runSignaturePurge(
     data: {
       userId: null,
       action: 'signatures_purged',
-      details: JSON.stringify({ purged, semesters: due.map(s => s.name), keep: settings.signatureRetentionSemesters }),
+      details: JSON.stringify({
+        purged,
+        semesters: due.map(s => s.name),
+        keep: settings.signatureRetentionSemesters,
+        photosPurged: photoPurge.purged,
+        photosSkipped: photoPurge.skipped
+      }),
       performedBy
     }
   })
-  return { purged, semesters: due.map(s => s.name) }
+  return {
+    purged,
+    semesters: due.map(s => s.name),
+    photosPurged: photoPurge.purged,
+    photosSkipped: photoPurge.skipped
+  }
 }

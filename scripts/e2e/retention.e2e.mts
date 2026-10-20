@@ -7,6 +7,9 @@ import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
+import { existsSync } from 'node:fs'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import ExcelJS from 'exceljs'
 import { api } from './client.mts'
 
@@ -30,6 +33,7 @@ const check = (label: string, ok: boolean, detail = '') => {
 const ids: string[] = []
 const eventIds: string[] = []
 const semIds: string[] = []
+const photoFiles: string[] = []
 let original: { id: string, keep: number, grace: number, lastPurgeAt: Date | null, lastPurgeCount: number | null } | null = null
 
 async function mkUser(key: string, role: string, extra: Record<string, unknown> = {}) {
@@ -131,6 +135,34 @@ async function main() {
   r = await api('/api/attendance/export', { token: staff.token, query: { eventId: ev.id, format: 'pdf' } })
   check('PDF export still succeeds', r._s === 200 && Buffer.from(r._b).subarray(0, 5).toString() === '%PDF-', `${r._s}`)
 
+  console.log('\n--- ID photo retention (T-0009) ---')
+  const photoRoot = resolve(process.env.ATTENDANCE_PHOTO_STORAGE_DIR ?? '.local/attendance-photos')
+  const mkPhotoRow = async (name: string, expiresAt: Date) => {
+    const photoKey = `attendance-photos/${tag}-${name}.png`
+    const file = resolve(photoRoot, photoKey)
+    await mkdir(dirname(file), { recursive: true })
+    await writeFile(file, PNG)
+    photoFiles.push(file)
+    const row = await prisma.attendance.create({
+      data: {
+        type: 'event',
+        eventId: evNow.id,
+        userId: studentA.id,
+        method: 'manual',
+        manualReason: `e2e photo retention (${name})`,
+        recordedBy: staff.id,
+        checkOutAt: new Date(),
+        photoKey,
+        photoCapturedAt: new Date(expiresAt.getTime() - 90 * 86_400_000),
+        photoExpiresAt: expiresAt
+      }
+    })
+    return { row, photoKey, file }
+  }
+
+  const expiredPhoto = await mkPhotoRow('expired', new Date('2001-03-06T00:00:00Z'))
+  const keptPhoto = await mkPhotoRow('kept', new Date(Date.now() + 30 * 86_400_000))
+
   console.log('\n--- nightly cron entry point ---')
   r = await api('/api/cron/purge-signatures', { method: 'GET' })
   check('cron without the secret is refused (401)', r._s === 401, `${r._s}`)
@@ -138,6 +170,28 @@ async function main() {
   check('cron with a wrong secret is refused (401)', r._s === 401, `${r._s}`)
   r = await api('/api/cron/purge-signatures', { method: 'GET', headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } })
   check('cron with the right secret runs (200)', r._s === 200 && r._b.purged === 0, `${r._s} ${JSON.stringify(r._b)}`)
+  check('the same job deletes the expired ID photo and reports the count', r._s === 200 && r._b.photosPurged >= 1, `${r._s} ${JSON.stringify(r._b)}`)
+
+  const expiredAfter = await prisma.attendance.findUnique({ where: { id: expiredPhoto.row.id } })
+  check(
+    'the attendance row survives with only the photo columns cleared',
+    !!expiredAfter
+    && expiredAfter.photoKey === null
+    && expiredAfter.photoCapturedAt === null
+    && expiredAfter.photoExpiresAt === null
+    && expiredAfter.manualReason === 'e2e photo retention (expired)',
+    JSON.stringify(expiredAfter && { photoKey: expiredAfter.photoKey, reason: expiredAfter.manualReason })
+  )
+  check('the expired object is gone from private storage', !existsSync(expiredPhoto.file), expiredPhoto.file)
+
+  const keptAfter = await prisma.attendance.findUnique({ where: { id: keptPhoto.row.id } })
+  check('an unexpired photo is left alone', keptAfter?.photoKey === keptPhoto.photoKey && existsSync(keptPhoto.file), `${keptAfter?.photoKey}`)
+
+  const photoAudit = await prisma.auditLog.findFirst({
+    where: { action: 'attendance_photos_purged', createdAt: { gte: startedAt } },
+    orderBy: { createdAt: 'desc' }
+  })
+  check('the photo purge count is audited', !!photoAudit && (photoAudit.details ?? '').includes('"purged":1'), photoAudit?.details ?? 'none')
 
   console.log('\n--- check-in window ---')
   const evW = await prisma.event.create({ data: { title: `${tag} windowed`, date: new Date(), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: staff.id } })
@@ -176,6 +230,7 @@ async function main() {
 
 async function cleanup() {
   console.log('\nCleaning up and restoring real settings...')
+  for (const file of photoFiles) await rm(file, { force: true }).catch(() => {})
   for (const id of eventIds) {
     await prisma.attendance.deleteMany({ where: { eventId: id } })
     await prisma.event.delete({ where: { id } }).catch(() => {})
@@ -193,6 +248,7 @@ async function cleanup() {
         { userId: { in: ids } },
         { performedBy: { in: ids } },
         { action: 'signatures_purged', createdAt: { gte: startedAt } },
+        { action: 'attendance_photos_purged', createdAt: { gte: startedAt } },
         { details: { contains: tag } }
       ]
     }

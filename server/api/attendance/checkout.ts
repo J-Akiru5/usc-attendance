@@ -81,7 +81,8 @@ export default defineApiHandler(async (event) => {
     data: { checkOutAt: new Date() },
     include: {
       user: { select: { id: true, name: true, position: true, role: true } }
-    }
+    },
+    omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true }
   })
 
   if (delegatedCheckout && eventId) {
