@@ -8,8 +8,9 @@
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
-import { randomBytes } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { api } from './client.mts'
+import { scanRateLimitConfig, scanWindowStart } from '../../server/utils/rate-limit'
 
 process.env.QR_SECRET ||= 'e2e-test-secret-' + randomBytes(8).toString('hex')
 process.env.SITE_URL ||= process.env.BASE_URL || 'http://localhost:3000'
@@ -59,6 +60,9 @@ async function main() {
   const outsider = await mkUser('outsider')
   const studentA = await mkUser('studenta', { role: 'student', name: 'E2E Alpha One' })
   const studentB = await mkUser('studentb', { role: 'student', name: 'E2E Beta Two' })
+  const raceStudent = await mkUser('racestudent', { role: 'student' })
+  const throttleOfficer = await mkUser('throttleofficer', { role: 'staff' })
+  const throttleStudent = await mkUser('throttlestudent', { role: 'student' })
 
   await prisma.studentProfile.create({ data: { userId: studentA.id, studentNo: NO_A, yearLevel: 2 } })
   await prisma.studentProfile.create({ data: { userId: studentB.id, studentNo: NO_B, yearLevel: 3 } })
@@ -125,6 +129,51 @@ async function main() {
     body: { type: 'event', eventId, userId: studentA.id, method: 'barcode', lat: 10.72, lng: 122.56 }
   })
   check('scanning the same student twice is refused (403)', r._s === 403, `${r._s} ${JSON.stringify(r._b)}`)
+
+  console.log('\n--- two simultaneous scans of one student ---')
+  const raceBody = { type: 'event', eventId, userId: raceStudent.id, method: 'barcode', lat: 10.72, lng: 122.56, accuracy: 8 }
+  const raced = await Promise.all([
+    api('/api/attendance', { method: 'POST', token: staff.token, body: { ...raceBody, idempotencyKey: randomUUID() } }),
+    api('/api/attendance', { method: 'POST', token: staff.token, body: { ...raceBody, idempotencyKey: randomUUID() } })
+  ])
+  const raceStatuses = raced.map(entry => entry._s).sort((a, b) => a - b)
+  check('the race produces exactly one 201 and one 403', raceStatuses[0] === 201 && raceStatuses[1] === 403, JSON.stringify(raceStatuses))
+  const openRaceRows = await prisma.attendance.count({ where: { eventId, userId: raceStudent.id, checkOutAt: null } })
+  check('and exactly one open attendance row exists', openRaceRows === 1, `${openRaceRows}`)
+
+  console.log('\n--- the scan budget is per officer, and a throttle is audited ---')
+  const budget = scanRateLimitConfig()
+  const windowStart = scanWindowStart(new Date(), budget.windowMs)
+  // Seed the current window and the next one: a request that crosses the hour
+  // boundary must still meet a spent budget rather than make this test flaky.
+  for (const start of [windowStart, new Date(windowStart.getTime() + budget.windowMs)]) {
+    await prisma.scanRateLimit.upsert({
+      where: { officerId_windowStart: { officerId: throttleOfficer.id, windowStart: start } },
+      create: { officerId: throttleOfficer.id, windowStart: start, count: budget.limit, updatedAt: new Date() },
+      update: { count: budget.limit, throttledAt: null }
+    })
+  }
+  r = await api('/api/attendance', {
+    method: 'POST',
+    token: throttleOfficer.token,
+    body: { type: 'event', eventId, userId: throttleStudent.id, method: 'barcode', lat: 10.72, lng: 122.56, accuracy: 8 }
+  })
+  check('a caller above the scan budget gets 429', r._s === 429, `${r._s} ${JSON.stringify(r._b)}`)
+  check('and is told when to retry', Number(r._h['retry-after'] ?? 0) > 0, `${r._h['retry-after']}`)
+  const throttleAudit = await prisma.auditLog.findFirst({
+    where: { action: 'attendance_scan_throttled', performedBy: throttleOfficer.id },
+    orderBy: { createdAt: 'desc' }
+  })
+  check('the throttle is audited', !!throttleAudit, 'no audit row')
+  const throttledRows = await prisma.attendance.count({ where: { eventId, userId: throttleStudent.id } })
+  check('a throttled scan writes no attendance row', throttledRows === 0, `${throttledRows}`)
+
+  r = await api('/api/attendance', {
+    method: 'POST',
+    token: staff.token,
+    body: { type: 'event', eventId, userId: throttleStudent.id, method: 'barcode', lat: 10.72, lng: 122.56, accuracy: 8 }
+  })
+  check('another officer keeps their own budget (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
 
   r = await api('/api/attendance', {
     method: 'POST',

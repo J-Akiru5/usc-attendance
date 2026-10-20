@@ -8,6 +8,7 @@ import { assertCheckInOpen } from '../../utils/retention'
 import { verifyQrToken } from '../../utils/qr'
 import { hasExplicitScanTime, resolveScanTime, TOKEN_CLOCK_SKEW_SECONDS } from '../../utils/offline'
 import { decideDeviceTime, idempotencyKeyProblem, normalizeIdempotencyKey } from '../../utils/attendance'
+import { assertScanBudget } from '../../utils/rate-limit'
 
 const ALREADY_CHECKED_IN = 'Already checked in. Check out before checking in again.'
 
@@ -20,6 +21,7 @@ export default defineApiHandler(async (event) => {
   }
 
   const user = await authenticate(event)
+  await assertScanBudget(event, user, prisma)
   const { token, lat, lng, accuracy, scannedAt: rawScannedAt, idempotencyKey: rawKey } = await readJsonBody(event) ?? {}
 
   if (!token || typeof token !== 'string') {
