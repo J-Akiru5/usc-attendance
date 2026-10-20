@@ -86,8 +86,8 @@ These are the gates that were actually run and observed, not planned:
 - **Public parity 28/28.** `tools/public-parity` compared the live site against a production build of
   this tree: 14 routes x 2 viewports, content outline and pixels (0.05% tolerance). Nothing on the
   frozen public site moved.
-- **Live batch 27 suites / 768 checks**, zero failures, zero retries, against the dev database after
-  all 32 migrations were applied.
+- **Live batch 27 suites / 800 checks**, zero failures, zero retries, against the dev database after
+  all 34 migrations were applied.
 - **Offline-queue golden path green in CI.** It builds the app and serves `.output`; a dev server
   never became reachable inside the CI readiness budget, so the gate does not use one.
 - **Accessibility gate green.** axe at desktop and mobile over 13 portal routes, serious and critical
