@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useScanQueue } from '@/composables/useScanQueue'
+import { useAuthStore } from '@/stores/auth'
 import { unacknowledgedRefusals, unsyncedBanner } from '@/utils/scan-queue'
 
 /**
  * BC-6: one persistent truth about unsynced work, on every officer page.
  * The count comes from IndexedDB (shared `useState`, refreshed on mount and
  * whenever the tab regains focus), so it is the same count after a reload.
+ *
+ * T-0008: the banner also says when the queue belongs to a different officer,
+ * so the next officer is not told work is theirs to sync. It never names that
+ * officer, and it does not count their refusals as this officer's.
  */
-const { pending, refused, acknowledgedIds, storage, refresh } = useScanQueue()
+const auth = useAuthStore()
+const { pending, refused, acknowledgedIds, storage, ownership, claim, refresh } = useScanQueue()
+
+const officerId = computed(() => auth.user?.id ?? '')
 
 const banner = computed(() => {
-  const notRecorded = unacknowledgedRefusals(refused.value, acknowledgedIds.value).length
+  const notRecorded = ownership.value === 'foreign'
+    ? 0
+    : unacknowledgedRefusals(refused.value, acknowledgedIds.value).length
   // Only claim persistence was refused when the request was actually answered;
   // "not asked yet" must not read as "unsafe".
   const persisted = storage.value?.persisted === true
@@ -19,7 +29,12 @@ const banner = computed(() => {
     : storage.value?.requested
       ? false
       : null
-  return unsyncedBanner({ pending: pending.value.length, notRecorded, persisted })
+  return unsyncedBanner({
+    pending: pending.value.length,
+    notRecorded,
+    persisted,
+    foreignOwner: ownership.value === 'foreign'
+  })
 })
 
 let onFocus: (() => void) | undefined
@@ -29,15 +44,20 @@ let onFocus: (() => void) | undefined
  * lives in the banner rather than the scanner so it covers every officer page.
  */
 function handleBeforeUnload(event: BeforeUnloadEvent) {
-  if (pending.value.length === 0) return
+  if (pending.value.length === 0 || ownership.value === 'foreign') return
   event.preventDefault()
   event.returnValue = ''
 }
 
+async function resolveQueue() {
+  await refresh()
+  if (officerId.value) await claim(officerId.value)
+}
+
 onMounted(() => {
-  void refresh()
+  void resolveQueue()
   onFocus = () => {
-    void refresh()
+    void resolveQueue()
   }
   window.addEventListener('focus', onFocus)
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -66,7 +86,9 @@ onUnmounted(() => {
       <span class="min-w-0 flex-1">
         <span class="font-semibold">{{ banner.label }}</span>
         <span class="mt-0.5 block text-xs font-normal opacity-80">
-          Tap to open the scanner queue.
+          {{ ownership === 'foreign'
+            ? 'Only the officer who took these scans can send them.'
+            : 'Tap to open the scanner queue.' }}
         </span>
         <span v-if="banner.atCap" class="mt-1 block text-xs font-bold">
           Queue full - sync now before scanning anyone else.

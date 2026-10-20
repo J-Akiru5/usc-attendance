@@ -21,6 +21,7 @@ import { auditDelegationUse, requireEventScope } from '../../utils/delegation'
 import { assertCheckInOpen } from '../../utils/retention'
 import { hasExplicitScanTime, resolveScanTime } from '../../utils/offline'
 import { assertEventActive } from '../../utils/cancellation'
+import { assertScanBudget } from '../../utils/rate-limit'
 import { manilaDayRange } from '../../utils/time'
 import {
   decideDeviceTime,
@@ -62,6 +63,10 @@ export default defineApiHandler(async (event) => {
   }
 
   if (routeMethod === 'POST') {
+    // The scan budget is checked before the body is parsed: a caller that has
+    // spent its allowance is answered without the server doing any other work.
+    await assertScanBudget(event, user, prisma)
+
     const {
       type, eventId, dutyDate, userId, method, lat, lng, accuracy,
       scannedAt: rawScannedAt, idempotencyKey: rawKey, manualReason: rawReason

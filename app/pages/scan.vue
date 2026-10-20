@@ -4,6 +4,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { api, isOfflineError } from '@/lib/api'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { useScanQueue } from '@/composables/useScanQueue'
+import { useAuthStore } from '@/stores/auth'
 import { classifyScan, findExactStudent } from '@/utils/scan'
 import { startStudentScanner, type ScannerHandle } from '@/utils/scanner-engine'
 import { canQueueScan, scanIdempotencyKey, storageAdvice, unacknowledgedRefusals } from '@/utils/scan-queue'
@@ -20,22 +21,35 @@ interface LookupStudent { id: string, name: string, studentNo: string | null, ye
 const route = useRoute()
 const router = useRouter()
 const geo = useGeolocation()
+const auth = useAuthStore()
 const {
   pending,
   refused,
   acknowledgedIds,
   storage,
+  ownership,
+  ownershipMessage,
   syncing,
   lastSyncedAt,
   online,
   enqueue,
   forget,
   acknowledgeRefused,
+  claim,
   flush,
   refresh,
   refreshStorage,
   startWatching
 } = useScanQueue()
+
+const officerId = computed(() => auth.user?.id ?? '')
+/**
+ * T-0008: while the pending queue belongs to another officer, this account may
+ * neither scan nor sync. The rows stay on the phone for the officer who took
+ * them; the message never names that officer.
+ */
+const locked = computed(() => ownership.value === 'foreign')
+const lockMessage = computed(() => ownershipMessage.value ?? 'This phone is holding scans taken by a different officer. Nothing was sent. Sign back in as that officer to sync them.')
 
 const events = ref<EventOption[]>([])
 const eventId = ref(typeof route.query.eventId === 'string' ? route.query.eventId : '')
@@ -69,6 +83,9 @@ let stopWatching: (() => void) | undefined
 // One polite live-region sentence for the queue, instead of making every list
 // row a live region (WCAG 4.1.3 Status Messages).
 const syncAnnouncement = computed(() => {
+  if (locked.value) {
+    return 'This phone is holding scans from another officer. This account cannot send them.'
+  }
   if (syncing.value) {
     return pending.value.length > 0
       ? `Syncing ${pending.value.length} queued check-in${pending.value.length === 1 ? '' : 's'}.`
@@ -139,11 +156,32 @@ async function sendQueued(scan: QueuedScan) {
 }
 
 async function syncNow() {
-  await flush(sendQueued)
+  if (!officerId.value) {
+    say('error', 'Your session is not ready — reload the page and sign in again.')
+    return
+  }
+  const result = await flush(sendQueued, officerId.value)
+  if (result.outcome === 'locked') {
+    say('error', result.message)
+    return
+  }
+  if (result.outcome === 'throttled') {
+    say('warn', 'The server has paused scanning for this account for now. Everything is still queued on this phone and will retry after the pause.')
+    return
+  }
   if (pending.value.length === 0 && refused.value.length === 0) say('ok', 'Everything is synced.')
 }
 
 async function queueOffline(scan: Omit<QueuedScan, 'id'>) {
+  if (!officerId.value) {
+    say('error', 'Your session is not ready — nothing was saved. Reload the page and sign in again.')
+    return
+  }
+  if (locked.value) {
+    say('error', lockMessage.value)
+    return
+  }
+
   // Refuse loudly at the hard cap rather than growing an unrecoverable queue.
   const room = canQueueScan(pending.value.length)
   if (!room.allowed) {
@@ -156,7 +194,7 @@ async function queueOffline(scan: Omit<QueuedScan, 'id'>) {
   if (!storage.value?.requested) await refreshStorage(true)
   else await refreshStorage(false)
 
-  const stored = await enqueue({ ...scan, id: crypto.randomUUID() })
+  const stored = await enqueue({ ...scan, id: crypto.randomUUID() }, officerId.value)
   if (!stored.allowed) {
     say('error', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
     return
@@ -166,6 +204,9 @@ async function queueOffline(scan: Omit<QueuedScan, 'id'>) {
 
 /** Sign in a student by their ID — QR token or the number off an ID barcode. */
 async function record(userId: string, method: 'manual' | 'barcode', name: string) {
+  if (locked.value) throw new Error(lockMessage.value)
+  if (!officerId.value) throw new Error('Your session is not ready — reload the page and sign in again.')
+
   const reason = method === 'manual' ? manualReason.value.trim() : ''
   if (method === 'manual' && !reason) {
     throw new Error('Add a short reason before recording a manual check-in.')
@@ -218,6 +259,8 @@ async function lookup(q: string) {
 }
 
 async function scanQr(token: string) {
+  if (locked.value) throw new Error(lockMessage.value)
+  if (!officerId.value) throw new Error('Your session is not ready — reload the page and sign in again.')
   const pos = await position()
   const idempotencyKey = crypto.randomUUID()
   // Only a queued scan carries the device moment; a live one is stamped by the
@@ -247,6 +290,10 @@ async function scanQr(token: string) {
 }
 
 async function handleScan(decodedText: string) {
+  if (locked.value) {
+    say('error', lockMessage.value)
+    return
+  }
   if (Date.now() < cooldownUntil.value) return
   cooldownUntil.value = Date.now() + SCAN_COOLDOWN_MS
 
@@ -295,6 +342,14 @@ const manualResults = ref<LookupStudent[]>([])
 const manualMessage = ref('')
 
 async function handleManualSearch() {
+  if (locked.value) {
+    manualMessage.value = lockMessage.value
+    return
+  }
+  if (!officerId.value) {
+    manualMessage.value = 'Your session is not ready — reload the page and sign in again.'
+    return
+  }
   if (!eventId.value) {
     manualMessage.value = 'Pick the event first.'
     return
@@ -346,6 +401,9 @@ async function recordFromList(student: LookupStudent) {
 
 // --- Refuse to abandon queued work silently (BC-6) --------------------------
 function pendingWarning(): string | null {
+  // A foreign queue is not this officer's work to be warned about, and leaving
+  // the page does not remove it from the phone.
+  if (locked.value) return null
   if (pending.value.length === 0) return null
   const count = pending.value.length
   return `You still have ${count} unsynced scan${count === 1 ? '' : 's'} on this phone. They stay queued and sync when the connection is back.`
@@ -360,11 +418,14 @@ onMounted(async () => {
   geo.startWatching()
 
   await refresh()
+  if (officerId.value) await claim(officerId.value)
   await refreshStorage()
   stopWatching = startWatching(() => {
-    void flush(sendQueued)
+    if (officerId.value && !locked.value) void flush(sendQueued, officerId.value)
   })
-  if (online.value && pending.value.length > 0) void flush(sendQueued)
+  if (online.value && pending.value.length > 0 && !locked.value && officerId.value) {
+    void flush(sendQueued, officerId.value)
+  }
 
   try {
     const list = await api.get<EventOption[]>('/events')
@@ -514,7 +575,7 @@ onUnmounted(() => {
     </Card>
 
     <!-- Offline queue (plan §8.2) -->
-    <div v-if="!online" role="status" class="rounded-xl border-l-4 border-gold bg-gold/10 px-4 py-3 text-sm text-navy">
+    <div v-if="!online && !locked" role="status" class="rounded-xl border-l-4 border-gold bg-gold/10 px-4 py-3 text-sm text-navy">
       No signal — scans are saved on this phone and sent automatically when the connection is back.
     </div>
 
@@ -522,7 +583,33 @@ onUnmounted(() => {
       {{ syncAnnouncement }}
     </p>
 
-    <Card v-if="pending.length > 0 || refused.length > 0" id="queue" :aria-busy="syncing">
+    <!-- T-0008: a handed-over phone must not show or send the other officer's queue -->
+    <div
+      v-if="locked"
+      data-testid="scan-queue-locked"
+      role="alert"
+      class="rounded-xl border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger"
+    >
+      <p class="font-semibold">
+        Scans waiting from a different officer
+      </p>
+      <p class="mt-1">
+        {{ lockMessage }}
+      </p>
+      <p class="mt-1 text-xs font-semibold">
+        {{ pending.length }} unsynced scan{{ pending.length === 1 ? '' : 's' }} stay on this phone. Nothing has been sent, and this account cannot send them.
+      </p>
+    </div>
+    <div
+      v-else-if="ownershipMessage"
+      data-testid="scan-queue-parked"
+      role="status"
+      class="rounded-xl border-l-4 border-gold bg-gold/10 px-4 py-3 text-sm text-navy"
+    >
+      {{ ownershipMessage }}
+    </div>
+
+    <Card v-if="!locked && (pending.length > 0 || refused.length > 0)" id="queue" :aria-busy="syncing">
       <CardContent class="p-4 space-y-3">
         <div
           v-if="capacity.atCap"

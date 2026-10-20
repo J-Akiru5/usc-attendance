@@ -13,6 +13,12 @@ export interface QueuedScan {
   label: string
   token?: string
   userId?: string
+  /**
+   * The officer who took the scan (T-0008). Always written for a new scan; a
+   * row queued before ownership was recorded has no value and is *parked*,
+   * never sent and never attributed to whoever happens to be signed in next.
+   */
+  recordedBy?: string
   lat: number | null
   lng: number | null
   accuracy: number | null
@@ -54,6 +60,142 @@ export interface FlushPlan {
 export function scanIdempotencyKey(scan: Pick<QueuedScan, 'id' | 'idempotencyKey'>): string {
   const key = scan.idempotencyKey?.trim()
   return key ? key : scan.id
+}
+
+// ---------------------------------------------------------------------------
+// Officer ownership (T-0008)
+//
+// A phone can be handed from one officer to another. The queue is per browser,
+// so without an owner the second officer would sync the first officer's scans
+// and the server would stamp them `recordedBy: <second officer>` - a wrong
+// record no later audit can undo.
+//
+// The decision is pure so the scanner, the banner and the tests agree: the
+// queue belongs to the officer recorded on it, a second officer is refused
+// while that work exists, and rows with no owner at all are set aside instead
+// of guessed.
+// ---------------------------------------------------------------------------
+
+export interface QueueOwnershipInput {
+  /** The officer signed in on this device now. */
+  officerId: string
+  /** The owner stored when this device's queue was first claimed, if any. */
+  queueOwnerId: string | null
+  /** Everything currently in the pending store. */
+  scans: readonly QueuedScan[]
+}
+
+export interface QueueOwnership {
+  /** `foreign` means the current officer may neither send nor add to the queue. */
+  state: 'mine' | 'foreign'
+  /**
+   * The officer the queue belongs to, when one can be determined. Internal
+   * only: the officer-facing message never names another officer.
+   */
+  ownerId: string | null
+  /** The scans the current officer may send. Empty while the queue is foreign. */
+  pending: QueuedScan[]
+  /**
+   * Rows queued before ownership was recorded. They are preserved in the
+   * parked store and never sent: they cannot be attributed honestly.
+   */
+  park: QueuedScan[]
+  /** Convenience for the UI: `state === 'foreign'`. */
+  locked: boolean
+  /** Officer-facing explanation, or null when there is nothing to say. */
+  message: string | null
+}
+
+function parkedMessage(count: number): string {
+  const subject = count === 1 ? '1 unsynced scan was' : `${count} unsynced scans were`
+  const pronoun = count === 1 ? 'It stays' : 'They stay'
+  return `${subject} saved before this phone recorded an officer, so ${count === 1 ? 'it was' : 'they were'} set aside and not sent. ${pronoun} on this device.`
+}
+
+function withParkedNotice(message: string, parked: number): string | null {
+  if (parked === 0) return message || null
+  const notice = parkedMessage(parked)
+  return message ? `${message} ${notice}` : notice
+}
+
+/**
+ * Decides who the queue belongs to and what may be sent.
+ *
+ * - A queue with attributed rows from more than one officer is never sent: the
+ *   device cannot know which of them is the owner, and picking one would
+ *   misattribute the other's scans.
+ * - A foreign queue with nothing left to send does not lock the next officer
+ *   out forever; an empty queue is claimed by whoever signs in.
+ * - Rows without a `recordedBy` are always parked, whoever is signed in.
+ */
+export function queueOwnership(input: QueueOwnershipInput): QueueOwnership {
+  const unowned = input.scans.filter(scan => !scan.recordedBy)
+  const attributed = input.scans.filter(scan => !!scan.recordedBy)
+  const owners = new Set(attributed.map(scan => scan.recordedBy as string))
+  if (input.queueOwnerId) owners.add(input.queueOwnerId)
+
+  const base = { park: unowned, pending: attributed, locked: false }
+
+  if (owners.size > 1) {
+    return {
+      ...base,
+      state: 'foreign',
+      ownerId: null,
+      pending: [],
+      locked: true,
+      message: withParkedNotice(
+        'This phone is holding unsynced scans from more than one officer. Nothing was sent. An administrator must review this queue.',
+        unowned.length
+      )
+    }
+  }
+
+  const ownerId = [...owners][0] ?? null
+
+  // No owner anywhere: everything present is unowned and parked. The current
+  // officer may start a fresh queue on this phone.
+  if (!ownerId) {
+    return {
+      ...base,
+      state: 'mine',
+      ownerId: input.officerId,
+      pending: [],
+      message: withParkedNotice('', unowned.length)
+    }
+  }
+
+  if (ownerId !== input.officerId) {
+    // A previous officer's queue with nothing left to send is not a reason to
+    // lock the phone forever; claim the device for the officer signed in now.
+    if (attributed.length === 0) {
+      return {
+        ...base,
+        state: 'mine',
+        ownerId: input.officerId,
+        pending: [],
+        message: withParkedNotice('', unowned.length)
+      }
+    }
+
+    return {
+      ...base,
+      state: 'foreign',
+      ownerId,
+      pending: [],
+      locked: true,
+      message: withParkedNotice(
+        'This phone is holding unsynced scans taken by a different officer. Nothing was sent. Sign back in as that officer to sync them.',
+        unowned.length
+      )
+    }
+  }
+
+  return {
+    ...base,
+    state: 'mine',
+    ownerId,
+    message: withParkedNotice('', unowned.length)
+  }
 }
 
 /**
@@ -124,7 +266,7 @@ export function canQueueScan(pendingCount: number, cap = MAX_PENDING_SCANS): Que
 
 export interface UnsyncedBannerInput {
   pending: number
-  /** Refusals the officer has not acknowledged yet — not the whole list. */
+  /** Refusals the officer has not acknowledged yet - not the whole list. */
   notRecorded: number
   /**
    * The recorded `navigator.storage.persist()` outcome. `null` means the
@@ -132,6 +274,12 @@ export interface UnsyncedBannerInput {
    * banner must not claim the phone is unsafe.
    */
   persisted?: boolean | null
+  /**
+   * True while the pending queue belongs to another officer (T-0008). The
+   * banner still says work is waiting, but says plainly that this account
+   * cannot send it - without naming the other officer.
+   */
+  foreignOwner?: boolean
 }
 
 export interface UnsyncedBannerState {
@@ -155,10 +303,14 @@ export function unsyncedBanner(input: UnsyncedBannerInput): UnsyncedBannerState 
   const pending = Number.isFinite(input.pending) ? Math.max(0, Math.floor(input.pending)) : 0
   const notRecorded = Number.isFinite(input.notRecorded) ? Math.max(0, Math.floor(input.notRecorded)) : 0
   const persisted = input.persisted ?? null
+  const foreignOwner = input.foreignOwner === true
   const atCap = pending >= MAX_PENDING_SCANS
   const parts: string[] = []
 
-  if (pending > 0) parts.push(`${pending} unsynced scan${pending === 1 ? '' : 's'}`)
+  if (pending > 0) {
+    const count = `${pending} unsynced scan${pending === 1 ? '' : 's'}`
+    parts.push(foreignOwner ? `${count} from another officer` : count)
+  }
   if (notRecorded > 0) parts.push(`${notRecorded} not recorded`)
 
   return {
@@ -166,7 +318,7 @@ export function unsyncedBanner(input: UnsyncedBannerInput): UnsyncedBannerState 
     pending,
     notRecorded,
     label: parts.join(' · '),
-    tone: atCap || notRecorded > 0 || (pending > 0 && persisted === false) ? 'danger' : 'warning',
+    tone: atCap || foreignOwner || notRecorded > 0 || (pending > 0 && persisted === false) ? 'danger' : 'warning',
     atCap,
     storageWarning: pending > 0 && persisted === false
       ? 'This phone may discard unsynced scans — sync before leaving.'

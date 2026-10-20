@@ -314,7 +314,7 @@ Read from the code rather than from this plan, while the cutover console setting
 
 **Gaps found, now tasks T-0008 and T-0009:**
 - the queue is per browser, not per officer, so a second officer can sync the first officer scans;
-- the duplicate check is read-then-write with no unique index behind it, so two simultaneous scans can open two rows;
+- the partial unique indexes for one open record per student have existed since `20260708181121`, but a violation surfaced as a 500 because only idempotency-key races were mapped, and the index is absent from `schema.prisma`, so a database rebuilt from the schema alone could lack it;
 - no rate limit on the scan endpoints;
 - manual entries have a reason but no photographic evidence.
 

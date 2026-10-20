@@ -6,6 +6,7 @@ import {
   canQueueScan,
   formatBytes,
   planFlush,
+  queueOwnership,
   refusalsAcknowledged,
   storageAdvice,
   unacknowledgedRefusals,
@@ -15,7 +16,7 @@ import {
 } from '../../app/utils/scan-queue'
 import { FUTURE_GRACE_MS, MAX_SYNC_AGE_MS, hasExplicitScanTime, resolveScanTime } from '../../server/utils/offline'
 
-const scan = (id: string, scannedAt = '2026-10-18T01:00:00.000Z'): QueuedScan => ({
+const scan = (id: string, scannedAt = '2026-10-18T01:00:00.000Z', recordedBy?: string): QueuedScan => ({
   id,
   kind: 'barcode',
   eventId: 'e1',
@@ -23,7 +24,8 @@ const scan = (id: string, scannedAt = '2026-10-18T01:00:00.000Z'): QueuedScan =>
   lat: 10.72,
   lng: 122.56,
   accuracy: 8,
-  scannedAt
+  scannedAt,
+  ...(recordedBy ? { recordedBy } : {})
 })
 
 const refusal = (id: string, reason = 'Already checked in.'): RefusedScan => ({
@@ -164,6 +166,116 @@ describe('unsyncedBanner', () => {
 
     const empty = unsyncedBanner({ pending: 0, notRecorded: 1, persisted: false })
     expect(empty.storageWarning).toBeNull()
+  })
+})
+
+describe('queueOwnership (T-0008)', () => {
+  const A = 'officer-a-uuid'
+  const B = 'officer-b-uuid'
+
+  it('lets the first officer claim an empty phone', () => {
+    const decision = queueOwnership({ officerId: A, queueOwnerId: null, scans: [] })
+    expect(decision.state).toBe('mine')
+    expect(decision.ownerId).toBe(A)
+    expect(decision.locked).toBe(false)
+    expect(decision.message).toBeNull()
+  })
+
+  it('keeps the owner queue in place for the same officer', () => {
+    const scans = [scan('a', undefined, A), scan('b', undefined, A)]
+    const decision = queueOwnership({ officerId: A, queueOwnerId: A, scans })
+    expect(decision.state).toBe('mine')
+    expect(decision.pending.map(row => row.id)).toEqual(['a', 'b'])
+    expect(decision.park).toEqual([])
+    expect(decision.locked).toBe(false)
+  })
+
+  it('refuses a second officer and sends nothing', () => {
+    const scans = [scan('a', undefined, A), scan('b', undefined, A)]
+    const decision = queueOwnership({ officerId: B, queueOwnerId: A, scans })
+    expect(decision.state).toBe('foreign')
+    expect(decision.locked).toBe(true)
+    expect(decision.pending).toEqual([])
+    expect(decision.ownerId).toBe(A)
+    expect(decision.message).toMatch(/different officer/i)
+    expect(decision.message).toMatch(/nothing was sent/i)
+  })
+
+  it('never reveals the first officer identity in the refusal', () => {
+    const scans = [scan('a', undefined, A)]
+    const decision = queueOwnership({ officerId: B, queueOwnerId: A, scans })
+    expect(decision.message).not.toContain(A)
+    expect(decision.message).not.toContain('officer-a')
+    expect(JSON.stringify({ ...decision, ownerId: undefined })).not.toContain(A)
+  })
+
+  it('does not lock a phone forever when the queue is already empty', () => {
+    const decision = queueOwnership({ officerId: B, queueOwnerId: A, scans: [] })
+    expect(decision.state).toBe('mine')
+    expect(decision.ownerId).toBe(B)
+    expect(decision.locked).toBe(false)
+  })
+
+  it('parks rows queued before ownership was recorded instead of guessing', () => {
+    const scans = [scan('legacy-1'), scan('legacy-2')]
+    const decision = queueOwnership({ officerId: A, queueOwnerId: null, scans })
+    expect(decision.state).toBe('mine')
+    expect(decision.pending).toEqual([])
+    expect(decision.park.map(row => row.id)).toEqual(['legacy-1', 'legacy-2'])
+    expect(decision.message).toMatch(/set aside/i)
+    expect(decision.message).toMatch(/2 unsynced scans/i)
+  })
+
+  it('parks legacy rows even when the signed-in officer owns the rest', () => {
+    const scans = [scan('legacy'), scan('owned', undefined, A)]
+    const decision = queueOwnership({ officerId: A, queueOwnerId: A, scans })
+    expect(decision.state).toBe('mine')
+    expect(decision.park.map(row => row.id)).toEqual(['legacy'])
+    expect(decision.pending.map(row => row.id)).toEqual(['owned'])
+  })
+
+  it('derives the owner when the meta record is missing', () => {
+    const scans = [scan('a', undefined, A), scan('b', undefined, A)]
+    const decision = queueOwnership({ officerId: A, queueOwnerId: null, scans })
+    expect(decision.state).toBe('mine')
+    expect(decision.ownerId).toBe(A)
+  })
+
+  it('refuses an unattributed queue owned by someone else, even without meta', () => {
+    const scans = [scan('a', undefined, A)]
+    const decision = queueOwnership({ officerId: B, queueOwnerId: null, scans })
+    expect(decision.state).toBe('foreign')
+    expect(decision.pending).toEqual([])
+    expect(decision.locked).toBe(true)
+  })
+
+  it('refuses a queue that names more than one officer', () => {
+    const scans = [scan('a', undefined, A), scan('b', undefined, B)]
+    const decision = queueOwnership({ officerId: A, queueOwnerId: null, scans })
+    expect(decision.state).toBe('foreign')
+    expect(decision.ownerId).toBeNull()
+    expect(decision.pending).toEqual([])
+    expect(decision.message).toMatch(/more than one officer/i)
+  })
+
+  it('treats a meta owner that disagrees with the rows as mixed', () => {
+    const scans = [scan('b', undefined, B)]
+    const decision = queueOwnership({ officerId: B, queueOwnerId: A, scans })
+    expect(decision.state).toBe('foreign')
+    expect(decision.pending).toEqual([])
+  })
+})
+
+describe('unsyncedBanner (T-0008)', () => {
+  it('says a foreign queue is not this officer work', () => {
+    const banner = unsyncedBanner({ pending: 2, notRecorded: 0, persisted: true, foreignOwner: true })
+    expect(banner.visible).toBe(true)
+    expect(banner.label).toBe('2 unsynced scans from another officer')
+    expect(banner.tone).toBe('danger')
+  })
+
+  it('keeps the ordinary wording for the owning officer', () => {
+    expect(unsyncedBanner({ pending: 2, notRecorded: 0, foreignOwner: false }).label).toBe('2 unsynced scans')
   })
 })
 
