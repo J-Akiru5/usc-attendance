@@ -41,3 +41,6 @@ AgentOps layer needs.
 - Monetary sanctions are for **officers only**, and only with a citation (D-01).
 - Announcements are inbox-first; email is an explicit per-send opt-in (D-08).
 - iOS officers do QR-only duty; barcode scanning is Chromium-only (D-03).
+- A second officer on a shared phone is refused and the first officer queue is preserved (2026-10-20).
+- The offline scan window stays at 48 hours; the student QR keeps its 30-second rotation (2026-10-20).
+- A manual check-in carries a reason and a photo of the student ID, with a 90-day retention default (2026-10-20).

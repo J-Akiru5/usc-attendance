@@ -59,5 +59,21 @@ resources:
   classes: [light, moderate, heavy]
   exclusive: [full, build]
 
+deployment:
+  provider: vercel
+  project: usc-attendance
+  production_branch: main
+  eligible_branches: [main, develop]
+  integrator_push_is_the_deployment: true
+  validation: static-inspection
+  sensitive_paths:
+    - vercel.json
+    - nuxt.config.ts
+    - package.json
+    - package-lock.json
+    - .github/workflows/**
+    - .vercel/**
+    - tools/**
+
 cleanup:
   require_apply_flag: true

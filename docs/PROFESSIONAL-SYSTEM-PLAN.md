@@ -297,6 +297,30 @@ Each module lists **scope**, **data model (additive)**, **key rules**, and **acc
 - **Offline scanner queue**: scans saved locally and synced when online (signed tokens verified server-side on sync, with original scan time + location).
 - *Acceptance:* create recurring event → calendar shows instances; register beyond capacity → waitlisted; barcode scan of a test ID records the right student; offline scans sync once.
 
+### 8.2a Attendance and QR hardening (2026-10-20)
+
+Read from the code rather than from this plan, while the cutover console settings were unavailable.
+
+**Owner answers recorded here (2026-10-20):**
+- A second officer signing in on a shared phone is **refused**, and the first officer queue is preserved - no scan is attributed to the wrong person.
+- A queued scan stays acceptable for **48 hours** (unchanged).
+- The student QR keeps its **30-second rotation**; no screenshot or liveness detection.
+- A manual check-in carries a reason **and a photo of the student ID**.
+
+**Already present and verified:**
+- offline queue with a stable per-scan key, both scan moments, a 48-hour age limit, recorded persistence, a persistent banner and a 500-scan cap;
+- HMAC-signed QR tokens bound to student and event, 30-second lifetime, timing-safe comparison, clock-skew allowance and future clamping;
+- server-side geofence, delegation scopes, check-in window, cancellation and an open-record duplicate refusal.
+
+**Gaps found, now tasks T-0008 and T-0009:**
+- the queue is per browser, not per officer, so a second officer can sync the first officer scans;
+- the duplicate check is read-then-write with no unique index behind it, so two simultaneous scans can open two rows;
+- no rate limit on the scan endpoints;
+- manual entries have a reason but no photographic evidence.
+
+Deployment note: `vercel.json` now restricts automatic deployments to `main` and `develop` (see
+`plan/policy.yaml` deployment section); previews from any other branch are disabled by configuration,
+not by convention.
 ### 8.3 Attendance analytics & reports (Phase 3)
 
 - **Dashboards:** attendance rate per event, trend per semester, by college / year / section, top/bottom attendance, no-show lists, check-in timing histogram, signature completion rate.
