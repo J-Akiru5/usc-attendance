@@ -71,6 +71,7 @@ model User {
   clearancesRevoked  Clearance[]         @relation("ClearanceRevoker")
   privacyRequests    PrivacyRequest[]    @relation("PrivacyRequester")
   privacyDecisions   PrivacyRequest[]    @relation("PrivacyDecider")
+  scanRateLimits     ScanRateLimit[]
 
   @@map("users")
 }
@@ -713,7 +714,36 @@ model Attendance {
   recorder User    @relation("RecordedBy", fields: [recordedBy], references: [id])
   signature AttendanceSignature?
 
+  // T-0008: one open event attendance per student. PostgreSQL partial unique
+  // indexes cannot be expressed in schema.prisma, so this object deliberately
+  // does NOT appear here. It lives in
+  // prisma/migrations/20261020170000_attendance_open_unique/migration.sql:
+  //   UNIQUE ("eventId", "userId") WHERE "checkOutAt" IS NULL
+  //     AND "eventId" IS NOT NULL
+  // and is what makes the route's read-then-write check race-safe. Do not
+  // "clean it up" as schema drift.
+
   @@map("attendance")
+}
+
+/// Per-officer scan budget (T-0008). One row per officer per fixed window; the
+/// row is the shared counter that makes the limit hold across serverless
+/// instances, which do not share memory. The application writes it atomically;
+/// stale windows are harmless and can be pruned by createdAt-like age.
+model ScanRateLimit {
+  officerId   String
+  windowStart DateTime
+  count       Int       @default(0)
+  /// Set on the first denial in the window, so exactly one throttle audit row
+  /// is written per officer per window.
+  throttledAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  officer User @relation(fields: [officerId], references: [id], onDelete: Cascade)
+
+  @@id([officerId, windowStart])
+  @@index([windowStart])
+  @@map("scan_rate_limits")
 }
 
 /// Academic semesters. A signature belongs to the semester its signing time falls in.

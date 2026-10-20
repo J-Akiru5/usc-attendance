@@ -7,9 +7,9 @@
 //   3. a manual check-in without a reason is refused, and with one is stored
 //      and audited;
 //   4. a key presented by a different officer cannot read back the first
-//      officer's record.
+//      officer's record, and never becomes that officer's record.
 //
-// Requires the `20261020150000_scan_integrity` migration (scannedAt,
+// Requires the `20261020160000_scan_integrity` migration (scannedAt,
 // idempotencyKey, manualReason). Throwaway `@example.invalid` data only,
 // deleted afterwards.
 // Run: npx tsx scripts/e2e/run.mts   (starts the dev server for you)
@@ -183,6 +183,11 @@ async function main() {
 
   const rowsAfterForeignReplay = await prisma.attendance.count({ where: { eventId, userId: replayStudent.id } })
   check('and writes nothing', rowsAfterForeignReplay === 1, `${rowsAfterForeignReplay}`)
+
+  const firstOwner = await prisma.attendance.findUnique({ where: { id: firstId }, select: { recordedBy: true } })
+  check('the first officer stays the recorded officer', firstOwner?.recordedBy === staff.id, `${firstOwner?.recordedBy}`)
+  const foreignAttribution = await prisma.attendance.count({ where: { eventId, recordedBy: otherOfficer.id } })
+  check('nothing is attributed to the second officer', foreignAttribution === 0, `${foreignAttribution}`)
 }
 
 async function cleanup() {
