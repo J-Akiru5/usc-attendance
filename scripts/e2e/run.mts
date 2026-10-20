@@ -314,6 +314,12 @@ async function main(): Promise<void> {
     AUDIT_IP_SALT: process.env.AUDIT_IP_SALT ?? randomBytes(32).toString('hex'),
     EMAIL_CAPTURE_URL: captureUrl,
     RESEND_BASE_URL: captureUrl,
+    // T-0009: the live suites exercise the private photo store on the
+    // filesystem. A developer's R2 setting must not redirect throwaway IDs out
+    // of the machine, and the purge assertions need a known directory.
+    ATTENDANCE_PHOTO_STORAGE: 'filesystem',
+    ATTENDANCE_PHOTO_STORAGE_DIR: process.env.ATTENDANCE_PHOTO_STORAGE_DIR ?? '.local/attendance-photos',
+    ATTENDANCE_PHOTO_RETENTION_DAYS: '90',
     // Many fresh Node clients share one pooler; keep each pool small.
     ...(process.env.DATABASE_URL && { DATABASE_URL: withConnectionLimit(process.env.DATABASE_URL, 5) })
   }

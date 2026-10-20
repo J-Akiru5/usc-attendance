@@ -708,6 +708,13 @@ model Attendance {
   idempotencyKey String? @unique
   /// Required for `method = "manual"`: why the officer recorded it by hand.
   manualReason   String?
+  /// T-0009: a manual check-in may carry a photo of the student ID. The object
+  /// itself lives in private storage; this is the opaque key, never a URL.
+  photoKey        String?
+  /// When the ID photo was captured (the device moment, clamped server-side).
+  photoCapturedAt DateTime?
+  /// When the retention job deletes the photo. Null for rows without evidence.
+  photoExpiresAt  DateTime?
 
   event    Event?  @relation(fields: [eventId], references: [id])
   user     User    @relation(fields: [userId], references: [id])
@@ -722,7 +729,7 @@ model Attendance {
   //     AND "eventId" IS NOT NULL
   // and is what makes the route's read-then-write check race-safe. Do not
   // "clean it up" as schema drift.
-
+  @@index([photoExpiresAt])
   @@map("attendance")
 }
 

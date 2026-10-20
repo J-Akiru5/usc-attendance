@@ -312,11 +312,13 @@ Read from the code rather than from this plan, while the cutover console setting
 - HMAC-signed QR tokens bound to student and event, 30-second lifetime, timing-safe comparison, clock-skew allowance and future clamping;
 - server-side geofence, delegation scopes, check-in window, cancellation and an open-record duplicate refusal.
 
-**Gaps found, now tasks T-0008 and T-0009:**
-- the queue is per browser, not per officer, so a second officer can sync the first officer scans;
-- the partial unique indexes for one open record per student have existed since `20260708181121`, but a violation surfaced as a 500 because only idempotency-key races were mapped, and the index is absent from `schema.prisma`, so a database rebuilt from the schema alone could lack it;
-- no rate limit on the scan endpoints;
-- manual entries have a reason but no photographic evidence.
+**Gaps found, and how they were closed:**
+- the queue was per browser, not per officer — **fixed** (#82): entries carry their officer, a second officer is refused while queued work exists, and pre-ownership rows are parked;
+- the partial unique indexes for one open record per student have existed since `20260708181121`, but a violation surfaced as a 500 because only idempotency-key races were mapped, and the index is absent from `schema.prisma` so a rebuilt database could lack it — **fixed** (#82): both routes answer 403, and the migration re-asserts and verifies the index shape;
+- no rate limit on the scan endpoints — **fixed** (#82): a durable PostgreSQL budget, 3,000 per officer per hour by default;
+- manual entries had a reason but no photographic evidence — **built** (#83): private storage, staff-only audited reads, 90-day retention.
+
+**Production requirement for the photo evidence:** a dedicated private bucket (`ATTENDANCE_PHOTO_BUCKET`) and the signing secret (`ATTENDANCE_PHOTO_SECRET`). Until both exist, uploads are refused with 503 and the manual entry records the evidence as absent - it never pretends a photo exists. The public event-photo bucket is explicitly refused by the code.
 
 Deployment note: `vercel.json` now restricts automatic deployments to `main` and `develop` (see
 `plan/policy.yaml` deployment section); previews from any other branch are disabled by configuration,

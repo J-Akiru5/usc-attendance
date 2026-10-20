@@ -35,6 +35,7 @@ export default defineApiHandler(async (event) => {
         type: 'duty',
         dutyDate: { gte, lt }
       },
+      omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true },
       include: {
         user: { select: { id: true, name: true, position: true, role: true } },
         recorder: { select: { id: true, name: true, position: true } }
@@ -113,6 +114,7 @@ export default defineApiHandler(async (event) => {
           lng: resolved.lng,
           recordedBy: user.id
         },
+        omit: { photoKey: true, photoCapturedAt: true, photoExpiresAt: true },
         include: {
           user: { select: { id: true, name: true, position: true, role: true } }
         }
