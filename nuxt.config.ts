@@ -83,6 +83,7 @@ export default defineNuxtConfig({
         '/campus-guide',
         '/contact',
         '/privacy',
+        '/privacy-rights',
         '/portal',
         '/portal/features',
         '/portal/how-it-works',

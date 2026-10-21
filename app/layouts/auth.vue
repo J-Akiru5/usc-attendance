@@ -19,6 +19,15 @@
     <p class="mt-8 text-center text-xs text-muted">
       Having trouble? Contact a USC officer for assistance.
     </p>
+    <p class="mt-2 text-center text-xs text-muted">
+      <NuxtLink
+        to="/privacy-rights"
+        class="font-semibold text-highlighted underline decoration-gold-500/60 underline-offset-2"
+      >
+        Privacy &amp; your rights
+      </NuxtLink>
+      — what the portal records and how to exercise your rights.
+    </p>
   </div>
 </template>
 

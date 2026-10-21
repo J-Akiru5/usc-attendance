@@ -28,7 +28,8 @@ interface PortalRoute {
 const SIGNED_OUT_ROUTES: PortalRoute[] = [
   { path: '/login' },
   { path: '/reset-password' },
-  { path: '/register' }
+  { path: '/register' },
+  { path: '/privacy-rights' }
 ]
 
 const SIGNED_IN_ROUTES: PortalRoute[] = [
