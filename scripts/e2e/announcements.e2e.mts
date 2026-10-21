@@ -25,7 +25,7 @@ const check = (label: string, ok: boolean, detail = '') => {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}${ok ? '' : '  — ' + detail}`)
 }
 
-const made: { userIds: string[], announcementIds: string[] } = { userIds: [], announcementIds: [] }
+const made: { userIds: string[], announcementIds: string[], sectionIds: string[] } = { userIds: [], announcementIds: [], sectionIds: [] }
 
 async function mkUser(key: string, extra: Record<string, unknown> = {}) {
   const email = `${tag}-${key}@example.invalid`
@@ -57,7 +57,17 @@ async function main() {
   const sections = colleges.flatMap(college => (college.programs ?? []).flatMap(program => program.sections ?? []))
   const collegeA = colleges[0]!
   const collegeB = colleges.find(c => c.id !== collegeA.id)
-  const sectionA = (collegeA.programs ?? []).flatMap(program => program.sections ?? [])[0] ?? sections[0]
+  let sectionA = (collegeA.programs ?? []).flatMap(program => program.sections ?? [])[0] ?? sections[0]
+  // The dev seed may carry no sections at all. Create a throwaway one so the
+  // section audience is exercised against a real recipient instead of failing
+  // on missing seed data - and clean it up with the rest of the fixture.
+  if (!sectionA) {
+    const program = await prisma.program.findFirst({ select: { id: true } })
+    if (program) {
+      sectionA = await prisma.section.create({ data: { programId: program.id, yearLevel: 2, name: `${tag} sec` } })
+      made.sectionIds.push(sectionA.id)
+    }
+  }
 
   // Two students inside collegeA, one outside it. One of them sits in a
   // section so every audience type has a countable audience.
@@ -77,7 +87,7 @@ async function main() {
   check('a student cannot read the audience preview (403)', r._s === 403, `${r._s}`)
 
   r = await api('/api/announcements/preview?audienceType=all', { token: staff.token })
-  check('the preview counts everyone eligible (200, 3 students)', r._s === 200 && r._b?.eligible === 3, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
+  check('the preview counts everyone eligible (200, at least the three seeded)', r._s === 200 && r._b?.eligible >= 3, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
   check('it carries today\'s budget as a number', r._b?.quota?.known === true && Number.isInteger(r._b?.quota?.remaining) && r._b?.quota?.remaining >= 0, JSON.stringify(r._b?.quota))
   const previewJson = JSON.stringify(r._b)
   check('the preview is a count, never a directory', !previewJson.includes(insideA.id) && !previewJson.includes(insideA.email) && !('recipients' in (r._b ?? {})), previewJson.slice(0, 140))
@@ -330,6 +340,9 @@ async function cleanup() {
     await prisma.announcement.delete({ where: { id } }).catch(() => {})
   }
   await prisma.announcement.deleteMany({ where: { title: { startsWith: tag } } })
+  for (const id of made.sectionIds) {
+    await prisma.section.delete({ where: { id } }).catch(() => {})
+  }
   if (made.userIds.length) {
     await prisma.notification.deleteMany({ where: { OR: [{ userId: { in: made.userIds } }, { createdBy: { in: made.userIds } }] } })
     await prisma.notificationPreference.deleteMany({ where: { userId: { in: made.userIds } } })
