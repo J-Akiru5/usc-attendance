@@ -28,7 +28,8 @@ interface PortalRoute {
 const SIGNED_OUT_ROUTES: PortalRoute[] = [
   { path: '/login' },
   { path: '/reset-password' },
-  { path: '/register' }
+  { path: '/register' },
+  { path: '/privacy-rights' }
 ]
 
 const SIGNED_IN_ROUTES: PortalRoute[] = [
@@ -60,8 +61,7 @@ const SIGNED_IN_ROUTES: PortalRoute[] = [
   { path: '/check-in' },
   { path: '/qr' },
   { path: '/duty' },
-  { path: '/change-password' },
-  { path: '/privacy-rights' }
+  { path: '/change-password' }
 ]
 
 const hasCredentials = Boolean(process.env.A11Y_EMAIL && process.env.A11Y_PASSWORD)
