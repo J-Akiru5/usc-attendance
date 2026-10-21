@@ -100,3 +100,10 @@ Still outstanding at cutover, by decision rather than omission: `SITE_URL` and t
 letterhead for the PDF twin.
 
 > **Set from the CLI on 2026-10-20** (production environment, values verified by pulling them back): `CRON_SECRET` (64 hex, identical to the repository secret and the local `.env`), `SITE_URL=https://usc.syntaxure.dev`, and `AUDIT_IP_SALT` (48 hex - it was missing entirely, so audit rows were storing no address hash). Environment changes take effect on the next production deployment, which is the cutover. The Supabase Auth URL configuration below is **not** done: the USC project is not in this account's Supabase CLI project list, so it needs the dashboard. The repository variable `SITE_URL` is deliberately still unset - setting it is what starts the three scheduled cron workflows, so it belongs to the cutover step.
+## Outstanding owner step: attendance photo storage (2026-10-21)
+
+Manual check-ins can carry a photo of the student ID, but only into a **dedicated private bucket**.
+The code refuses the public event-photo bucket by name and, with no bucket configured, returns 503 and
+records the evidence as absent rather than pretending. ATTENDANCE_PHOTO_SECRET is already set in Vercel
+production and verified; ATTENDANCE_PHOTO_BUCKET (and its credentials) still needs to be created in the R2
+console. Retention defaults to 90 days and the purge deletes the object before clearing the row columns.
