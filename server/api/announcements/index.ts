@@ -2,9 +2,9 @@ import { getMethod, getQuery } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { authenticate, requireStaff } from '../../utils/auth'
 import { badRequest, defineApiHandler, HttpError, readJsonBody, respond } from '../../utils/http'
-import { deriveStatus, dispatchAnnouncement, emailBudgetError, renderAnnouncementBody } from '../../utils/announce'
+import { deriveStatus, dispatchAnnouncement, renderAnnouncementBody } from '../../utils/announce'
 import { resolveAudience, specFromEvent, audienceColumns, parseAudience } from '../../utils/audience'
-import { emailQuota } from '../../utils/email-quota'
+import { emailBudgetDecision, tryEmailQuota } from '../../utils/email-quota'
 import { auditContext, auditWrite } from '../../utils/audit'
 
 import { dedupeKeyFor } from '../../utils/notify'
@@ -65,6 +65,34 @@ export default defineApiHandler(async (event) => {
     if (scheduledFor && Number.isNaN(scheduledFor.getTime())) throw badRequest('scheduledFor is not a valid date and time')
     const status = deriveStatus({ sendNow: body.sendNow === true, scheduledFor })
 
+    // D-08: email is opt-in. BC-12: an email send that would exceed today's
+    // remaining budget is refused with the numbers, before anything is written
+    // (so a refusal leaves no half-sent announcement) or queued.
+    const wantsEmail = body.sendEmail === true
+    if (status === 'sent' && wantsEmail) {
+      const [recipients, quota] = await Promise.all([
+        resolveAudience(prisma, audience),
+        tryEmailQuota(prisma)
+      ])
+      const decision = emailBudgetDecision(recipients.length, quota)
+      if (!decision.allowed) {
+        await auditWrite(prisma, {
+          actor: user,
+          action: 'announcement_email_refused',
+          targetType: 'announcement',
+          details: {
+            reason: decision.state,
+            audience: audience.type,
+            recipients: decision.recipients,
+            remaining: decision.remaining,
+            limit: decision.limit
+          },
+          ...auditContext(event)
+        })
+        throw new HttpError(409, decision.message ?? 'That email would exceed today\'s remaining budget')
+      }
+    }
+
     const created = await prisma.announcement.create({
       data: {
         title,
@@ -87,17 +115,6 @@ export default defineApiHandler(async (event) => {
     })
 
     if (status === 'sent') {
-      // D-08: email is opt-in, and a send that exceeds today's remaining budget
-      // is refused with the options spelled out rather than quietly downgraded.
-      const wantsEmail = body.sendEmail === true
-      if (wantsEmail) {
-        const [audience, quota] = await Promise.all([
-          resolveAudience(prisma, specFromEvent(created)),
-          emailQuota(prisma)
-        ])
-        const refusal = emailBudgetError(audience.length, quota.remaining)
-        if (refusal) throw new HttpError(409, refusal)
-      }
       const outcome = await dispatchAnnouncement(prisma, created, { email: wantsEmail })
       return respond(event, 201, { announcement: { ...created, status: 'sent' }, dispatch: outcome })
     }

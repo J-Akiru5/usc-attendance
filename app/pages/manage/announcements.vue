@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import Card from '@/components/ui/Card.vue'
 import CardContent from '@/components/ui/CardContent.vue'
@@ -10,8 +10,13 @@ import Label from '@/components/ui/Label.vue'
 
 definePageMeta({ layout: 'dashboard', requiresAuth: true, roles: ['super_admin', 'staff'] })
 
-interface CollegeOption { id: string, code: string, name: string }
-interface SectionOption { id: string, name: string, yearLevel: number, programId: string }
+interface CollegeOption {
+  id: string
+  code: string
+  name: string
+  programs?: Array<{ id: string, sections?: SectionOption[] }>
+}
+interface SectionOption { id: string, name: string, yearLevel: number }
 interface Announcement {
   id: string
   title: string
@@ -40,10 +45,27 @@ const error = ref('')
 const notice = ref('')
 const busy = ref(false)
 
+interface AudiencePreview {
+  eligible: number
+  quota: {
+    known: boolean
+    used: number | null
+    limit: number | null
+    remaining: number | null
+    exceeded: boolean | null
+  }
+  budget: {
+    state: 'fits' | 'over_budget' | 'unknown'
+    allowed: boolean
+    message: string | null
+  }
+}
+
 const form = ref({
   title: '',
   body: '',
   pinned: false,
+  sendEmail: false,
   audienceType: 'all' as 'all' | 'college' | 'yearLevel' | 'section',
   audienceCollegeId: '',
   audienceYearLevel: '',
@@ -67,6 +89,74 @@ const audienceText = (item: Announcement) => {
 
 const preview = computed(() => form.value.body.trim())
 
+const audiencePreview = ref<AudiencePreview | null>(null)
+const previewLoading = ref(false)
+const previewError = ref('')
+let previewRequest = 0
+
+const audienceReady = computed(() => {
+  if (form.value.audienceType === 'college') return form.value.audienceCollegeId !== ''
+  if (form.value.audienceType === 'yearLevel') return form.value.audienceYearLevel !== ''
+  if (form.value.audienceType === 'section') return form.value.audienceSectionId !== ''
+  return true
+})
+
+/**
+ * BC-12: when email is chosen, ask the server who this reaches and what today
+ * has left. The reply is a count — never a recipient — and an unreadable quota
+ * arrives as `known: false`, which is shown as unknown rather than as zero.
+ */
+async function loadAudiencePreview() {
+  const request = ++previewRequest
+  audiencePreview.value = null
+  previewError.value = ''
+  if (!form.value.sendEmail || !audienceReady.value) {
+    previewLoading.value = false
+    return
+  }
+
+  previewLoading.value = true
+  try {
+    const params = new URLSearchParams({ audienceType: form.value.audienceType })
+    if (form.value.audienceType === 'college') params.set('audienceCollegeId', form.value.audienceCollegeId)
+    if (form.value.audienceType === 'yearLevel') params.set('audienceYearLevel', form.value.audienceYearLevel)
+    if (form.value.audienceType === 'section') params.set('audienceSectionId', form.value.audienceSectionId)
+
+    const data = await api.get<AudiencePreview>(`/announcements/preview?${params.toString()}`)
+    if (request === previewRequest) audiencePreview.value = data
+  } catch {
+    if (request === previewRequest) previewError.value = 'The audience could not be checked right now, so an email send will be refused.'
+  } finally {
+    if (request === previewRequest) previewLoading.value = false
+  }
+}
+
+const audiencePreviewSummary = computed(() => {
+  const data = audiencePreview.value
+  if (!data) return ''
+  const people = `${data.eligible} ${data.eligible === 1 ? 'person' : 'people'}`
+  if (!data.quota.known || data.budget.state === 'unknown') {
+    return `This reaches ${people} by email, but today's remaining email budget could not be checked. An email send will be refused; you can still send it in the app only.`
+  }
+  const left = data.quota.remaining ?? 0
+  const total = data.quota.limit ?? 0
+  if (data.budget.allowed) {
+    return `This reaches ${people} by email. ${left} of today's ${total} emails are left.`
+  }
+  return `This reaches ${people} by email, but only ${left} of today's ${total} emails are left, so an email send will be refused. Send it in the app only, or wait until tomorrow.`
+})
+
+watch(
+  () => [
+    form.value.sendEmail,
+    form.value.audienceType,
+    form.value.audienceCollegeId,
+    form.value.audienceYearLevel,
+    form.value.audienceSectionId
+  ],
+  () => { void loadAudiencePreview() }
+)
+
 async function load() {
   loading.value = true
   try {
@@ -84,12 +174,15 @@ function resetForm() {
     title: '',
     body: '',
     pinned: false,
+    sendEmail: false,
     audienceType: 'all',
     audienceCollegeId: '',
     audienceYearLevel: '',
     audienceSectionId: '',
     scheduledFor: ''
   }
+  audiencePreview.value = null
+  previewError.value = ''
 }
 
 async function submit(sendNow: boolean) {
@@ -104,6 +197,9 @@ async function submit(sendNow: boolean) {
       audienceType: form.value.audienceType,
       sendNow
     }
+    // D-08: inbox unless the officer opts into email for this send. Scheduled
+    // announcements stay in the inbox; email is a "send now" choice (BC-12).
+    if (sendNow && form.value.sendEmail) body.sendEmail = true
     if (form.value.audienceType === 'college') body.audienceCollegeId = form.value.audienceCollegeId
     if (form.value.audienceType === 'yearLevel') body.audienceYearLevel = Number(form.value.audienceYearLevel)
     if (form.value.audienceType === 'section') body.audienceSectionId = form.value.audienceSectionId
@@ -166,9 +262,13 @@ function formatWhen(value: string | null) {
 onMounted(async () => {
   await load()
   try {
-    const academic = await api.get<{ colleges: CollegeOption[], sections: SectionOption[] }>('/reference/academic')
+    const academic = await api.get<{ colleges: CollegeOption[] }>('/reference/academic')
     colleges.value = academic.colleges ?? []
-    sections.value = academic.sections ?? []
+    // The reference tree nests sections under each program; flatten them for
+    // the audience picker.
+    sections.value = (academic.colleges ?? []).flatMap(college =>
+      (college.programs ?? []).flatMap(program => program.sections ?? [])
+    )
   } catch {
     // The audience pickers stay empty without the reference data.
   }
@@ -285,6 +385,37 @@ onMounted(async () => {
             <input v-model="form.pinned" type="checkbox">
             Pin to the dashboard
           </label>
+          <label class="flex items-end gap-2 pb-2 text-sm text-slate">
+            <input v-model="form.sendEmail" type="checkbox">
+            Also send by email
+          </label>
+        </div>
+
+        <div
+          v-if="form.sendEmail"
+          class="rounded-lg border border-line bg-paper p-3 text-sm"
+          aria-live="polite"
+        >
+          <div class="text-xs uppercase tracking-wide text-slate mb-1">
+            Email reach
+          </div>
+          <p v-if="previewLoading" class="text-slate">
+            Checking who this reaches…
+          </p>
+          <p v-else-if="previewError" class="text-danger">
+            {{ previewError }}
+          </p>
+          <p v-else-if="!audienceReady" class="text-slate">
+            Pick the college, year or section this goes to.
+          </p>
+          <template v-else-if="audiencePreview">
+            <p :class="audiencePreview.budget.allowed ? 'text-navy' : 'text-danger'">
+              {{ audiencePreviewSummary }}
+            </p>
+            <p v-if="form.scheduledFor" class="text-xs text-slate mt-1">
+              A scheduled announcement goes to the inbox only. Email is sent when you choose Send now.
+            </p>
+          </template>
         </div>
 
         <div class="flex flex-wrap gap-2">
