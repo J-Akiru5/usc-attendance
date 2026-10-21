@@ -154,13 +154,13 @@ describe('portal surfaces link to the page without touching the public site', ()
     expect(readFileSync(AUTH_LAYOUT, 'utf8')).toContain('to="/privacy-rights"')
   })
 
-  it('is in the signed-in accessibility scan list', () => {
+  it('is in the signed-out accessibility scan list', () => {
     const a11y = readFileSync(A11Y_SPEC, 'utf8')
-    const signedIn = a11y.slice(
-      a11y.indexOf('const SIGNED_IN_ROUTES'),
-      a11y.indexOf('const hasCredentials')
+    const signedOut = a11y.slice(
+      a11y.indexOf('const SIGNED_OUT_ROUTES'),
+      a11y.indexOf('const SIGNED_IN_ROUTES')
     )
-    expect(signedIn).toContain('path: \'/privacy-rights\'')
+    expect(signedOut).toContain('path: \'/privacy-rights\'')
   })
 })
 
