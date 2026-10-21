@@ -2,9 +2,9 @@ import { getMethod, getRouterParam } from 'h3'
 import { prisma } from '../../../utils/prisma'
 import { authenticate, requireStaff } from '../../../utils/auth'
 import { defineApiHandler, HttpError, readJsonBody, respond } from '../../../utils/http'
-import { dispatchAnnouncement, emailBudgetError } from '../../../utils/announce'
+import { dispatchAnnouncement } from '../../../utils/announce'
 import { resolveAudience, specFromEvent } from '../../../utils/audience'
-import { emailQuota } from '../../../utils/email-quota'
+import { emailBudgetDecision, tryEmailQuota } from '../../../utils/email-quota'
 import { auditContext, auditWrite } from '../../../utils/audit'
 
 /**
@@ -12,7 +12,8 @@ import { auditContext, auditWrite } from '../../../utils/audit'
  * right now (staff). Sending twice is harmless: the delivery carries a dedupe
  * key per announcement, so a second attempt reports duplicates instead of
  * telling everyone again. Email is opt-in (D-08) and is refused outright when
- * the audience is larger than the day's remaining budget.
+ * the audience is larger than the day's remaining budget, or when that budget
+ * cannot be read reliably — the refusal names the numbers and is audited.
  */
 export default defineApiHandler(async (event) => {
   if (getMethod(event) !== 'POST') return respond(event, 405, { error: 'Method not allowed' })
@@ -28,12 +29,28 @@ export default defineApiHandler(async (event) => {
   const body = await readJsonBody(event) ?? {}
   const wantsEmail = body.sendEmail === true
   if (wantsEmail) {
-    const [audience, quota] = await Promise.all([
+    const [recipients, quota] = await Promise.all([
       resolveAudience(prisma, specFromEvent(existing)),
-      emailQuota(prisma)
+      tryEmailQuota(prisma)
     ])
-    const refusal = emailBudgetError(audience.length, quota.remaining)
-    if (refusal) throw new HttpError(409, refusal)
+    const decision = emailBudgetDecision(recipients.length, quota)
+    if (!decision.allowed) {
+      await auditWrite(prisma, {
+        actor: user,
+        action: 'announcement_email_refused',
+        targetType: 'announcement',
+        targetId: id,
+        details: {
+          reason: decision.state,
+          audience: existing.audienceType,
+          recipients: decision.recipients,
+          remaining: decision.remaining,
+          limit: decision.limit
+        },
+        ...auditContext(event)
+      })
+      throw new HttpError(409, decision.message ?? 'That email would exceed today\'s remaining budget')
+    }
   }
 
   const outcome = await dispatchAnnouncement(prisma, existing, { email: wantsEmail })

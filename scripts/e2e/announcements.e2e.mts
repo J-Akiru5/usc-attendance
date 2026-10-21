@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 import { api, capturedEmails, clearCapturedEmails } from './client.mts'
+import { dailyLimit, utcDayStart } from '../../server/utils/email-quota'
 
 process.env.QR_SECRET ||= 'e2e-test-secret-' + randomBytes(8).toString('hex')
 process.env.SITE_URL ||= process.env.BASE_URL || 'http://localhost:3000'
@@ -46,22 +47,59 @@ async function main() {
   const student = await mkUser('student', { role: 'student' })
 
   const academic = await api('/api/reference/academic')
-  const colleges = (academic._b?.colleges ?? []) as Array<{ id: string, code: string, name: string }>
+  const colleges = (academic._b?.colleges ?? []) as Array<{
+    id: string
+    code: string
+    name: string
+    programs?: Array<{ sections?: Array<{ id: string, name: string }> }>
+  }>
+  // Sections are nested under programs in the reference tree.
+  const sections = colleges.flatMap(college => (college.programs ?? []).flatMap(program => program.sections ?? []))
   const collegeA = colleges[0]!
   const collegeB = colleges.find(c => c.id !== collegeA.id)
+  const sectionA = (collegeA.programs ?? []).flatMap(program => program.sections ?? [])[0] ?? sections[0]
 
-  // Two students inside collegeA, one outside it.
+  // Two students inside collegeA, one outside it. One of them sits in a
+  // section so every audience type has a countable audience.
   const insideA = await mkUser('insidea', { role: 'student' })
   const insideB = await mkUser('insideb', { role: 'student' })
   const outside = await mkUser('outside', { role: 'student' })
-  await prisma.studentProfile.create({ data: { userId: insideA.id, studentNo: `${tag.slice(-7)}1`, collegeId: collegeA.id, yearLevel: 2 } })
+  await prisma.studentProfile.create({ data: { userId: insideA.id, studentNo: `${tag.slice(-7)}1`, collegeId: collegeA.id, yearLevel: 2, sectionId: sectionA?.id ?? null } })
   await prisma.studentProfile.create({ data: { userId: insideB.id, studentNo: `${tag.slice(-7)}2`, collegeId: collegeA.id, yearLevel: 3 } })
   await prisma.studentProfile.create({ data: { userId: outside.id, studentNo: `${tag.slice(-7)}3`, collegeId: collegeB?.id ?? null, yearLevel: 2 } })
 
   const notesFor = (userId: string) => prisma.notification.findMany({ where: { userId, kind: 'announcement' }, orderBy: { createdAt: 'desc' } })
 
+  let r: Awaited<ReturnType<typeof api>>
+
+  console.log('\n--- the email audience preview (BC-12) ---')
+  r = await api('/api/announcements/preview?audienceType=all', { token: student.token })
+  check('a student cannot read the audience preview (403)', r._s === 403, `${r._s}`)
+
+  r = await api('/api/announcements/preview?audienceType=all', { token: staff.token })
+  check('the preview counts everyone eligible (200, 3 students)', r._s === 200 && r._b?.eligible === 3, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
+  check('it carries today\'s budget as a number', r._b?.quota?.known === true && Number.isInteger(r._b?.quota?.remaining) && r._b?.quota?.remaining >= 0, JSON.stringify(r._b?.quota))
+  const previewJson = JSON.stringify(r._b)
+  check('the preview is a count, never a directory', !previewJson.includes(insideA.id) && !previewJson.includes(insideA.email) && !('recipients' in (r._b ?? {})), previewJson.slice(0, 140))
+
+  r = await api(`/api/announcements/preview?audienceType=college&audienceCollegeId=${collegeA.id}`, { token: staff.token })
+  check('one college counts only its own students (2)', r._s === 200 && r._b?.eligible === 2, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
+
+  r = await api('/api/announcements/preview?audienceType=yearLevel&audienceYearLevel=2', { token: staff.token })
+  check('one year level counts only that year (2)', r._s === 200 && r._b?.eligible === 2, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
+
+  r = await api('/api/announcements/preview?audienceType=yearLevel&audienceYearLevel=3', { token: staff.token })
+  check('a different year counts only its own (1)', r._s === 200 && r._b?.eligible === 1, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
+
+  if (sectionA) {
+    r = await api(`/api/announcements/preview?audienceType=section&audienceSectionId=${sectionA.id}`, { token: staff.token })
+    check('one section counts only its own students (1)', r._s === 200 && r._b?.eligible === 1, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
+  } else {
+    check('the dev reference data has a section to preview', false, 'no sections returned by /api/reference/academic')
+  }
+
   console.log('\n--- writing one ---')
-  let r = await api('/api/announcements', { token: student.token })
+  r = await api('/api/announcements', { token: student.token })
   check('a student cannot open the announcements desk (403)', r._s === 403, `${r._s}`)
 
   r = await api('/api/announcements', {
@@ -198,6 +236,87 @@ async function main() {
   const pinnedDraft = await api('/api/announcements/pinned', { token: student.token })
   check('a pinned draft stays private', !(pinnedDraft._b?.items ?? []).some((item: { title: string }) => item.title === `${tag} pinned draft`), JSON.stringify((pinnedDraft._b?.items ?? []).map((i: { title: string }) => i.title)))
 
+  console.log('\n--- an email send over the daily budget is refused (BC-12) ---')
+  // Spend the rest of today's counter with throwaway rows, so the refusal is
+  // exercised through the real guard rather than a mock.
+  const quotaTag = `${tag}-quota`
+  const limit = dailyLimit()
+  const usedToday = await prisma.emailSend.count({ where: { createdAt: { gte: utcDayStart() } } })
+  const rowsNeeded = Math.max(1, limit - usedToday + 1)
+  if (rowsNeeded > 1000) {
+    check('the configured daily limit is testable', false, `RESEND_DAILY_LIMIT=${limit} would need ${rowsNeeded} rows`)
+  } else {
+    await prisma.emailSend.createMany({
+      data: Array.from({ length: rowsNeeded }, () => ({ kind: quotaTag, createdAt: new Date() }))
+    })
+  }
+
+  r = await api(`/api/announcements/preview?audienceType=college&audienceCollegeId=${collegeA.id}`, { token: staff.token })
+  check('the preview reports the budget is spent', r._s === 200 && r._b?.quota?.remaining === 0 && r._b?.budget?.state === 'over_budget', `${r._s} ${JSON.stringify(r._b?.quota)} ${JSON.stringify(r._b?.budget)}`)
+
+  const beforeRefusal = (await notesFor(insideA.id)).length
+  await clearCapturedEmails()
+  r = await api('/api/announcements', {
+    method: 'POST',
+    token: staff.token,
+    body: {
+      title: `${tag} too many`,
+      body: 'This one asks for more email than the day has left.',
+      audienceType: 'college',
+      audienceCollegeId: collegeA.id,
+      sendNow: true,
+      sendEmail: true
+    }
+  })
+  check('an email send over the budget is refused (409)', r._s === 409, `${r._s} ${JSON.stringify(r._b)}`)
+  if (r._s === 201) made.announcementIds.push(r._b?.announcement?.id)
+  check('the refusal names the audience and the remaining budget', typeof r._b?.error === 'string' && r._b.error.includes('2 people') && r._b.error.includes('0 of today\'s'), String(r._b?.error))
+  check('nothing was written as an announcement', (await prisma.announcement.count({ where: { title: `${tag} too many` } })) === 0)
+  check('nobody was notified and no mail went out', (await notesFor(insideA.id)).length === beforeRefusal && (await capturedEmails()).filter(m => m.to === insideA.email).length === 0)
+  const refusalAudit = await prisma.auditLog.findFirst({
+    where: { action: 'announcement_email_refused', performedBy: staff.id },
+    orderBy: { createdAt: 'desc' }
+  })
+  check('the refusal is recorded with its numbers', !!refusalAudit && (refusalAudit.details ?? '').includes('"recipients":2') && (refusalAudit.details ?? '').includes('"remaining":0'), String(refusalAudit?.details))
+
+  // The other send path — sending a saved draft now — must refuse the same way
+  // and leave the draft untouched.
+  const savedDraft = await api('/api/announcements', {
+    method: 'POST',
+    token: staff.token,
+    body: {
+      title: `${tag} too many draft`,
+      body: 'Saved now, but it asks for more email than the day has left.',
+      audienceType: 'college',
+      audienceCollegeId: collegeA.id
+    }
+  })
+  const savedDraftId = savedDraft._b?.announcement?.id
+  if (savedDraft._s === 201) made.announcementIds.push(savedDraftId)
+  check('a draft for the over-budget check is saved (201)', savedDraft._s === 201 && savedDraft._b?.announcement?.status === 'draft', `${savedDraft._s}`)
+  r = await api(`/api/announcements/${savedDraftId}/send`, { method: 'POST', token: staff.token, body: { sendEmail: true } })
+  check('sending a saved draft by email over budget is refused too (409)', r._s === 409, `${r._s} ${JSON.stringify(r._b)}`)
+  check('and the draft stays a draft', !!savedDraftId && (await prisma.announcement.findUnique({ where: { id: savedDraftId } }))?.status === 'draft')
+
+  r = await api('/api/announcements', {
+    method: 'POST',
+    token: staff.token,
+    body: {
+      title: `${tag} inbox only`,
+      body: 'The inbox still works when the email budget is spent.',
+      audienceType: 'college',
+      audienceCollegeId: collegeA.id,
+      sendNow: true
+    }
+  })
+  if (r._s === 201) made.announcementIds.push(r._b?.announcement?.id)
+  check('an inbox-only send is unaffected (201, 2 reached)', r._s === 201 && r._b?.dispatch?.recipients === 2, `${r._s} ${JSON.stringify(r._b?.dispatch)}`)
+  check('and it mailed nobody', (await capturedEmails()).filter(m => m.to === insideA.email).length === 0)
+
+  await prisma.emailSend.deleteMany({ where: { kind: quotaTag } })
+  r = await api(`/api/announcements/preview?audienceType=college&audienceCollegeId=${collegeA.id}`, { token: staff.token })
+  check('the counter returns once the test rows are gone', r._s === 200 && r._b?.quota?.known === true && r._b?.quota?.remaining > 0, `${r._s} ${JSON.stringify(r._b?.quota)}`)
+
   console.log('\n--- an audience in use protects the college ---')
   r = await api('/api/reference/colleges', { method: 'DELETE', token: manager.token, body: { id: collegeA.id } })
   check('the college an announcement targets cannot be deleted (409)', r._s === 409, `${r._s} ${JSON.stringify(r._b)}`)
@@ -205,6 +324,7 @@ async function main() {
 
 async function cleanup() {
   console.log('\nCleaning up throwaway data...')
+  await prisma.emailSend.deleteMany({ where: { kind: { startsWith: `${tag}-quota` } } }).catch(() => {})
   for (const id of made.announcementIds) {
     await prisma.notification.deleteMany({ where: { dedupeKey: { contains: id } } })
     await prisma.announcement.delete({ where: { id } }).catch(() => {})
