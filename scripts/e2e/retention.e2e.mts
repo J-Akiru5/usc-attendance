@@ -85,6 +85,11 @@ async function main() {
     if (x._b?.id) semIds.push(x._b.id)
     return x
   }
+  // A killed run cannot clean up after itself, and this suite always uses the
+  // same 2001 dates, so a stale semester from an earlier run would make every
+  // later run fail with "dates overlap". Clear any leftover test semesters
+  // first; only names beginning with e2e are touched.
+  await prisma.semester.deleteMany({ where: { name: { startsWith: 'e2e' } } })
   r = await mk(`${tag} S1`, '2001-01-01', '2001-07-01')
   check('define semester 1 (201)', r._s === 201, `${r._s} ${JSON.stringify(r._b)}`)
   r = await mk(`${tag} S2`, '2001-07-01', '2002-01-01')
