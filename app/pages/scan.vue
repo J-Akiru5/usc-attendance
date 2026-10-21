@@ -6,7 +6,15 @@ import { useGeolocation } from '@/composables/useGeolocation'
 import { useScanQueue } from '@/composables/useScanQueue'
 import { useAuthStore } from '@/stores/auth'
 import { classifyScan, findExactStudent } from '@/utils/scan'
-import { startStudentScanner, type ScannerHandle } from '@/utils/scanner-engine'
+import {
+  feedbackFor,
+  scanFailureState,
+  startStudentScanner,
+  vibrateFeedback,
+  type ScanFeedback,
+  type ScanFeedbackState,
+  type ScannerHandle
+} from '@/utils/scanner-engine'
 import { canQueueScan, scanIdempotencyKey, storageAdvice, unacknowledgedRefusals } from '@/utils/scan-queue'
 import type { QueuedScan } from '@/utils/scan-queue'
 import Card from '@/components/ui/Card.vue'
@@ -67,7 +75,25 @@ const storageState = computed(() => {
 const showStorageNotice = computed(() => !!storage.value?.requested || storageState.value.lowSpace)
 
 const scanning = ref(false)
-const result = ref<{ kind: 'ok' | 'warn' | 'error', message: string } | null>(null)
+/**
+ * T-0012: the banner is driven by the pure outcome mapping, so every path that
+ * reports an outcome gets the same label, tone and vibration pattern.
+ */
+const result = ref<{ feedback: ScanFeedback, message: string } | null>(null)
+const resultTone = computed(() => {
+  switch (result.value?.feedback.tone) {
+    case 'success':
+      return 'border-success bg-success/10 text-success'
+    case 'warning':
+      return 'border-gold bg-gold/10 text-navy'
+    case 'info':
+      return 'border-navy bg-navy/10 text-navy'
+    case 'danger':
+      return 'border-danger bg-danger/10 text-danger'
+    default:
+      return ''
+  }
+})
 const candidates = ref<LookupStudent[]>([])
 /** Why an officer is recording by hand; required for `method: 'manual'`. */
 const manualReason = ref('')
@@ -84,6 +110,11 @@ const photoMissing = ref(0)
 const MAX_PHOTO_BYTES = 1_572_864
 const scannerRef = ref<HTMLDivElement | null>(null)
 let scanner: ScannerHandle | null = null
+// T-0012: the torch control only exists when the live camera track reports one.
+// iOS Safari does not expose torch support, so there it never renders.
+const torchSupported = ref(false)
+const torchOn = ref(false)
+const torchBusy = ref(false)
 
 // A camera fires the same code many times a second; one scan per two seconds is
 // plenty and keeps a queue from forming.
@@ -128,8 +159,51 @@ async function position(): Promise<{ lat: number | null, lng: number | null, acc
   }
 }
 
-function say(kind: 'ok' | 'warn' | 'error', message: string) {
-  result.value = { kind, message }
+/**
+ * Shows the outcome and, where the phone has the Vibration API, buzzes the
+ * pattern for it. The vibration is best-effort: a missing or refusing API is
+ * silent and never turns a recorded scan into an error.
+ */
+function say(state: ScanFeedbackState, message: string) {
+  result.value = { feedback: feedbackFor(state), message }
+  vibrateFeedback(state)
+}
+
+/** A thrown scan failure, split into the banner's outcome and its sentence. */
+function failureFeedback(error: unknown): { state: ScanFeedbackState, message: string } {
+  const message = error instanceof Error ? error.message : 'Scan failed'
+  return {
+    state: scanFailureState({
+      ...(error instanceof ApiError ? { status: error.status } : {}),
+      message
+    }),
+    message
+  }
+}
+
+/**
+ * T-0012: tries the torch and, if the platform refuses the constraint, hides
+ * the control instead of reporting an error over the camera. The scan keeps
+ * running either way.
+ */
+async function toggleTorch() {
+  if (!scanner || !torchSupported.value || torchBusy.value) return
+  torchBusy.value = true
+  const next = !torchOn.value
+  try {
+    const applied = await scanner.setTorch(next)
+    if (applied) {
+      torchOn.value = next
+    } else {
+      torchOn.value = false
+      torchSupported.value = false
+    }
+  } catch {
+    torchOn.value = false
+    torchSupported.value = false
+  } finally {
+    torchBusy.value = false
+  }
 }
 
 // --- T-0009: student-ID photo capture ---------------------------------------
@@ -344,14 +418,14 @@ async function syncNow() {
   }
   const result = await flush(sendQueued, officerId.value)
   if (result.outcome === 'locked') {
-    say('error', result.message)
+    say('refused', result.message)
     return
   }
   if (result.outcome === 'throttled') {
-    say('warn', 'The server has paused scanning for this account for now. Everything is still queued on this phone and will retry after the pause.')
+    say('queued', 'The server has paused scanning for this account for now. Everything is still queued on this phone and will retry after the pause.')
     return
   }
-  if (pending.value.length === 0 && refused.value.length === 0) say('ok', 'Everything is synced.')
+  if (pending.value.length === 0 && refused.value.length === 0) say('recorded', 'Everything is synced.')
 }
 
 async function queueOffline(scan: Omit<QueuedScan, 'id'>): Promise<boolean> {
@@ -360,14 +434,14 @@ async function queueOffline(scan: Omit<QueuedScan, 'id'>): Promise<boolean> {
     return false
   }
   if (locked.value) {
-    say('error', lockMessage.value)
+    say('refused', lockMessage.value)
     return false
   }
 
   // Refuse loudly at the hard cap rather than growing an unrecoverable queue.
   const room = canQueueScan(pending.value.length)
   if (!room.allowed) {
-    say('error', room.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
+    say('refused', room.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
     return false
   }
 
@@ -378,10 +452,10 @@ async function queueOffline(scan: Omit<QueuedScan, 'id'>): Promise<boolean> {
 
   const stored = await enqueue({ ...scan, id: crypto.randomUUID() }, officerId.value)
   if (!stored.allowed) {
-    say('error', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
+    say('refused', stored.message ?? 'This phone is full of unsynced scans. Sync before scanning more.')
     return false
   }
-  say('warn', 'No signal — saved on this phone and sent automatically when the connection is back.')
+  say('queued', 'No signal — saved on this phone and sent automatically when the connection is back.')
   return true
 }
 
@@ -464,11 +538,11 @@ async function record(userId: string, method: 'manual' | 'barcode', name: string
     clearManualPhoto()
     const who = row.user?.name ?? name
     if (method === 'manual' && !capturedPhoto) {
-      say('warn', `Check-in recorded for ${who}. No ID photo was captured — the entry records that evidence as missing.`)
+      say('recorded', `Check-in recorded for ${who}. No ID photo was captured — the entry records that evidence as missing.`)
     } else if (photoProblem) {
-      say('warn', `Check-in recorded for ${who}. The ID photo was not attached: ${photoProblem}`)
+      say('recorded', `Check-in recorded for ${who}. The ID photo was not attached: ${photoProblem}`)
     } else {
-      say('ok', `${method === 'barcode' ? 'ID scanned — check-in recorded' : 'Check-in recorded'} for ${who}`)
+      say('recorded', `${method === 'barcode' ? 'ID scanned — check-in recorded' : 'Check-in recorded'} for ${who}`)
     }
   } catch (error) {
     if (!isOfflineError(error)) throw error
@@ -513,7 +587,7 @@ async function scanQr(token: string) {
       accuracy: pos.accuracy,
       idempotencyKey
     })
-    say('ok', `Check-in recorded for ${response.user?.name ?? 'the student'}`)
+    say('recorded', `Check-in recorded for ${response.user?.name ?? 'the student'}`)
   } catch (error) {
     if (!isOfflineError(error)) throw error
     await queueOffline({
@@ -528,9 +602,19 @@ async function scanQr(token: string) {
   }
 }
 
+/** A chosen candidate is still a real check-in attempt; report it the same way. */
+async function recordCandidate(student: LookupStudent) {
+  try {
+    await record(student.id, 'barcode', student.name)
+  } catch (err: unknown) {
+    const failed = failureFeedback(err)
+    say(failed.state, failed.message)
+  }
+}
+
 async function handleScan(decodedText: string) {
   if (locked.value) {
-    say('error', lockMessage.value)
+    say('refused', lockMessage.value)
     return
   }
   if (Date.now() < cooldownUntil.value) return
@@ -548,7 +632,7 @@ async function handleScan(decodedText: string) {
     }
 
     if (!eventId.value) {
-      say('warn', 'Pick the event above first — then the ID can be scanned.')
+      say('refused', 'Pick the event above first — then the ID can be scanned.')
       return
     }
 
@@ -561,14 +645,15 @@ async function handleScan(decodedText: string) {
 
     if (found.students.length > 0) {
       candidates.value = found.students
-      say('warn', `No exact student number match for “${found.query}” — pick the right person below.`)
+      say('refused', `No exact student number match for “${found.query}” — pick the right person below.`)
       return
     }
 
     // Nothing matched as a number; it may still be a token the classifier found odd.
     await scanQr(decodedText)
   } catch (err: unknown) {
-    say('error', err instanceof Error ? err.message : 'Scan failed')
+    const failed = failureFeedback(err)
+    say(failed.state, failed.message)
   } finally {
     scanning.value = false
   }
@@ -681,6 +766,8 @@ onMounted(async () => {
       scanner = await startStudentScanner('qr-scanner', (decodedText: string) => {
         handleScan(decodedText)
       })
+      // Only render the control when the live track reports a torch.
+      torchSupported.value = scanner.torchSupported
     }
   } catch {
     say('error', 'Camera access required for scanning')
@@ -694,6 +781,8 @@ onUnmounted(() => {
     void scanner.stop()
     scanner = null
   }
+  torchSupported.value = false
+  torchOn.value = false
 })
 </script>
 
@@ -750,13 +839,31 @@ onUnmounted(() => {
     <!-- Camera viewport -->
     <Card>
       <CardContent class="p-4">
-        <div
-          id="qr-scanner"
-          ref="scannerRef"
-          class="w-full rounded-xl overflow-hidden"
-          role="group"
-          aria-label="Camera preview"
-        />
+        <div class="relative">
+          <div
+            id="qr-scanner"
+            ref="scannerRef"
+            class="w-full rounded-xl overflow-hidden"
+            role="group"
+            aria-label="Camera preview"
+          />
+          <!-- T-0012: rendered only when the live track reports a torch. -->
+          <button
+            v-if="torchSupported"
+            type="button"
+            class="absolute right-2 top-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-sm font-bold shadow-lg disabled:opacity-60"
+            :class="torchOn
+              ? 'border-gold bg-gold text-navy-deep'
+              : 'border-white/30 bg-navy-deep/80 text-white'"
+            :aria-pressed="torchOn"
+            :aria-label="torchOn ? 'Turn torch off' : 'Turn torch on'"
+            :disabled="torchBusy"
+            @click="toggleTorch"
+          >
+            <span class="mr-1.5 h-2 w-2 rounded-full" :class="torchOn ? 'bg-navy-deep' : 'bg-white'" aria-hidden="true" />
+            Torch
+          </button>
+        </div>
         <div v-if="!scannerRef" class="text-center py-12 text-slate text-sm">
           Initializing camera...
         </div>
@@ -775,22 +882,31 @@ onUnmounted(() => {
       </Badge>
     </div>
 
-    <!-- Result -->
+    <!-- Result: large enough to read at arm's length in daylight (T-0012). -->
     <div
       v-if="result"
-      :role="result.kind === 'error' ? 'alert' : 'status'"
-      :aria-live="result.kind === 'error' ? 'assertive' : 'polite'"
+      data-testid="scan-result"
+      :role="result.feedback.assertive ? 'alert' : 'status'"
+      :aria-live="result.feedback.assertive ? 'assertive' : 'polite'"
       aria-atomic="true"
       :class="[
-        'rounded-xl border-l-4 px-4 py-3 text-sm font-medium',
-        result.kind === 'ok'
-          ? 'border-success bg-success/10 text-success'
-          : result.kind === 'warn'
-            ? 'border-gold bg-gold/10 text-navy'
-            : 'border-danger bg-danger/10 text-danger'
+        'rounded-xl border-l-4 px-4 py-4 text-base font-semibold shadow-sm',
+        resultTone
       ]"
     >
-      {{ result.message }}
+      <div class="flex items-start gap-3">
+        <span class="mt-0.5 shrink-0 text-2xl leading-none" aria-hidden="true">
+          {{ result.feedback.glyph }}
+        </span>
+        <div class="min-w-0">
+          <p class="text-lg font-bold leading-tight">
+            {{ result.feedback.label }}
+          </p>
+          <p class="mt-1 text-base font-medium leading-snug">
+            {{ result.message }}
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- Ambiguous scan: let the officer choose -->
@@ -805,7 +921,7 @@ onUnmounted(() => {
           type="button"
           class="min-h-11 w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-paper disabled:opacity-50"
           :disabled="scanning"
-          @click="record(student.id, 'barcode', student.name)"
+          @click="recordCandidate(student)"
         >
           <span class="font-semibold text-navy">{{ student.name }}</span>
           <span class="ml-2 font-mono text-xs text-slate">{{ student.studentNo || 'no number' }}</span>
