@@ -95,7 +95,11 @@ async function main() {
   check('non-manager cannot add a semester (403)', r._s === 403, `${r._s}`)
 
   console.log('\n--- purge by semester ---')
-  const ev = await prisma.event.create({ data: { title: `${tag} old event`, date: new Date('2001-03-01T01:00:00Z'), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: staff.id } })
+  // This suite tests signature retention, not fines. Marking the events as
+  // already processed keeps the fines cron from treating a deliberately
+  // backdated fixture as a real event and charging its whole audience - which
+  // is exactly what happened when a killed run left one behind.
+  const ev = await prisma.event.create({ data: { title: `${tag} old event`, date: new Date('2001-03-01T01:00:00Z'), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: staff.id, finesIssuedAt: new Date() } })
   eventIds.push(ev.id)
   const mkSig = async (userId: string, at: string) => {
     const a = await prisma.attendance.create({ data: { type: 'event', eventId: ev.id, userId, method: 'qr', recordedBy: staff.id, checkOutAt: new Date() } })
@@ -104,7 +108,7 @@ async function main() {
   }
   const inS1 = await mkSig(studentA.id, '2001-03-05T02:00:00Z')
   const inS2 = await mkSig(studentB.id, '2001-09-05T02:00:00Z')
-  const evNow = await prisma.event.create({ data: { title: `${tag} current event`, date: new Date(), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: staff.id } })
+  const evNow = await prisma.event.create({ data: { title: `${tag} current event`, date: new Date(), lat: 10.72, lng: 122.56, radiusMeters: 50, createdBy: staff.id, finesIssuedAt: new Date() } })
   eventIds.push(evNow.id)
   const aNow = await prisma.attendance.create({ data: { type: 'event', eventId: evNow.id, userId: studentA.id, method: 'qr', recordedBy: staff.id } })
   await prisma.attendanceSignature.create({ data: { attendanceId: aNow.id, png: new Uint8Array(PNG), sha256: randomBytes(32).toString('hex') } })
