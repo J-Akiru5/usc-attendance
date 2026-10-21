@@ -191,11 +191,21 @@ async function main() {
   check('and by default it did not email anyone', mails.filter(m => m.to === insideA.email).length === 0, `${mails.filter(m => m.to === insideA.email).length} mails`)
 
   // The explicit opt-in does email, subject to the quota and to preferences.
-  const emailOpt = await api('/api/announcements', {
-    method: 'POST',
-    token: staff.token,
-    body: { title: `${tag} by mail`, body: 'This one goes to email too.', sendNow: true, sendEmail: true }
-  })
+  // BC-12 refuses a send when the day's budget cannot be read. That is correct
+  // but not what this suite tests, so retry only that refusal; a genuine
+  // over-budget answer still fails the check below.
+  const budgetUnreadable = (res: Awaited<ReturnType<typeof api>>) =>
+    res._s === 409 && /could not be checked/i.test(String((res._b as { error?: string } | null)?.error ?? ''))
+  const sendOptIn = async (body: Record<string, unknown>) => {
+    let res = await api('/api/announcements', { method: 'POST', token: staff.token, body })
+    for (let attempt = 0; attempt < 2 && budgetUnreadable(res); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      res = await api('/api/announcements', { method: 'POST', token: staff.token, body })
+    }
+    return res
+  }
+
+  const emailOpt = await sendOptIn({ title: `${tag} by mail`, body: 'This one goes to email too.', sendNow: true, sendEmail: true })
   if (emailOpt._s === 201) made.announcementIds.push(emailOpt._b?.announcement?.id)
   check('an explicit email opt-in mails the audience (201)', emailOpt._s === 201 && (emailOpt._b?.dispatch?.emails ?? 0) >= 4, `${emailOpt._s} ${JSON.stringify(emailOpt._b?.dispatch)}`)
   const optedMails = await capturedEmails()
@@ -204,11 +214,7 @@ async function main() {
   // Unsubscribing from email is honoured (the other half of the acceptance).
   await api('/api/notifications/preferences', { method: 'PUT', token: outside.token, body: { email: false } })
   await clearCapturedEmails()
-  r = await api('/api/announcements', {
-    method: 'POST',
-    token: staff.token,
-    body: { title: `${tag} quiet please`, body: 'Another notice.', sendNow: true, sendEmail: true }
-  })
+  r = await sendOptIn({ title: `${tag} quiet please`, body: 'Another notice.', sendNow: true, sendEmail: true })
   if (r._s === 201) made.announcementIds.push(r._b?.announcement?.id)
   const afterOptOut = await capturedEmails()
   check('an unsubscribed student is not mailed', afterOptOut.filter(m => m.to === outside.email).length === 0, `${afterOptOut.filter(m => m.to === outside.email).length}`)
