@@ -144,7 +144,11 @@ onMounted(load)
         <NuxtLink to="/privacy" class="font-semibold text-navy underline">
           privacy notice
         </NuxtLink>
-        explains why each record exists.
+        explains why each record exists; the
+        <NuxtLink to="/privacy-rights" class="font-semibold text-navy underline">
+          privacy &amp; rights guide
+        </NuxtLink>
+        explains what is recorded, for how long and how each right works.
       </p>
     </div>
 
@@ -158,7 +162,7 @@ onMounted(load)
     <Card>
       <CardContent class="p-4 md:p-6 space-y-4">
         <div>
-          <h2 class="font-bold text-navy">
+          <h2 id="download" class="scroll-mt-24 font-bold text-navy">
             Download my data
           </h2>
           <p class="text-sm text-slate mt-1">
@@ -187,7 +191,7 @@ onMounted(load)
     <Card>
       <CardContent class="p-4 md:p-6 space-y-4">
         <div>
-          <h2 class="font-bold text-navy">
+          <h2 id="correction" class="scroll-mt-24 font-bold text-navy">
             Ask for a correction
           </h2>
           <p class="text-sm text-slate mt-1">

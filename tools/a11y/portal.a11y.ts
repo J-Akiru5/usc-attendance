@@ -60,7 +60,8 @@ const SIGNED_IN_ROUTES: PortalRoute[] = [
   { path: '/check-in' },
   { path: '/qr' },
   { path: '/duty' },
-  { path: '/change-password' }
+  { path: '/change-password' },
+  { path: '/privacy-rights' }
 ]
 
 const hasCredentials = Boolean(process.env.A11Y_EMAIL && process.env.A11Y_PASSWORD)
