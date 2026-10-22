@@ -106,7 +106,7 @@ A dedicated **private** Cloudflare R2 bucket `usc-attendance-photos` exists (APA
 access is disabled: the managed `r2.dev` domain reports `enabled: false`. The server credentials are
 set in Vercel production (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
 `ATTENDANCE_PHOTO_BUCKET`, `ATTENDANCE_PHOTO_STORAGE=r2`), each verified by pulling it back and by
-calling the application own store check, which answers `backend=r2` and `problem=none`. The backend was
+calling the application's own store check, which answers `backend=r2` and `problem=none`. The backend was
 proven with a real write, a presigned read that returned the object, and a delete of the throwaway key.
 Retention defaults to 90 days and the purge deletes the object before clearing the row columns.
 
