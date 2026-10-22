@@ -100,7 +100,18 @@ Still outstanding at cutover, by decision rather than omission: `SITE_URL` and t
 letterhead for the PDF twin.
 
 > **Set from the CLI on 2026-10-20** (production environment, values verified by pulling them back): `CRON_SECRET` (64 hex, identical to the repository secret and the local `.env`), `SITE_URL=https://usc.syntaxure.dev`, and `AUDIT_IP_SALT` (48 hex - it was missing entirely, so audit rows were storing no address hash). Environment changes take effect on the next production deployment, which is the cutover. The Supabase Auth URL configuration below is **not** done: the USC project is not in this account's Supabase CLI project list, so it needs the dashboard. The repository variable `SITE_URL` is now set with `gh variable set` (2026-10-22), so the three scheduled cron workflows are live; until the cutover deploy they call the pre-rebuild app and may 404 harmlessly.
-## Outstanding owner step: attendance photo storage (2026-10-21)
+## Attendance photo storage - done (2026-10-22)
+
+A dedicated **private** Cloudflare R2 bucket `usc-attendance-photos` exists (APAC, Standard). Public
+access is disabled: the managed `r2.dev` domain reports `enabled: false`. The server credentials are
+set in Vercel production (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+`ATTENDANCE_PHOTO_BUCKET`, `ATTENDANCE_PHOTO_STORAGE=r2`), each verified by pulling it back and by
+calling the application own store check, which answers `backend=r2` and `problem=none`. The backend was
+proven with a real write, a presigned read that returned the object, and a delete of the throwaway key.
+Retention defaults to 90 days and the purge deletes the object before clearing the row columns.
+
+The R2 keys were scoped to this bucket only (Object Read & Write). They are production secrets:
+rotate them in the R2 console and update Vercel in one step if they are ever exposed.
 
 Manual check-ins can carry a photo of the student ID, but only into a **dedicated private bucket**.
 The code refuses the public event-photo bucket by name and, with no bucket configured, returns 503 and
