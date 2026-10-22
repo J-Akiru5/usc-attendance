@@ -76,8 +76,23 @@ async function cleanupLeftovers(): Promise<void> {
       await prisma.event.delete({ where: { id: event.id } }).catch(() => {})
     }
     const semesters = await prisma.semester.deleteMany({ where: { name: { startsWith: 'e2e' } } })
-    if (events.length > 0 || semesters.count > 0) {
-      console.log(`[e2e] cleared ${events.length} leftover test event(s) and ${semesters.count} test semester(s)`)
+    // Leftover throwaway accounts inflate year-level and top-attendee counts.
+    // Remove them in dependency order, best-effort: anything still referenced
+    // is left alone rather than forced.
+    const users = await prisma.user.findMany({ where: { email: { endsWith: '@example.invalid' } }, select: { id: true } })
+    let removedUsers = 0
+    for (const user of users) {
+      await prisma.notification.deleteMany({ where: { OR: [{ userId: user.id }, { createdBy: user.id }] } }).catch(() => {})
+      await prisma.notificationPreference.deleteMany({ where: { userId: user.id } }).catch(() => {})
+      await prisma.auditLog.deleteMany({ where: { OR: [{ userId: user.id }, { performedBy: user.id }] } }).catch(() => {})
+      await prisma.studentProfile.deleteMany({ where: { userId: user.id } }).catch(() => {})
+      await prisma.fine.deleteMany({ where: { userId: user.id } }).catch(() => {})
+      await prisma.attendance.deleteMany({ where: { userId: user.id } }).catch(() => {})
+      const gone = await prisma.user.delete({ where: { id: user.id } }).then(() => true).catch(() => false)
+      if (gone) removedUsers++
+    }
+    if (events.length > 0 || semesters.count > 0 || removedUsers > 0) {
+      console.log(`[e2e] cleared ${events.length} leftover test event(s), ${semesters.count} test semester(s) and ${removedUsers} throwaway user(s)`)
     }
   } finally {
     await prisma.$disconnect().catch(() => {})
@@ -377,8 +392,13 @@ async function main(): Promise<void> {
     console.log('[e2e] dev server ready')
 
     const suites = ['export.e2e.mts', 'delegation.e2e.mts', 'academic.e2e.mts', 'rbac.e2e.mts', 'tables.e2e.mts', 'events.e2e.mts', 'registrations.e2e.mts', 'recurrence.e2e.mts', 'scanner.e2e.mts', 'offline.e2e.mts', 'scan-integrity.e2e.mts', 'audience.e2e.mts', 'notifications.e2e.mts', 'announcements.e2e.mts', 'fines.e2e.mts', 'excuses.e2e.mts', 'documents.e2e.mts', 'document-redaction.e2e.mts', 'payments.e2e.mts', 'cancellation.e2e.mts', 'analytics.e2e.mts', 'roster-freeze.e2e.mts', 'health.e2e.mts', 'retention.e2e.mts', 'students.e2e.mts', 'privacy.e2e.mts', 'audit.e2e.mts']
+    // A stalled database call can freeze one suite for an hour. E2E_ONLY lets a
+    // long run be split into chunks, so a stall costs a chunk rather than the batch.
+    const only = (process.env.E2E_ONLY ?? '').split(',').map(entry => entry.trim()).filter(Boolean)
+    const selected = only.length > 0 ? suites.filter(suite => only.includes(suite)) : suites
+    if (only.length > 0) console.log(`[e2e] running ${selected.length} selected suite(s): ${selected.join(', ')}`)
     const failures: string[] = []
-    for (const suite of suites) {
+    for (const suite of selected) {
       console.log(`\n[e2e] === ${suite} ===`)
 
       // A database hiccup usually shows up as a 500 from the dev server, so the
