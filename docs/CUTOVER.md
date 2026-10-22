@@ -86,7 +86,7 @@ These are the gates that were actually run and observed, not planned:
 - **Public parity 28/28.** `tools/public-parity` compared the live site against a production build of
   this tree: 14 routes x 2 viewports, content outline and pixels (0.05% tolerance). Nothing on the
   frozen public site moved.
-- **Live batch 27 suites / 800 checks**, zero failures, zero retries, against the dev database after
+- **Live batch 27 suites / 820 checks**, zero failures, zero retries, run in three chunks with ``E2E_ONLY`` (a stalled DB call had frozen one full run for 54 minutes) against the dev database after
   all 34 migrations were applied.
 - **Offline-queue golden path green in CI.** It builds the app and serves `.output`; a dev server
   never became reachable inside the CI readiness budget, so the gate does not use one.
