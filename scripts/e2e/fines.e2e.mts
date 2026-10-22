@@ -59,6 +59,15 @@ async function main() {
 
   const secret = process.env.CRON_SECRET!
 
+  // The global rule persists between runs, so a previous run's monetary rule
+  // would make the "defaults" checks describe history instead of the product.
+  // Restore the documented default first (D-01: no charge without a citation).
+  await api('/api/settings/fines', {
+    method: 'PUT',
+    token: manager.token,
+    body: { absentCentavos: 5000, lateCentavos: 2500, lateAfterMinutes: 15, sanctionType: 'warning', effectiveFrom: '2026-08-01T00:00:00Z' }
+  })
+
   console.log('\n--- the rules ---')
   let r = await api('/api/settings/fines', { token: staff.token })
   check('a plain officer cannot read the rates (403)', r._s === 403, `${r._s}`)

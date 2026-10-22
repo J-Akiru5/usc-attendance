@@ -59,6 +59,31 @@ function ensurePrismaClient(): void {
  * suite then dies at its first user with a wall of Prisma traces. One clear
  * check up front turns that into a single message (and waits out a slow start).
  */
+/**
+ * A run that is killed cannot clean up after itself, and the next run then
+ * inherits its events, fines and semesters - which is how a backdated fixture
+ * once billed a whole cohort. Clear only test fixtures before starting:
+ * e2e-prefixed events (with their fines and attendance) and e2e semesters.
+ * Real rows and real settings are never touched here.
+ */
+async function cleanupLeftovers(): Promise<void> {
+  const prisma = new PrismaClient()
+  try {
+    const events = await prisma.event.findMany({ where: { title: { startsWith: 'e2e' } }, select: { id: true } })
+    for (const event of events) {
+      await prisma.fine.deleteMany({ where: { eventId: event.id } })
+      await prisma.attendance.deleteMany({ where: { eventId: event.id } })
+      await prisma.event.delete({ where: { id: event.id } }).catch(() => {})
+    }
+    const semesters = await prisma.semester.deleteMany({ where: { name: { startsWith: 'e2e' } } })
+    if (events.length > 0 || semesters.count > 0) {
+      console.log(`[e2e] cleared ${events.length} leftover test event(s) and ${semesters.count} test semester(s)`)
+    }
+  } finally {
+    await prisma.$disconnect().catch(() => {})
+  }
+}
+
 async function waitForDatabase(timeoutMs: number): Promise<void> {
   const prisma = new PrismaClient()
   const startedAt = Date.now()
@@ -347,6 +372,7 @@ async function main(): Promise<void> {
     // only ever passes once Nitro (not Nuxt's boot page) answers.
     ensurePrismaClient()
     await waitForDatabase(180000)
+    await cleanupLeftovers()
     await waitForServer(baseUrl, 600000)
     console.log('[e2e] dev server ready')
 

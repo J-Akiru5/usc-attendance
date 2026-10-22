@@ -64,7 +64,7 @@ async function main() {
   if (!sectionA) {
     const program = await prisma.program.findFirst({ select: { id: true } })
     if (program) {
-      sectionA = await prisma.section.create({ data: { programId: program.id, yearLevel: 2, name: `${tag} sec` } })
+      sectionA = await prisma.section.create({ data: { programId: program.id, yearLevel: 8, name: `${tag} sec` } })
       made.sectionIds.push(sectionA.id)
     }
   }
@@ -74,9 +74,9 @@ async function main() {
   const insideA = await mkUser('insidea', { role: 'student' })
   const insideB = await mkUser('insideb', { role: 'student' })
   const outside = await mkUser('outside', { role: 'student' })
-  await prisma.studentProfile.create({ data: { userId: insideA.id, studentNo: `${tag.slice(-7)}1`, collegeId: collegeA.id, yearLevel: 2, sectionId: sectionA?.id ?? null } })
-  await prisma.studentProfile.create({ data: { userId: insideB.id, studentNo: `${tag.slice(-7)}2`, collegeId: collegeA.id, yearLevel: 3 } })
-  await prisma.studentProfile.create({ data: { userId: outside.id, studentNo: `${tag.slice(-7)}3`, collegeId: collegeB?.id ?? null, yearLevel: 2 } })
+  await prisma.studentProfile.create({ data: { userId: insideA.id, studentNo: `${tag.slice(-7)}1`, collegeId: collegeA.id, yearLevel: 8, sectionId: sectionA?.id ?? null } })
+  await prisma.studentProfile.create({ data: { userId: insideB.id, studentNo: `${tag.slice(-7)}2`, collegeId: collegeA.id, yearLevel: 9 } })
+  await prisma.studentProfile.create({ data: { userId: outside.id, studentNo: `${tag.slice(-7)}3`, collegeId: collegeB?.id ?? null, yearLevel: 8 } })
 
   const notesFor = (userId: string) => prisma.notification.findMany({ where: { userId, kind: 'announcement' }, orderBy: { createdAt: 'desc' } })
 
@@ -95,10 +95,10 @@ async function main() {
   r = await api(`/api/announcements/preview?audienceType=college&audienceCollegeId=${collegeA.id}`, { token: staff.token })
   check('one college counts only its own students (2)', r._s === 200 && r._b?.eligible === 2, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
 
-  r = await api('/api/announcements/preview?audienceType=yearLevel&audienceYearLevel=2', { token: staff.token })
+  r = await api('/api/announcements/preview?audienceType=yearLevel&audienceYearLevel=8', { token: staff.token })
   check('one year level counts only that year (2)', r._s === 200 && r._b?.eligible === 2, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
 
-  r = await api('/api/announcements/preview?audienceType=yearLevel&audienceYearLevel=3', { token: staff.token })
+  r = await api('/api/announcements/preview?audienceType=yearLevel&audienceYearLevel=9', { token: staff.token })
   check('a different year counts only its own (1)', r._s === 200 && r._b?.eligible === 1, `${r._s} ${JSON.stringify(r._b?.eligible)}`)
 
   if (sectionA) {
