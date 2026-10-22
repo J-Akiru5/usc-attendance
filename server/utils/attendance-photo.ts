@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, resolve, sep } from 'node:path'
 import type { prisma } from './prisma'
-import { r2Client, r2Config } from './r2'
+import { r2Client, r2Credentials } from './r2'
 import { FUTURE_GRACE_MS, MAX_SYNC_AGE_MS } from './offline'
 
 /**
@@ -344,9 +344,9 @@ export function attendancePhotoStoreProblem(env: NodeJS.ProcessEnv = process.env
 
   const bucket = env.ATTENDANCE_PHOTO_BUCKET?.trim()
   if (!bucket) return 'ATTENDANCE_PHOTO_BUCKET is not configured'
-  const config = r2Config()
-  if (!config) return 'R2 credentials are not configured'
-  if (bucket === config.bucket) {
+  const credentials = r2Credentials()
+  if (!credentials) return 'R2 credentials are not configured'
+  if (bucket === env.R2_BUCKET_NAME?.trim()) {
     return 'ATTENDANCE_PHOTO_BUCKET must be a dedicated private bucket, not the public event-photo bucket'
   }
   return null
@@ -377,7 +377,7 @@ function filesystemAttendancePhotoStore(env: NodeJS.ProcessEnv): AttendancePhoto
 }
 
 function r2AttendancePhotoStore(bucket: string): AttendancePhotoStore | null {
-  const config = r2Config()
+  const config = r2Credentials()
   if (!config) return null
   const client = r2Client(config)
   return {

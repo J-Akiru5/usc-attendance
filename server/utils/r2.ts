@@ -12,17 +12,28 @@ export interface R2Config {
   bucket: string
 }
 
-/** Null when any of the four values is missing — callers decide what that means. */
+/** Null when any of the four values is missing - callers decide what that means. */
 export function r2Config(): R2Config | null {
+  const credentials = r2Credentials()
+  const bucket = process.env.R2_BUCKET_NAME
+  if (!credentials || !bucket) return null
+  return { ...credentials, bucket }
+}
+
+/**
+ * The R2 credentials on their own, without requiring the shared bucket name.
+ * A caller that stores into its own dedicated bucket (attendance photos) needs
+ * the keys and the account, not somebody else's bucket.
+ */
+export function r2Credentials(): Omit<R2Config, 'bucket'> | null {
   const accountId = process.env.R2_ACCOUNT_ID
   const accessKeyId = process.env.R2_ACCESS_KEY_ID
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
-  const bucket = process.env.R2_BUCKET_NAME
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket) return null
-  return { accountId, accessKeyId, secretAccessKey, bucket }
+  if (!accountId || !accessKeyId || !secretAccessKey) return null
+  return { accountId, accessKeyId, secretAccessKey }
 }
 
-export function r2Client(config: R2Config): S3Client {
+export function r2Client(config: Omit<R2Config, 'bucket'>): S3Client {
   return new S3Client({
     region: 'auto',
     endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
